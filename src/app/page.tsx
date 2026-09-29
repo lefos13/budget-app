@@ -1,69 +1,164 @@
-import Image from "next/image";
+'use client';
 
-export default function Home() {
-  return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
+import React from 'react';
+import {
+  Receipt,
+  FileText,
+  UserPlus,
+  Layers,
+  Calendar,
+} from 'lucide-react';
+import { useApp } from '@/context/AppContext';
+import { UrgentRemindersBanner } from '@/components/urgent-reminders-banner';
+import { BudgetOverviewCard } from '@/components/budget-overview-card';
+import { CategoryBreakdown } from '@/components/category-breakdown';
+import { UpcomingBillsCard } from '@/components/upcoming-bills-card';
+import { RecentExpensesCard } from '@/components/recent-expenses-card';
+import { PendingInvitesBanner } from '@/components/pending-invites-banner';
+
+export default function DashboardPage() {
+  const {
+    currentUser,
+    walletData,
+    isLoading,
+    setIsAddExpenseOpen,
+    setIsAddInvoiceOpen,
+    setIsInviteOpen,
+    setIsNewWalletOpen,
+  } = useApp();
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
+        <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+        <p className="text-sm font-semibold text-zinc-500">Loading your collaborative finances...</p>
+      </div>
+    );
+  }
+
+  if (!walletData) {
+    return (
+      <div className="max-w-xl mx-auto space-y-6 py-12 px-4">
+        <PendingInvitesBanner />
+        <div className="text-center py-10 px-4 rounded-3xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-md">
+          <div className="w-16 h-16 rounded-3xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mx-auto mb-4 border border-indigo-200/80 dark:border-indigo-800 shadow-md">
+            <Layers className="w-8 h-8" />
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-black text-zinc-900 dark:text-white tracking-tight">
+            Welcome to Aura Budget
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+          <p className="text-sm text-zinc-500 mt-2.5 mb-6 max-w-md mx-auto leading-relaxed">
+            Create your first wallet to track monthly budgets, manage upcoming invoice reminders, and collaborate seamlessly with your family, partner, or roommates.
           </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+          <button
+            type="button"
+            onClick={() => setIsNewWalletOpen(true)}
+            className="px-6 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm shadow-lg shadow-indigo-600/25 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
           >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
+            Create First Wallet
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const currentMonthName = new Date().toLocaleString('default', { month: 'long', year: 'numeric' });
+
+  return (
+    <div className="space-y-7">
+      {/* Targeted Pending Invites Banner */}
+      <PendingInvitesBanner />
+
+      {/* Top Welcome & Wallet Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-5 sm:p-6 rounded-3xl border border-zinc-200/90 dark:border-zinc-800 bg-white/95 dark:bg-zinc-900/90 shadow-sm">
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-0.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/70 text-indigo-600 dark:text-indigo-400 border border-indigo-200/80 dark:border-indigo-800/60">
+              <Calendar className="w-3 h-3" />
+              <span>{currentMonthName}</span>
+            </span>
+            <span className="text-xs text-zinc-300 dark:text-zinc-700">|</span>
+            <span className="text-xs font-semibold text-zinc-500">
+              Active as <strong className="text-zinc-800 dark:text-zinc-200">{currentUser?.name}</strong> ({walletData.userRole})
+            </span>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <span
+              className="w-3.5 h-3.5 rounded-full shadow-xs shrink-0"
+              style={{ backgroundColor: walletData.wallet.color }}
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-zinc-900 dark:text-white">
+              {walletData.wallet.name}
+            </h1>
+          </div>
         </div>
-      </main>
+
+        {/* Action Controls & Collaborators stack */}
+        <div className="flex flex-wrap items-center gap-2.5">
+          {/* Member avatars preview */}
+          <div className="flex items-center -space-x-2 mr-1">
+            {walletData.wallet.members?.slice(0, 3).map((m) => (
+              <div key={m.id} className="relative group" title={`${m.user?.name} (${m.role})`}>
+                {m.user?.avatarUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={m.user.avatarUrl}
+                    alt={m.user.name}
+                    className="w-8 h-8 rounded-full object-cover ring-2 ring-white dark:ring-zinc-900 shadow-xs"
+                  />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-zinc-200 dark:bg-zinc-800 ring-2 ring-white dark:ring-zinc-900 flex items-center justify-center text-xs font-bold">
+                    {m.user?.name?.slice(0, 1)}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setIsInviteOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-indigo-200 dark:border-indigo-800/80 bg-indigo-50/70 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 text-xs font-bold transition-all shadow-xs"
+          >
+            <UserPlus className="w-3.5 h-3.5" />
+            <span>Invite</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setIsAddExpenseOpen(true)}
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs shadow-emerald-600/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
+          >
+            <Receipt className="w-3.5 h-3.5" />
+            <span>+ Expense</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setIsAddInvoiceOpen(true)}
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold shadow-xs shadow-amber-600/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
+          >
+            <FileText className="w-3.5 h-3.5" />
+            <span>+ Bill</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Urgent Reminders Alert Banner (if overdue/imminent bills exist) */}
+      <UrgentRemindersBanner />
+
+      {/* Monthly Budget Overview Gauge */}
+      <BudgetOverviewCard />
+
+      {/* Main Grid: Upcoming Invoices & Recent Expenses */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-7">
+        <UpcomingBillsCard />
+        <RecentExpensesCard />
+      </div>
+
+      {/* Category Limits & Envelopes Breakdown */}
+      <CategoryBreakdown />
     </div>
   );
 }

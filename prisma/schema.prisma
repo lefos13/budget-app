@@ -1,0 +1,147 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  OWNER
+  MEMBER
+  VIEWER
+}
+
+enum BillStatus {
+  PENDING
+  PAID
+  OVERDUE
+}
+
+enum RecurrenceInterval {
+  NONE
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  YEARLY
+}
+
+model User {
+  id           String         @id @default(cuid())
+  email        String         @unique
+  name         String
+  passwordHash String?
+  avatarUrl    String?
+  memberships  WalletMember[]
+  expenses     Expense[]
+  paidBills    InvoiceBill[]  @relation("PaidByUser")
+  activityLogs ActivityLog[]
+  createdAt    DateTime       @default(now())
+}
+
+model Wallet {
+  id            String         @id @default(cuid())
+  name          String
+  currency      String         @default("EUR")
+  monthlyBudget Float          @default(2000.0)
+  color         String         @default("#6366f1")
+  icon          String         @default("Wallet")
+  members       WalletMember[]
+  invites       WalletInvite[]
+  categories    Category[]
+  expenses      Expense[]
+  invoices      InvoiceBill[]
+  activityLogs  ActivityLog[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model WalletMember {
+  id       String   @id @default(cuid())
+  walletId String
+  userId   String
+  role     String   @default("MEMBER")
+  wallet   Wallet   @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  joinedAt DateTime @default(now())
+
+  @@unique([walletId, userId])
+}
+
+model WalletInvite {
+  id          String    @id @default(cuid())
+  walletId    String
+  code        String    @unique
+  role        String    @default("MEMBER")
+  targetEmail String?
+  status      String    @default("PENDING")
+  wallet      Wallet    @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  expiresAt   DateTime?
+  maxUses     Int?
+  usedCount   Int       @default(0)
+  createdAt   DateTime  @default(now())
+}
+
+model Category {
+  id           String        @id @default(cuid())
+  walletId     String
+  name         String
+  icon         String        @default("Tag")
+  color        String        @default("#3b82f6")
+  monthlyLimit Float?
+  wallet       Wallet        @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  expenses     Expense[]
+  invoices     InvoiceBill[]
+}
+
+model Expense {
+  id          String    @id @default(cuid())
+  walletId    String
+  userId      String
+  categoryId  String?
+  title       String
+  amount      Float
+  date        DateTime  @default(now())
+  notes       String?
+  isRecurring Boolean   @default(false)
+  wallet      Wallet    @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id])
+  category    Category? @relation(fields: [categoryId], references: [id])
+  createdAt   DateTime  @default(now())
+}
+
+model InvoiceBill {
+  id                 String    @id @default(cuid())
+  walletId           String
+  userId             String
+  categoryId         String?
+  title              String
+  amount             Float
+  type               String    @default("BILL")
+  dueDate            DateTime
+  status             String    @default("PENDING")
+  isRecurring        Boolean   @default(false)
+  recurrenceInterval String    @default("NONE")
+  reminderDaysBefore Int       @default(3)
+  invoiceNumber      String?
+  notes              String?
+  paidAt             DateTime?
+  paidByUserId       String?
+  wallet             Wallet    @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  category           Category? @relation(fields: [categoryId], references: [id])
+  paidByUser         User?     @relation("PaidByUser", fields: [paidByUserId], references: [id])
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+}
+
+model ActivityLog {
+  id        String   @id @default(cuid())
+  walletId  String
+  userId    String
+  action    String
+  details   String
+  wallet    Wallet   @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id])
+  timestamp DateTime @default(now())
+}
