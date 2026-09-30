@@ -39,6 +39,7 @@ model User {
   paidBills           InvoiceBill[]        @relation("PaidByUser")
   activityLogs        ActivityLog[]
   savingsTransactions SavingsTransaction[]
+  monthBonuses        MonthBonus[]
   createdAt           DateTime             @default(now())
 }
 
@@ -58,6 +59,7 @@ model Wallet {
   activityLogs        ActivityLog[]
   savingsBuckets      SavingsBucket[]
   savingsTransactions SavingsTransaction[]
+  monthBonuses        MonthBonus[]
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
 }
@@ -224,4 +226,19 @@ model SavingsTransaction {
 
   @@index([walletId, date])
   @@index([bucketId])
+}
+
+// Extra budget for one month (outside money: bonus, gift...). Not an Expense, not a savings movement.
+model MonthBonus {
+  id        String   @id @default(cuid())
+  walletId  String
+  userId    String
+  monthKey  String // YYYY-MM
+  amount    Float
+  label     String?
+  wallet    Wallet   @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@index([walletId, monthKey])
 }

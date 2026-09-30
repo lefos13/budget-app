@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { prisma } from '../src/lib/prisma';
+import { round2 } from '../src/lib/savings';
 
 async function main() {
   const BASE_URL = process.env.BASE_URL ?? 'http://localhost:3000';
@@ -332,6 +333,57 @@ async function main() {
       'Expected totalSpentMonth for current month (2026-09) to remain unchanged'
     );
     console.log('   ✓ paidDate: 2026-08-10 sets date correctly and updates 2026-08 metrics without affecting current month');
+
+    // 4b. Paying a bill BEFORE its due month -> Expense lands in the due month (the month that budgeted it),
+    // so it moves from that month's commitments into its spending instead of disappearing from it.
+    console.log('4b. Testing early payment (due 2027-03-20, paid 2027-02-25) charges the due month...');
+    const monthSpent = async (monthKey: string) => {
+      const res = await fetch(`${BASE_URL}/api/wallets/${wallet.id}?month=${monthKey}`, {
+        headers: { 'x-user-id': ownerUser.id },
+      });
+      assert.equal(res.status, 200);
+      const data = await res.json();
+      return data.metrics as { totalSpentMonth: number; projection: { billsDue: number; projectedRemaining: number } };
+    };
+    const invEarly = await prisma.invoiceBill.create({
+      data: {
+        walletId: wallet.id,
+        userId: ownerUser.id,
+        categoryId: wallet.categories[0].id,
+        title: `Early Paid Bill ${uniqueSuffix}`,
+        amount: 166.0,
+        dueDate: new Date(2027, 2, 20),
+        status: 'PENDING',
+        type: 'BILL',
+      },
+    });
+    createdInvoiceIds.push(invEarly.id);
+    const febBefore = await monthSpent('2027-02');
+    const marBefore = await monthSpent('2027-03');
+
+    const resEarlyPay = await fetch(`${BASE_URL}/api/invoices/${invEarly.id}/pay`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-user-id': ownerUser.id },
+      body: JSON.stringify({ paidDate: '2027-02-25' }),
+    });
+    assert.equal(resEarlyPay.status, 200);
+    const earlyPayData = await resEarlyPay.json();
+    assert.ok(
+      new Date(earlyPayData.invoice.paidAt).toISOString().startsWith('2027-02-25'),
+      `invoice.paidAt must keep the real payment date, got ${earlyPayData.invoice.paidAt}`
+    );
+    const expEarly = await prisma.expense.findFirst({ where: { invoiceId: invEarly.id } });
+    assert.ok(expEarly, 'Expense must exist for early-paid bill');
+    createdExpenseIds.push(expEarly.id);
+    assert.equal(expEarly.date.getTime(), new Date(2027, 2, 1).getTime(), `Expense.date must be start of due month, got ${expEarly.date}`);
+
+    const febAfter = await monthSpent('2027-02');
+    const marAfter = await monthSpent('2027-03');
+    assert.equal(febAfter.totalSpentMonth, febBefore.totalSpentMonth, 'Month of payment must not be charged');
+    assert.equal(round2(marAfter.totalSpentMonth - marBefore.totalSpentMonth), 166.0, 'Due month spending must include the bill');
+    assert.equal(round2(marBefore.projection.billsDue - marAfter.projection.billsDue), 166.0, 'Bill must leave due-month commitments');
+    assert.equal(marAfter.projection.projectedRemaining, marBefore.projection.projectedRemaining, 'Due month projection must be unchanged by paying');
+    console.log('   ✓ Early payment charges the due month; projection unchanged, payment month untouched');
 
     // 5. Subscription pay -> no Expense, invoice PAID
     console.log('5. Testing subscription pay (no Expense, invoice PAID)...');

@@ -1,16 +1,21 @@
 'use client';
 
-import React from 'react';
-import { TrendingUp, ShieldCheck, DollarSign, Calendar, Users } from 'lucide-react';
+import React, { useState } from 'react';
+import { TrendingUp, ShieldCheck, DollarSign, Calendar, Users, Gift, Trash2 } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { useTranslation } from '@/context/LanguageContext';
 import { interpolate } from '@/lib/i18n/translator';
 import { formatCurrency, calculateBudgetPacing } from '@/lib/formatters';
+import { effectiveBudget as calcEffectiveBudget } from '@/lib/month-bonus';
+import { translateApiError } from '@/lib/i18n/api-errors';
 import { getMonthBounds, getPacingReferenceDate } from '@/lib/month';
+import { AddBonusModal } from '@/components/modals/add-bonus-modal';
 
 export function BudgetOverviewCard() {
-  const { walletData, selectedMonth } = useApp();
+  const { walletData, selectedMonth, activeWalletId, currentUser, refreshWallet, showToast } = useApp();
   const { t } = useTranslation();
+  const [isBonusOpen, setIsBonusOpen] = useState(false);
+  const [removingId, setRemovingId] = useState<string | null>(null);
 
   if (!walletData) return null;
 
@@ -18,8 +23,11 @@ export function BudgetOverviewCard() {
   const savings = walletData.metrics.savings ?? { deposited: 0, savingsDue: 0, boost: 0 };
   const currency = walletData.wallet.currency;
 
-  // Money moved into savings this month is used budget; General money used as extra budget raises the target.
-  const effectiveBudget = monthlyBudget + savings.boost;
+  // Money moved into savings is used budget; General savings used as extra budget and month bonuses raise the target.
+  const bonus = walletData.metrics.bonus ?? 0;
+  const bonuses = walletData.bonuses ?? [];
+  const isOwner = walletData.userRole === 'OWNER';
+  const effectiveBudget = calcEffectiveBudget({ monthlyBudget, boost: savings.boost, bonus });
   const usedThisMonth = totalSpentMonth + savings.deposited;
   const pacing = calculateBudgetPacing(effectiveBudget, usedThisMonth, getPacingReferenceDate(selectedMonth));
   const spentWidth = effectiveBudget > 0 ? Math.min(100, (totalSpentMonth / effectiveBudget) * 100) : 0;
@@ -39,6 +47,29 @@ export function BudgetOverviewCard() {
 
   // Discretionary spend remaining after reserving for scheduled upcoming invoices
   const safeDiscretionarySpend = Math.max(0, remainingBudget - committedBillsMonth);
+
+  const handleRemoveBonus = async (bonusId: string) => {
+    if (!activeWalletId) return;
+    setRemovingId(bonusId);
+    try {
+      const res = await fetch(`/api/wallets/${activeWalletId}/bonuses/${bonusId}`, {
+        method: 'DELETE',
+        headers: currentUser ? { 'x-user-id': currentUser.id } : {},
+        credentials: 'include',
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        showToast(translateApiError(json?.error, res.status, t));
+        return;
+      }
+      showToast(t('bonus.removedToast'));
+      await refreshWallet();
+    } catch {
+      showToast(t('bonus.errorGeneric'));
+    } finally {
+      setRemovingId(null);
+    }
+  };
 
   return (
     <div className="rounded-3xl border border-zinc-200/90 dark:border-zinc-800 bg-white dark:bg-zinc-900/90 p-5 sm:p-7 shadow-sm">
@@ -68,7 +99,7 @@ export function BudgetOverviewCard() {
               {interpolate(t('budget.spentOfTarget'), { target: formatCurrency(effectiveBudget, currency) })}
             </span>
           </div>
-          {(savings.deposited > 0 || savings.boost > 0) && (
+          {(savings.deposited > 0 || savings.boost > 0 || bonus > 0) && (
             <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 tabular-nums">
               {[
                 savings.deposited > 0
@@ -77,10 +108,53 @@ export function BudgetOverviewCard() {
                 savings.boost > 0
                   ? interpolate(t('budget.extraFromGeneral'), { amount: formatCurrency(savings.boost, currency) })
                   : null,
+                bonus > 0
+                  ? interpolate(t('budget.inclBonus'), { amount: formatCurrency(bonus, currency) })
+                  : null,
               ]
                 .filter(Boolean)
                 .join(' · ')}
             </p>
+          )}
+          {(isOwner || bonuses.length > 0) && (
+            <div className="pt-1 space-y-1.5">
+              {isOwner && (
+                <button
+                  type="button"
+                  onClick={() => setIsBonusOpen(true)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-emerald-200 dark:border-emerald-900/60 bg-emerald-50/70 dark:bg-emerald-950/30 text-xs font-bold text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-950/60 cursor-pointer transition-colors"
+                >
+                  <Gift className="w-3.5 h-3.5" />
+                  {t('bonus.addButton')}
+                </button>
+              )}
+              {bonuses.length > 0 && (
+                <ul aria-label={t('bonus.listTitle')} className="space-y-1">
+                  {bonuses.map((b) => (
+                    <li key={b.id} className="flex items-center gap-2 text-[11px] text-zinc-600 dark:text-zinc-400">
+                      <span className="font-bold tabular-nums text-emerald-700 dark:text-emerald-400">
+                        +{formatCurrency(b.amount, currency)}
+                      </span>
+                      <span className="truncate">
+                        {[b.label, interpolate(t('bonus.by'), { name: b.user.name })].filter(Boolean).join(' · ')}
+                      </span>
+                      {isOwner && (
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveBonus(b.id)}
+                          disabled={removingId === b.id}
+                          aria-label={t('bonus.remove')}
+                          title={t('bonus.remove')}
+                          className="p-1 rounded-md text-zinc-400 hover:text-rose-600 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer disabled:opacity-50"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           )}
           </div>
 
@@ -216,6 +290,7 @@ export function BudgetOverviewCard() {
           </div>
         </div>
       </div>
+      {isBonusOpen && <AddBonusModal onClose={() => setIsBonusOpen(false)} />}
     </div>
   );
 }

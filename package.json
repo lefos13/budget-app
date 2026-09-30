@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "test": "tsx scripts/test-e2e.ts && tsx scripts/test-backend-features.ts && tsx scripts/test-wallet-roundtrip.ts && tsx scripts/test-month.ts && tsx scripts/test-month-projection.ts && tsx scripts/test-recurrence.ts && tsx scripts/test-i18n-check.ts && tsx scripts/test-api-errors.ts && tsx scripts/test-bill-alerts.ts && TZ=Europe/Athens tsx scripts/test-savings.ts && TZ=UTC tsx scripts/test-savings.ts && tsx scripts/check-i18n.ts",
-    "test:api": "tsx scripts/test-invoice-patch.ts && tsx scripts/test-categories.ts && tsx scripts/test-planned-expenses.ts && tsx scripts/test-expense-patch.ts && tsx scripts/test-pay-invoice.ts && tsx scripts/test-savings-api.ts",
+    "test:api": "tsx scripts/test-invoice-patch.ts && tsx scripts/test-categories.ts && tsx scripts/test-planned-expenses.ts && tsx scripts/test-expense-patch.ts && tsx scripts/test-pay-invoice.ts && tsx scripts/test-savings-api.ts && tsx scripts/test-month-bonus.ts",
     "i18n:check": "tsx scripts/check-i18n.ts",
     "db:migrate": "prisma migrate deploy",
     "db:generate": "prisma generate"

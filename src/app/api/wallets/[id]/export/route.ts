@@ -33,6 +33,7 @@ export async function GET(
         },
         savingsBuckets: { orderBy: { createdAt: 'asc' } },
         savingsTransactions: { orderBy: [{ date: 'asc' }, { createdAt: 'asc' }] },
+        monthBonuses: { orderBy: [{ monthKey: 'asc' }, { createdAt: 'asc' }] },
       },
     });
 
@@ -55,6 +56,7 @@ export async function GET(
     });
     wallet.plannedExpenses.forEach((p) => allUserIds.add(p.userId));
     wallet.savingsTransactions.forEach((t) => allUserIds.add(t.userId));
+    wallet.monthBonuses.forEach((b) => allUserIds.add(b.userId));
 
     const users = await prisma.user.findMany({
       where: { id: { in: Array.from(allUserIds) } },
@@ -70,7 +72,7 @@ export async function GET(
     });
 
     const exportData = {
-      version: '2.1',
+      version: '2.2',
       exportedAt: new Date().toISOString(),
       wallet: {
         name: wallet.name,
@@ -174,6 +176,17 @@ export async function GET(
           expenseRef: t.expenseId,
           note: t.note,
           createdAt: t.createdAt.toISOString(),
+          userName: author ? author.name : null,
+          userEmail: author ? author.email : null,
+        };
+      }),
+      monthBonuses: wallet.monthBonuses.map((b) => {
+        const author = userMap.get(b.userId);
+        return {
+          monthKey: b.monthKey,
+          amount: b.amount,
+          label: b.label,
+          createdAt: b.createdAt.toISOString(),
           userName: author ? author.name : null,
           userEmail: author ? author.email : null,
         };

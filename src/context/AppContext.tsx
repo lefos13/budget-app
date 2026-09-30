@@ -109,18 +109,29 @@ export interface PlannedExpenseItem {
   createdAt?: string;
 }
 
+export interface MonthBonusItem {
+  id: string;
+  monthKey: string;
+  amount: number;
+  label: string | null;
+  createdAt: string;
+  user: { id: string; name: string };
+}
+
 export interface WalletDetailData {
   wallet: WalletSummary;
   userRole: string;
   currentUser: User;
   month: string;
   monthExpenses: ExpenseItem[];
+  bonuses: MonthBonusItem[];
   plannedExpenses: PlannedExpenseItem[];
   metrics: {
     monthlyBudget: number;
     totalSpentMonth: number;
     remainingBudget: number;
     savings: { deposited: number; savingsDue: number; boost: number };
+    bonus: number;
     pendingCount: number;
     overdueCount: number;
     paidCount: number;

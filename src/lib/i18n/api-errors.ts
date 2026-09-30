@@ -95,6 +95,11 @@ export const API_ERROR_MAP: Record<string, string> = {
   'Not enough money in this savings bucket': 'errors.notEnoughInBucket',
   'Only General savings can be used as extra budget': 'errors.generalOnlyBoost',
   'Savings data in this file is inconsistent': 'errors.savingsImportInconsistent',
+  'Only the wallet owner can manage bonuses': 'errors.onlyOwnerManageBonuses',
+  'Invalid month': 'errors.invalidMonth',
+  'Label must be at most 80 characters': 'errors.bonusLabelLength',
+  'Bonus not found': 'errors.bonusNotFound',
+  'Failed to update bonuses': 'errors.failedToUpdateBonuses',
 };
 
 export const STATUS_ERROR_MAP: Record<number, string> = {

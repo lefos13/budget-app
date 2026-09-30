@@ -226,7 +226,7 @@ async function run() {
     assert.equal(exportRes.status, 200, 'Export route must return 200 for member');
     const exportJson = await exportRes.json();
 
-    assert.equal(exportJson.version, '2.1', 'Export version must be 2.1 (additive savings fields)');
+    assert.equal(exportJson.version, '2.2', 'Export version must be 2.2 (additive month bonuses)');
     assert.equal(exportJson.categories.length, 2, 'Categories count should match');
     assert.equal(exportJson.expenses.length, 3, 'Expenses count should match');
     assert.equal(exportJson.invoices.length, 3, 'Invoices count should match');

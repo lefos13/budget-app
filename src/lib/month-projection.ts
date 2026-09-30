@@ -33,6 +33,8 @@ export interface MonthProjectionInput {
   bills: ProjectionBillInput[];
   planned: ProjectionPlannedInput[];
   savings?: ProjectionSavingsInput;
+  /** Month bonuses (outside money added to this month's budget). */
+  bonus?: number;
 }
 
 export interface MonthProjection {
@@ -41,6 +43,7 @@ export interface MonthProjection {
   savingsDeposited: number;
   savingsDue: number;
   boost: number;
+  bonus: number;
   plannedPending: number;
   billsDue: number;
   subscriptionsDue: number;
@@ -65,7 +68,7 @@ const round2 = (x: number): number => Math.round(x * 100) / 100;
 /**
  * Computes projected remaining budget for a given month key.
  *
- * projectedRemaining = B + boost − spent − savingsDeposited − committedTotal
+ * projectedRemaining = B + boost + bonus − spent − savingsDeposited − committedTotal
  * committedTotal = plannedPending + savingsDue + billsDue + subscriptionsDue + carryOver
  * overBy = Math.max(0, -projectedRemaining)
  */
@@ -136,6 +139,7 @@ export function computeMonthProjection(input: MonthProjectionInput): MonthProjec
   const savingsDeposited = round2(input.savings?.deposited ?? 0);
   const savingsDue = round2(input.savings?.savingsDue ?? 0);
   const boost = round2(input.savings?.boost ?? 0);
+  const bonus = round2(input.bonus ?? 0);
   const rPlannedPending = round2(plannedPending);
   const rBillsDue = round2(billsDue);
   const rSubscriptionsDue = round2(subscriptionsDue);
@@ -143,7 +147,7 @@ export function computeMonthProjection(input: MonthProjectionInput): MonthProjec
   const rCarryOverSubscriptions = round2(carryOverSubscriptions);
   const carryOver = round2(rCarryOverBills + rCarryOverSubscriptions);
   const committedTotal = round2(rPlannedPending + savingsDue + rBillsDue + rSubscriptionsDue + carryOver);
-  let projectedRemaining = round2(budget + boost - spent - savingsDeposited - committedTotal);
+  let projectedRemaining = round2(budget + boost + bonus - spent - savingsDeposited - committedTotal);
   if (projectedRemaining === 0) {
     projectedRemaining = 0;
   }
@@ -156,6 +160,7 @@ export function computeMonthProjection(input: MonthProjectionInput): MonthProjec
     savingsDeposited,
     savingsDue,
     boost,
+    bonus,
     plannedPending: rPlannedPending,
     billsDue: rBillsDue,
     subscriptionsDue: rSubscriptionsDue,

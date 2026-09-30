@@ -19,6 +19,7 @@ function run() {
       savingsDeposited: 0,
       savingsDue: 0,
       boost: 0,
+      bonus: 0,
       plannedPending: 0,
       billsDue: 0,
       subscriptionsDue: 0,
@@ -445,6 +446,36 @@ function run() {
     });
     assert.equal(res12b.projectedRemaining, 825, 'depositing the due amount moves it from committed to used');
     console.log('✓ Test 12: savings deposits, due contribution, boost and funded planned expenses');
+
+    // Test 13: month bonus raises only the month it is passed for and is independent of the target
+    const res13 = computeMonthProjection({
+      monthKey: '2026-09',
+      monthlyBudget: 2000,
+      spent: 300,
+      planned: [],
+      bills: [],
+      bonus: 250,
+    });
+    assert.equal(res13.budget, 2000, 'bonus never changes the baseline budget');
+    assert.equal(res13.bonus, 250);
+    assert.equal(res13.projectedRemaining, 1950); // 2000 + 250 − 300
+    const res13b = computeMonthProjection({
+      monthKey: '2026-09',
+      monthlyBudget: 500,
+      spent: 700,
+      planned: [],
+      bills: [],
+      savings: { deposited: 0, savingsDue: 0, boost: 100 },
+      bonus: 50,
+    });
+    assert.equal(res13b.projectedRemaining, -50, 'boost and bonus stack');
+    assert.equal(res13b.overBy, 50);
+    assert.equal(
+      computeMonthProjection({ monthKey: '2026-09', monthlyBudget: 500, spent: 0, planned: [], bills: [] }).bonus,
+      0,
+      'no bonus input means 0'
+    );
+    console.log('✓ Test 13: month bonus stacks with boost and leaves the target untouched');
 
     console.log('\n🎉 All month projection tests passed successfully!\n');
   } catch (err) {

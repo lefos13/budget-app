@@ -550,6 +550,7 @@ export default function WalletPage() {
                 <p className="text-[11px] text-zinc-400 mt-1">
                   {t('wallet.targetPreview')}: {budget ? formatCurrency(parseFloat(budget) || 0, currency) : '—'}
                 </p>
+                <p className="text-[11px] text-zinc-400 mt-0.5">{t('wallet.monthlyBudgetHint')}</p>
               </div>
 
               <div>

@@ -5,6 +5,7 @@ import { isValidMonthKey, getCurrentMonthKey, getMonthBounds } from '@/lib/month
 import { computeMonthProjection } from '@/lib/month-projection';
 import { computeSavingsMonth, round2 } from '@/lib/savings';
 import { loadSavingsInputs } from '@/lib/savings-server';
+import { effectiveBudget, sumBonusForMonth } from '@/lib/month-bonus';
 
 export async function GET(
   req: NextRequest,
@@ -178,6 +179,13 @@ export async function GET(
     const { inputs: savingsInputs } = await loadSavingsInputs(prisma, id);
     const savingsMonth = computeSavingsMonth(savingsInputs, effectiveMonth, now);
 
+    const bonuses = await prisma.monthBonus.findMany({
+      where: { walletId: id, monthKey: effectiveMonth },
+      include: { user: { select: { id: true, name: true } } },
+      orderBy: { createdAt: 'asc' },
+    });
+    const bonusTotal = sumBonusForMonth(bonuses, effectiveMonth);
+
     const plannedInputs = plannedExpenses.map((pe) => ({
       amount: pe.amount,
       expectedDate: pe.expectedDate,
@@ -196,10 +204,21 @@ export async function GET(
         savingsDue: savingsMonth.savingsDue,
         boost: savingsMonth.boost,
       },
+      bonus: bonusTotal,
     });
+
+    const bonusItems = bonuses.map((b) => ({
+      id: b.id,
+      monthKey: b.monthKey,
+      amount: b.amount,
+      label: b.label,
+      createdAt: b.createdAt,
+      user: b.user,
+    }));
 
     return NextResponse.json({
       wallet,
+      bonuses: bonusItems,
       userRole,
       currentUser: user,
       month: effectiveMonth,
@@ -210,13 +229,18 @@ export async function GET(
         totalSpentMonth,
         remainingBudget: Math.max(
           0,
-          round2(wallet.monthlyBudget + savingsMonth.boost - totalSpentMonth - savingsMonth.deposited)
+          round2(
+            effectiveBudget({ monthlyBudget: wallet.monthlyBudget, boost: savingsMonth.boost, bonus: bonusTotal }) -
+              totalSpentMonth -
+              savingsMonth.deposited
+          )
         ),
         savings: {
           deposited: savingsMonth.deposited,
           savingsDue: savingsMonth.savingsDue,
           boost: savingsMonth.boost,
         },
+        bonus: bonusTotal,
         pendingCount,
         overdueCount,
         paidCount,

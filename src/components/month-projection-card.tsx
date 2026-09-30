@@ -4,6 +4,7 @@ import React from 'react';
 import { Calculator, Info } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { useTranslation } from '@/context/LanguageContext';
+import { effectiveBudget } from '@/lib/month-bonus';
 import { formatCurrency } from '@/lib/formatters';
 
 export function MonthProjectionCard() {
@@ -16,7 +17,11 @@ export function MonthProjectionCard() {
   const currency = walletData.wallet.currency;
 
   const totalCommittedAndSpent = projection.spent + projection.savingsDeposited + projection.committedTotal;
-  const budget = projection.budget + projection.boost;
+  const budget = effectiveBudget({
+    monthlyBudget: projection.budget,
+    boost: projection.boost,
+    bonus: projection.bonus,
+  });
 
   let ratio = 0;
   let clampedWidth = 0;
@@ -128,6 +133,14 @@ export function MonthProjectionCard() {
               <div className="flex items-center justify-between text-xs sm:text-sm py-1.5 text-emerald-700 dark:text-emerald-400">
                 <span className="font-medium">{t.projection.boost}</span>
                 <span className="font-semibold tabular-nums">+{formatCurrency(projection.boost, currency)}</span>
+              </div>
+            )}
+
+            {/* Month bonus (ONLY when bonus > 0) */}
+            {projection.bonus > 0 && (
+              <div className="flex items-center justify-between text-xs sm:text-sm py-1.5 text-emerald-700 dark:text-emerald-400">
+                <span className="font-medium">{t.projection.bonus}</span>
+                <span className="font-semibold tabular-nums">+{formatCurrency(projection.bonus, currency)}</span>
               </div>
             )}
 

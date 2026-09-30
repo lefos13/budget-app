@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/session';
 import { addRecurrenceInterval } from '@/lib/recurrence';
+import { getMonthBounds, getMonthKey } from '@/lib/month';
 
 function parsePaidDate(value: unknown): { date?: Date; error?: string } {
   if (value === undefined) {
@@ -135,6 +136,11 @@ export async function POST(
           });
 
           if (!existingExpense) {
+            // A bill is budgeted in the month it is due. Paying it early (before that month starts) must still
+            // charge the due month, otherwise it leaves that month's commitments without landing in its spending.
+            const { start: dueMonthStart } = getMonthBounds(getMonthKey(new Date(invoice.dueDate)));
+            const expenseDate = effectivePaidAt < dueMonthStart ? dueMonthStart : effectivePaidAt;
+
             await tx.expense.create({
               data: {
                 walletId: invoice.walletId,
@@ -142,7 +148,7 @@ export async function POST(
                 categoryId: invoice.categoryId,
                 title: invoice.title,
                 amount: invoice.amount,
-                date: effectivePaidAt,
+                date: expenseDate,
                 invoiceId: invoice.id,
                 notes: `Paid bill ${invoice.invoiceNumber || ''} on ${effectivePaidAt.toLocaleDateString()}`.trim(),
               },

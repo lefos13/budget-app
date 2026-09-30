@@ -56,8 +56,11 @@ The application supports two execution flows, toggleable in the sidebar / settin
   - Wallet invites can target an email (`targetEmail`).
   - Only an authenticated user matching `targetEmail` can claim the invite.
   - Pending invitations targeting the user's email appear directly in the user's dashboard with 1-click acceptance.
+- **Month bonuses** (`MonthBonus`; math in `src/lib/month-bonus.ts`):
+  - Outside money (bonus, gift...) added to ONE month's budget: `available = monthlyBudget + BUDGET_BOOST + bonus`. `Wallet.monthlyBudget` is the steady baseline and is **never** changed to cover a one-off extra.
+  - A bonus is **not** an `Expense`, **not** a savings movement, and does not carry over; only `OWNER` may add/remove (`/api/wallets/[id]/bonuses`). Any place computing a month's budget MUST use `effectiveBudget()`.
 - **Export / Import**:
-  - Full wallet backup via JSON (`/api/wallets/[id]/export` and `/api/wallets/[id]/import`), format `2.1` (additive): includes savings buckets, ledger and links; import is atomic and re-enforces the savings invariants.
+  - Full wallet backup via JSON (`/api/wallets/[id]/export` and `/api/wallets/[id]/import`), format `2.2` (additive): includes savings buckets, ledger and links, and month bonuses; import is atomic and re-enforces the savings invariants.
 
 ---
 

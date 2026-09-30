@@ -57,6 +57,7 @@ export async function POST(
     const logsToImport = Array.isArray(body.activityLogs) ? body.activityLogs : [];
     const bucketsToImport = Array.isArray(body.savingsBuckets) ? body.savingsBuckets : [];
     const savingsTxToImport = Array.isArray(body.savingsTransactions) ? body.savingsTransactions : [];
+    const bonusesToImport = Array.isArray(body.monthBonuses) ? body.monthBonuses : [];
 
     // Map existing members by email and id for user attribution
     const memberByEmail = new Map<string, { id: string; name: string; email: string }>();
@@ -526,6 +527,28 @@ export async function POST(
           importedLogsCount++;
         }
 
+        // 5b. Month bonuses (2.2+; older files have none)
+        let importedBonusCount = 0;
+        for (const entry of bonusesToImport) {
+          if (!entry || typeof entry !== 'object') continue;
+          if (!isValidMonthKey(entry.monthKey)) continue;
+          const amount = typeof entry.amount === 'number' ? entry.amount : Number(entry.amount);
+          if (!Number.isFinite(amount) || amount <= 0) continue;
+          const createdAt =
+            entry.createdAt && !isNaN(new Date(entry.createdAt).getTime()) ? new Date(entry.createdAt) : undefined;
+          await tx.monthBonus.create({
+            data: {
+              walletId: id,
+              userId: resolveUserId(entry.userEmail),
+              monthKey: entry.monthKey,
+              amount: round2(amount),
+              label: typeof entry.label === 'string' && entry.label.trim() ? entry.label.trim().slice(0, 80) : null,
+              ...(createdAt ? { createdAt } : {}),
+            },
+          });
+          importedBonusCount++;
+        }
+
         // 6. Record DATA_IMPORTED activity log
         await tx.activityLog.create({
           data: {
@@ -545,6 +568,7 @@ export async function POST(
           activityLogs: importedLogsCount,
           savingsBuckets: importedGoalBucketIds.length,
           savingsTransactions: importedSavingsTxCount,
+          monthBonuses: importedBonusCount,
         };
       },
       {
