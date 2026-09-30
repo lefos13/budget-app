@@ -29,6 +29,7 @@ export async function GET(
       id: inv.id,
       title: inv.title,
       amount: inv.amount,
+      type: inv.type,
       currency: wallet.currency,
       dueDate: inv.dueDate,
       status: inv.status,

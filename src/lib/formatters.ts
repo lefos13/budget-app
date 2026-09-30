@@ -1,4 +1,11 @@
 import { format, parseISO } from 'date-fns';
+import type { Locale } from 'date-fns';
+import { el as elLocale, enUS } from 'date-fns/locale';
+import type { TranslationFunction } from './i18n/translator';
+
+import { en } from './i18n/dictionaries/en';
+
+export { elLocale, enUS };
 
 export function formatCurrency(amount: number, currency: string = 'EUR'): string {
   try {
@@ -13,12 +20,19 @@ export function formatCurrency(amount: number, currency: string = 'EUR'): string
   }
 }
 
-export function formatDate(date: Date | string, formatPattern: string = 'MMM d, yyyy'): string {
+export function formatDate(
+  date: Date | string,
+  formatPattern: string = 'MMM d, yyyy',
+  locale?: Locale
+): string {
   const d = typeof date === 'string' ? parseISO(date) : date;
-  return format(d, formatPattern);
+  return format(d, formatPattern, locale ? { locale } : undefined);
 }
 
-export function formatRelativeDueDate(date: Date | string): {
+export function formatRelativeDueDate(
+  date: Date | string,
+  t?: TranslationFunction
+): {
   text: string;
   isOverdue: boolean;
   isImminent: boolean;
@@ -33,33 +47,78 @@ export function formatRelativeDueDate(date: Date | string): {
   const diffTime = dDay.getTime() - nowDay.getTime();
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
+  if (!t) {
+    if (diffDays < 0) {
+      return {
+        // i18n-ignore: English fallback when no translator is passed
+        text: `${Math.abs(diffDays)} day${Math.abs(diffDays) === 1 ? '' : 's'} overdue`,
+        isOverdue: true,
+        isImminent: false,
+      };
+    } else if (diffDays === 0) {
+      return {
+        // i18n-ignore: English fallback when no translator is passed
+        text: 'Due today',
+        isOverdue: false,
+        isImminent: true,
+      };
+    } else if (diffDays === 1) {
+      return {
+        // i18n-ignore: English fallback when no translator is passed
+        text: 'Due tomorrow',
+        isOverdue: false,
+        isImminent: true,
+      };
+    } else if (diffDays <= 3) {
+      return {
+        // i18n-ignore: English fallback when no translator is passed
+        text: `Due in ${diffDays} days`,
+        isOverdue: false,
+        isImminent: true,
+      };
+    } else {
+      return {
+        // i18n-ignore: English fallback when no translator is passed
+        text: `Due in ${diffDays} days`,
+        isOverdue: false,
+        isImminent: false,
+      };
+    }
+  }
+
   if (diffDays < 0) {
+    const absDays = Math.abs(diffDays);
+    const tmpl = absDays === 1
+      ? (t.relative?.overdueByDay || t('relative.overdueByDay'))
+      : (t.relative?.overdueByDays || t('relative.overdueByDays'));
     return {
-      text: `${Math.abs(diffDays)} day${Math.abs(diffDays) === 1 ? '' : 's'} overdue`,
+      text: tmpl.replace('{count}', String(absDays)),
       isOverdue: true,
       isImminent: false,
     };
   } else if (diffDays === 0) {
     return {
-      text: 'Due today',
+      text: t.relative?.dueToday || t('relative.dueToday'),
       isOverdue: false,
       isImminent: true,
     };
   } else if (diffDays === 1) {
     return {
-      text: 'Due tomorrow',
+      text: t.relative?.dueTomorrow || t('relative.dueTomorrow'),
       isOverdue: false,
       isImminent: true,
     };
   } else if (diffDays <= 3) {
+    const tmpl = t.relative?.dueInDays || t('relative.dueInDays');
     return {
-      text: `Due in ${diffDays} days`,
+      text: tmpl.replace('{count}', String(diffDays)),
       isOverdue: false,
       isImminent: true,
     };
   } else {
+    const tmpl = t.relative?.dueInDays || t('relative.dueInDays');
     return {
-      text: `Due in ${diffDays} days`,
+      text: tmpl.replace('{count}', String(diffDays)),
       isOverdue: false,
       isImminent: false,
     };
@@ -76,6 +135,7 @@ export function calculateBudgetPacing(
   isOverPace: boolean;
   dailyBudgetRemaining: number;
   statusText: string;
+  statusKey: 'exceeded' | 'overPace' | 'underPace' | 'healthy';
 } {
   const totalDaysInMonth = new Date(
     currentDate.getFullYear(),
@@ -93,14 +153,16 @@ export function calculateBudgetPacing(
 
   const isOverPace = percentageSpent > expectedPercentage + 5;
 
-  let statusText = 'Pacing healthy';
+  let statusKey: 'exceeded' | 'overPace' | 'underPace' | 'healthy' = 'healthy';
   if (percentageSpent > 100) {
-    statusText = 'Budget exceeded';
+    statusKey = 'exceeded';
   } else if (isOverPace) {
-    statusText = 'Spending faster than expected';
+    statusKey = 'overPace';
   } else if (percentageSpent < expectedPercentage - 10) {
-    statusText = 'Under budget pace';
+    statusKey = 'underPace';
   }
+
+  const statusText = en.pacing[statusKey];
 
   return {
     percentageSpent,
@@ -108,5 +170,6 @@ export function calculateBudgetPacing(
     isOverPace,
     dailyBudgetRemaining,
     statusText,
+    statusKey,
   };
 }

@@ -3,6 +3,9 @@
 import React, { useState } from 'react';
 import { X, Wallet } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
+import { useTranslation } from '@/context/LanguageContext';
+import { interpolate } from '@/lib/i18n/translator';
+import { translateApiError } from '@/lib/i18n/api-errors';
 
 export function NewWalletModal() {
   const {
@@ -13,6 +16,7 @@ export function NewWalletModal() {
     setActiveWalletId,
     showToast,
   } = useApp();
+  const { t } = useTranslation();
 
   const [name, setName] = useState('');
   const [currency, setCurrency] = useState('EUR');
@@ -63,16 +67,20 @@ export function NewWalletModal() {
 
       if (res.ok) {
         const data = await res.json();
-        showToast(`Created wallet "${name}"!`);
+        showToast(interpolate(t('wallet.createdToast'), { name }));
         setIsNewWalletOpen(false);
         setName('');
         await refreshWallets();
         if (data.wallet?.id) {
           setActiveWalletId(data.wallet.id);
         }
+      } else {
+        const data = await res.json().catch(() => ({}));
+        showToast(translateApiError(data.error, res.status, t));
       }
     } catch (err) {
       console.error('Failed to create wallet:', err);
+      showToast(translateApiError(undefined, undefined, t));
     } finally {
       setIsSubmitting(false);
     }
@@ -88,8 +96,8 @@ export function NewWalletModal() {
               <Wallet className="w-4 h-4" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-zinc-900 dark:text-white">Create New Wallet</h2>
-              <p className="text-xs text-zinc-500">Track separate shared or personal finances</p>
+              <h2 className="text-base font-bold text-zinc-900 dark:text-white">{t.wallet.createNew}</h2>
+              <p className="text-xs text-zinc-500">{t.wallet.newWalletSubtitle}</p>
             </div>
           </div>
           <button
@@ -104,12 +112,12 @@ export function NewWalletModal() {
         <form onSubmit={handleSubmit} className="mt-4 space-y-4">
           <div>
             <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
-              Wallet Name *
+              {t.wallet.walletNameRequiredLabel}
             </label>
             <input
               type="text"
               required
-              placeholder="e.g. Summer Vacation, Shared Flat, Personal Vault"
+              placeholder={t.wallet.namePlaceholder}
               value={name}
               onChange={(e) => setName(e.target.value)}
               className="w-full px-3 py-2 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950/50 text-sm text-zinc-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
@@ -119,7 +127,7 @@ export function NewWalletModal() {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
-                Monthly Target Budget *
+                {t.wallet.monthlyBudgetRequiredLabel}
               </label>
               <input
                 type="number"
@@ -133,24 +141,24 @@ export function NewWalletModal() {
             </div>
             <div>
               <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
-                Currency
+                {t.wallet.currencyLabel}
               </label>
               <select
                 value={currency}
                 onChange={(e) => setCurrency(e.target.value)}
                 className="w-full px-3 py-2 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950/50 text-sm text-zinc-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500 cursor-pointer"
               >
-                <option value="EUR">EUR (€)</option>
-                <option value="USD">USD ($)</option>
-                <option value="GBP">GBP (£)</option>
-                <option value="CHF">CHF</option>
+                <option value="EUR">{t.currencies.EUR}</option>
+                <option value="USD">{t.currencies.USD}</option>
+                <option value="GBP">{t.currencies.GBP}</option>
+                <option value="CHF">{t.currencies.CHF}</option>
               </select>
             </div>
           </div>
 
           <div>
             <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
-              Theme Color
+              {t.wallet.themeColorLabel}
             </label>
             <div className="flex items-center gap-2 pt-1">
               {colorOptions.map((c) => (
@@ -173,14 +181,14 @@ export function NewWalletModal() {
               onClick={() => setIsNewWalletOpen(false)}
               className="px-4 py-2 rounded-xl text-xs font-semibold text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer transition-colors"
             >
-              Cancel
+              {t.common.cancel}
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
               className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shadow-md shadow-indigo-600/20 cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isSubmitting ? 'Creating...' : 'Create Wallet'}
+              {isSubmitting ? t.wallet.creating : t.wallet.createButton}
             </button>
           </div>
         </form>

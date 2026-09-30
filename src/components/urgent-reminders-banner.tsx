@@ -6,18 +6,21 @@ import { usePathname } from 'next/navigation';
 import { AlertCircle, Clock, CheckCircle2, ArrowRight } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useApp, InvoiceItem } from '@/context/AppContext';
+import { useTranslation } from '@/context/LanguageContext';
+import { interpolate } from '@/lib/i18n/translator';
 import { formatCurrency, formatRelativeDueDate } from '@/lib/formatters';
 
 export function UrgentRemindersBanner() {
   const pathname = usePathname();
   const { walletData, currentUser, refreshWallet, showToast } = useApp();
+  const { t } = useTranslation();
   const [payingId, setPayingId] = useState<string | null>(null);
 
   if (!walletData || !walletData.invoices) return null;
 
   const urgentBills = walletData.invoices.filter((inv) => {
     if (inv.status === 'PAID') return false;
-    const { isOverdue, isImminent } = formatRelativeDueDate(inv.dueDate);
+    const { isOverdue, isImminent } = formatRelativeDueDate(inv.dueDate, t);
     return isOverdue || isImminent;
   });
 
@@ -40,7 +43,12 @@ export function UrgentRemindersBanner() {
           spread: 70,
           origin: { y: 0.6 },
         });
-        showToast(`Paid "${bill.title}" (${formatCurrency(bill.amount, walletData.wallet.currency)})!`);
+        showToast(
+          interpolate(t('urgent.paidToast'), {
+            title: bill.title,
+            amount: formatCurrency(bill.amount, walletData.wallet.currency),
+          })
+        );
         await refreshWallet();
       }
     } catch (err) {
@@ -50,7 +58,7 @@ export function UrgentRemindersBanner() {
     }
   };
 
-  const overdueCount = urgentBills.filter((b) => formatRelativeDueDate(b.dueDate).isOverdue).length;
+  const overdueCount = urgentBills.filter((b) => formatRelativeDueDate(b.dueDate, t).isOverdue).length;
 
   return (
     <div
@@ -77,7 +85,7 @@ export function UrgentRemindersBanner() {
           </div>
           <div>
             <h3 className="text-sm sm:text-base font-extrabold text-zinc-900 dark:text-white flex items-center gap-2">
-              <span>{overdueCount > 0 ? 'Urgent Action Required' : 'Upcoming Invoices Due Soon'}</span>
+              <span>{overdueCount > 0 ? t('urgent.actionRequired') : t('urgent.dueSoon')}</span>
               <span
                 className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
                   overdueCount > 0
@@ -85,13 +93,17 @@ export function UrgentRemindersBanner() {
                     : 'bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300'
                 }`}
               >
-                {urgentBills.length} invoice{urgentBills.length === 1 ? '' : 's'}
+                {urgentBills.length === 1
+                  ? t('urgent.invoiceCountOne')
+                  : interpolate(t('urgent.invoiceCountMany'), { count: urgentBills.length })}
               </span>
             </h3>
             <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-0.5">
               {overdueCount > 0
-                ? `${overdueCount} payment is past due. Settle immediately to avoid penalty or late fees.`
-                : 'Payment scheduled within the next 72 hours.'}
+                ? (overdueCount === 1
+                    ? t('urgent.overdueSubtitleOne')
+                    : interpolate(t('urgent.overdueSubtitleMany'), { count: overdueCount }))
+                : t('urgent.dueSoonSubtitle')}
             </p>
           </div>
         </div>
@@ -101,19 +113,19 @@ export function UrgentRemindersBanner() {
             href="/calendar"
             className="self-start sm:self-auto inline-flex items-center gap-1 text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline"
           >
-            <span>View calendar schedule</span>
+            <span>{t('urgent.viewSchedule')}</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </Link>
         ) : (
           <span className="self-start sm:self-auto text-xs font-semibold text-zinc-500 dark:text-zinc-400">
-            Highlighted in calendar below
+            {t('urgent.highlightedBelow')}
           </span>
         )}
       </div>
 
       <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {urgentBills.slice(0, 3).map((bill) => {
-          const { text: relativeText, isOverdue } = formatRelativeDueDate(bill.dueDate);
+          const { text: relativeText, isOverdue } = formatRelativeDueDate(bill.dueDate, t);
           const isPaying = payingId === bill.id;
 
           return (
@@ -152,7 +164,7 @@ export function UrgentRemindersBanner() {
                 } disabled:opacity-50`}
               >
                 <CheckCircle2 className="w-3.5 h-3.5" />
-                <span>{isPaying ? 'Saving...' : 'Pay'}</span>
+                <span>{isPaying ? t.common.saving : t.common.pay}</span>
               </button>
             </div>
           );
@@ -165,7 +177,7 @@ export function UrgentRemindersBanner() {
             href="/calendar"
             className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline"
           >
-            +{urgentBills.length - 3} more urgent bills in calendar schedule
+            {interpolate(t('urgent.moreUrgentBills'), { count: urgentBills.length - 3 })}
           </Link>
         </div>
       )}

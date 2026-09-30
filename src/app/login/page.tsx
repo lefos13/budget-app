@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation';
 import { Wallet, Lock, Mail, ArrowRight, Sparkles, AlertCircle, Loader2 } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { useTranslation } from '@/context/LanguageContext';
+import { translateApiError } from '@/lib/i18n/api-errors';
+import { interpolate } from '@/lib/i18n/translator';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -22,12 +24,12 @@ export default function LoginPage() {
     setError(null);
 
     if (!email || !email.includes('@')) {
-      setError('Please provide a valid email address.');
+      setError(t('auth.emailRequired'));
       return;
     }
 
     if (!password) {
-      setError('Please enter your password.');
+      setError(t('auth.passwordRequired'));
       return;
     }
 
@@ -43,18 +45,18 @@ export default function LoginPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error || 'Login failed. Please check your credentials.');
+        setError(translateApiError(data.error, res.status, t));
         return;
       }
 
       setAuthMode('normal');
       setCurrentUser(data.user);
       await refreshWallets();
-      showToast(`Welcome back, ${data.user.name}!`);
+      showToast(interpolate(t('auth.welcomeBackUser'), { name: data.user.name }));
       router.push('/');
     } catch (err) {
       console.error('Login submit error:', err);
-      setError('Network error. Please try again later.');
+      setError(t('errors.networkError'));
     } finally {
       setIsLoading(false);
     }
@@ -62,7 +64,7 @@ export default function LoginPage() {
 
   const handleBypassToMockMode = () => {
     setAuthMode('mock');
-    showToast('Switched to Dev Mock Mode');
+    showToast(t('auth.switchedToMock'));
     router.push('/');
   };
 
@@ -87,11 +89,11 @@ export default function LoginPage() {
                   Aura
                 </span>
                 <span className="text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950/70 text-indigo-600 dark:text-indigo-400 border border-indigo-200/80 dark:border-indigo-800/60">
-                  Shared
+                  {t('brand.badge')}
                 </span>
               </div>
               <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">
-                Household Budget & Invoices
+                {t('brand.subtitle')}
               </p>
             </div>
           </Link>
@@ -130,7 +132,7 @@ export default function LoginPage() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="alex@example.com"
+                  placeholder={t('auth.emailPlaceholder')}
                   className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-950/50 text-zinc-900 dark:text-white text-sm focus:outline-hidden focus:ring-2 focus:ring-indigo-500 transition-all placeholder:text-zinc-400"
                 />
               </div>
@@ -183,9 +185,11 @@ export default function LoginPage() {
           {/* Quick Demo Pre-fill helpers */}
           <div className="mt-6 pt-5 border-t border-zinc-100 dark:border-zinc-800/80">
             <p className="text-[11px] font-bold uppercase tracking-wider text-zinc-400 text-center mb-2.5">
-              Quick Test Accounts
+              {t('auth.quickTestAccounts')}
             </p>
+            {/* i18n-ignore: demo persona accounts */}
             <div className="grid grid-cols-2 gap-2">
+              {/* i18n-ignore: demo persona name and email */}
               <button
                 type="button"
                 onClick={() => handleFillDemo('alex@example.com')}
@@ -194,6 +198,7 @@ export default function LoginPage() {
                 <span className="font-semibold block truncate">Alex Johnson</span>
                 <span className="text-[10px] text-zinc-400 block truncate">alex@example.com</span>
               </button>
+              {/* i18n-ignore: demo persona name and email */}
               <button
                 type="button"
                 onClick={() => handleFillDemo('elena@example.com')}
@@ -221,7 +226,7 @@ export default function LoginPage() {
           <div className="inline-flex items-center gap-2 p-1.5 pr-3 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400 text-xs">
             <div className="px-2 py-0.5 rounded-full bg-amber-500 text-zinc-950 font-black text-[10px] uppercase tracking-wider flex items-center gap-1">
               <Sparkles className="w-3 h-3" />
-              Dev
+              {t('devMode.badge')}
             </div>
             <button
               type="button"

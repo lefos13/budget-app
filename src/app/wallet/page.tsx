@@ -15,12 +15,18 @@ import {
   Download,
   Upload,
   Database,
+  Tag,
+  Pencil,
+  Trash2,
+  AlertTriangle,
 } from 'lucide-react';
-import { useApp } from '@/context/AppContext';
+import { useApp, CategoryWithSpent } from '@/context/AppContext';
 import { useTranslation } from '@/context/LanguageContext';
 import { formatCurrency, formatDate } from '@/lib/formatters';
 import { ImportWalletModal } from '@/components/modals/import-wallet-modal';
 import { PendingInvitesBanner } from '@/components/pending-invites-banner';
+import { CategoryModal } from '@/components/modals/category-modal';
+import { getCategoryIcon } from '@/lib/category-icons';
 
 export default function WalletPage() {
   const {
@@ -33,7 +39,7 @@ export default function WalletPage() {
     setIsInviteOpen,
     setIsNewWalletOpen,
   } = useApp();
-  const { t } = useTranslation();
+  const { t, dateLocale } = useTranslation();
 
   const [name, setName] = useState('');
   const [budget, setBudget] = useState('');
@@ -42,6 +48,10 @@ export default function WalletPage() {
   const [isExporting, setIsExporting] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<CategoryWithSpent | null>(null);
+  const [deletingCategoryId, setDeletingCategoryId] = useState<string | null>(null);
+  const [isDeletingCategory, setIsDeletingCategory] = useState(false);
 
   // Sync state with walletData
   React.useEffect(() => {
@@ -71,9 +81,9 @@ export default function WalletPage() {
           <div className="w-16 h-16 rounded-3xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mx-auto mb-4 border border-indigo-200/80 dark:border-indigo-800 shadow-md">
             <WalletIcon className="w-8 h-8" />
           </div>
-          <h1 className="text-2xl font-black text-zinc-900 dark:text-white">No Wallet Selected</h1>
+          <h1 className="text-2xl font-black text-zinc-900 dark:text-white">{t('wallet.noWalletSelected')}</h1>
           <p className="text-sm text-zinc-500 mt-2 mb-6">
-            Create or select a wallet to manage members, permissions, and budgets.
+            {t('wallet.noWalletDesc')}
           </p>
           <button
             type="button"
@@ -152,13 +162,45 @@ export default function WalletPage() {
       document.body.removeChild(a);
     } catch (err) {
       console.error('Export failed:', err);
-      showToast('Failed to export wallet data');
+      showToast(t('wallet.exportFailed'));
     } finally {
       setIsExporting(false);
     }
   };
 
+  const handleDeleteCategory = async (categoryId: string) => {
+    if (!activeWalletId) return;
+    try {
+      setIsDeletingCategory(true);
+      const res = await fetch(`/api/wallets/${activeWalletId}/categories/${categoryId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(currentUser ? { 'x-user-id': currentUser.id } : {}),
+        },
+        credentials: 'include',
+      });
+      if (res.ok) {
+        showToast(t('categories.deletedToast'));
+        setDeletingCategoryId(null);
+        await refreshWallet();
+      } else {
+        showToast(t('categories.errorGeneric'));
+      }
+    } catch (err) {
+      console.error('Failed to delete category:', err);
+      showToast(t('categories.errorGeneric'));
+    } finally {
+      setIsDeletingCategory(false);
+    }
+  };
+
   const membersCount = walletData.wallet.members?.length || 1;
+  const totalCategoryLimits = (walletData.categories || []).reduce(
+    (acc, c) => acc + (c.monthlyLimit || 0),
+    0
+  );
+  const isLimitsOverBudget = totalCategoryLimits > (walletData.wallet.monthlyBudget || 0);
 
   return (
     <div className="space-y-8">
@@ -359,23 +401,43 @@ export default function WalletPage() {
                   <p className="text-xs text-zinc-500">{t('wallet.noActivity')}</p>
                 </div>
               ) : (
-                walletData.wallet.activityLogs.map((log) => (
-                  <div
-                    key={log.id}
-                    className="p-3.5 rounded-2xl bg-zinc-50/70 dark:bg-zinc-800/40 border border-zinc-200/60 dark:border-zinc-800/60 flex items-start gap-3"
-                  >
-                    <div className="w-2 h-2 rounded-full bg-indigo-500 mt-1.5 shrink-0" />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-xs font-medium text-zinc-800 dark:text-zinc-200 leading-relaxed">
-                        {log.details}
-                      </p>
-                      <div className="flex items-center gap-1.5 text-[10px] text-zinc-400 mt-1">
-                        <Clock className="w-3 h-3" />
-                        <span>{formatDate(log.timestamp, 'MMM d, yyyy · h:mm a')}</span>
+                walletData.wallet.activityLogs.map((log) => {
+                  const dotColor =
+                    log.action === 'CATEGORY_CREATED' ||
+                    log.action === 'CATEGORY_UPDATED' ||
+                    log.action === 'CATEGORY_DELETED'
+                      ? 'bg-emerald-500'
+                      : log.action === 'EXPENSE_ADDED'
+                      ? 'bg-rose-500'
+                      : log.action === 'BILL_PAID' || log.action === 'SUBSCRIPTION_PAID'
+                      ? 'bg-teal-500'
+                      : log.action === 'MEMBER_JOINED'
+                      ? 'bg-blue-500'
+                      : 'bg-indigo-500';
+
+                  const actionTitle = t.activity[log.action as keyof typeof t.activity] || t.activity.generic;
+
+                  return (
+                    <div
+                      key={log.id}
+                      className="p-3.5 rounded-2xl bg-zinc-50/70 dark:bg-zinc-800/40 border border-zinc-200/60 dark:border-zinc-800/60 flex items-start gap-3"
+                    >
+                      <div className={`w-2 h-2 rounded-full ${dotColor} mt-1.5 shrink-0`} />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-semibold text-zinc-900 dark:text-zinc-100">
+                          {actionTitle}
+                        </p>
+                        <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed mt-0.5">
+                          {log.details}
+                        </p>
+                        <div className="flex items-center gap-1.5 text-[10px] text-zinc-400 mt-1">
+                          <Clock className="w-3 h-3" />
+                          <span>{formatDate(log.timestamp, 'MMM d, yyyy · h:mm a', dateLocale)}</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           </div>
@@ -500,10 +562,10 @@ export default function WalletPage() {
                   onChange={(e) => setCurrency(e.target.value)}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950/50 text-sm text-zinc-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  <option value="EUR">EUR (€)</option>
-                  <option value="USD">USD ($)</option>
-                  <option value="GBP">GBP (£)</option>
-                  <option value="CHF">CHF (Fr)</option>
+                  <option value="EUR">{t('currencies.EUR')}</option>
+                  <option value="USD">{t('currencies.USD')}</option>
+                  <option value="GBP">{t('currencies.GBP')}</option>
+                  <option value="CHF">{t('currencies.CHF')}</option>
                 </select>
               </div>
 
@@ -520,6 +582,183 @@ export default function WalletPage() {
               )}
             </form>
           </div>
+
+          {/* Categories & Limits Card */}
+          <div id="categories" className="rounded-3xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/90 p-6 shadow-sm">
+            <div className="flex items-center justify-between pb-4 border-b border-zinc-100 dark:border-zinc-800">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-200 dark:border-indigo-800/50">
+                  <Tag className="w-4 h-4" />
+                </div>
+                <div>
+                  <h2 className="text-base font-bold text-zinc-900 dark:text-white">
+                    {t('categories.title')}
+                  </h2>
+                  <p className="text-[11px] text-zinc-500">
+                    {t('categories.subtitle')}
+                  </p>
+                </div>
+              </div>
+              {isOwner && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedCategory(null);
+                    setIsCategoryModalOpen(true);
+                  }}
+                  className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 flex items-center gap-1 transition-colors cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>{t('categories.add')}</span>
+                </button>
+              )}
+            </div>
+
+            {!isOwner && (
+              <div className="mt-4 p-3 rounded-2xl bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-800/60 text-xs text-amber-800 dark:text-amber-300">
+                {t('categories.ownerOnlyNote')}
+              </div>
+            )}
+
+            <div className="mt-4 space-y-3">
+              {(!walletData.categories || walletData.categories.length === 0) ? (
+                <div className="py-8 text-center">
+                  <Tag className="w-6 h-6 mx-auto text-zinc-300 dark:text-zinc-600 mb-2" />
+                  <p className="text-xs text-zinc-500">{t('categories.emptyState')}</p>
+                </div>
+              ) : (
+                <div className="divide-y divide-zinc-100 dark:divide-zinc-800/80">
+                  {walletData.categories.map((cat) => {
+                    const Icon = getCategoryIcon(cat.icon);
+                    const limit = cat.monthlyLimit;
+                    const hasLimit = limit !== null && limit > 0;
+                    const spent = cat.spent || 0;
+                    const percentage = hasLimit ? Math.round((spent / limit) * 100) : 0;
+                    const isWarning = hasLimit && percentage >= 85 && percentage <= 100;
+                    const isExceeded = hasLimit && spent > limit;
+
+                    return (
+                      <div key={cat.id} className="py-3.5 first:pt-0 last:pb-0">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <span
+                              className="w-2 h-2 rounded-full shrink-0"
+                              style={{ backgroundColor: cat.color }}
+                            />
+                            <div
+                              className="w-8 h-8 rounded-xl flex items-center justify-center text-white shadow-xs shrink-0"
+                              style={{ backgroundColor: cat.color }}
+                            >
+                              <Icon className="w-4 h-4" />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-sm font-bold text-zinc-900 dark:text-white truncate">
+                                {cat.name}
+                              </p>
+                              <p className="text-xs text-zinc-400 tabular-nums">
+                                {formatCurrency(spent, currency)}
+                                {' · '}
+                                {hasLimit ? formatCurrency(limit, currency) : t('categories.noLimit')}
+                              </p>
+                            </div>
+                          </div>
+
+                          {isOwner && (
+                            <div className="flex items-center gap-1 shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSelectedCategory(cat);
+                                  setIsCategoryModalOpen(true);
+                                }}
+                                className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+                                title={t('categories.edit')}
+                              >
+                                <Pencil className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setDeletingCategoryId(deletingCategoryId === cat.id ? null : cat.id)
+                                }
+                                className="p-1.5 rounded-lg text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
+                                title={t('categories.delete')}
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Progress bar when limit exists */}
+                        {hasLimit && (
+                          <div className="mt-2.5">
+                            <div className="w-full h-1.5 bg-zinc-200/80 dark:bg-zinc-700/60 rounded-full overflow-hidden">
+                              <div
+                                className={`h-full rounded-full transition-all duration-500 ${
+                                  isExceeded ? 'bg-rose-500' : isWarning ? 'bg-amber-500' : ''
+                                }`}
+                                style={{
+                                  backgroundColor: isExceeded ? undefined : isWarning ? undefined : cat.color,
+                                  width: `${Math.min(100, percentage)}%`,
+                                }}
+                              />
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Inline delete confirmation block */}
+                        {deletingCategoryId === cat.id && (
+                          <div className="p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200/80 dark:border-rose-900/50 mt-3 space-y-2">
+                            <h4 className="text-xs font-bold text-rose-900 dark:text-rose-100">
+                              {t('categories.deleteTitle')}
+                            </h4>
+                            <p className="text-xs text-rose-800 dark:text-rose-200 leading-relaxed">
+                              {t('categories.deleteMessage')}
+                            </p>
+                            <div className="flex items-center justify-end gap-2 pt-1">
+                              <button
+                                type="button"
+                                disabled={isDeletingCategory}
+                                onClick={() => setDeletingCategoryId(null)}
+                                className="px-2.5 py-1 rounded-lg text-xs font-semibold text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200/60 dark:hover:bg-zinc-800 cursor-pointer"
+                              >
+                                {t('common.cancel')}
+                              </button>
+                              <button
+                                type="button"
+                                disabled={isDeletingCategory}
+                                onClick={() => handleDeleteCategory(cat.id)}
+                                className="px-3 py-1 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-xs transition-all cursor-pointer disabled:opacity-50"
+                              >
+                                {isDeletingCategory ? t('common.processing') : t('categories.deleteConfirm')}
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Total limits info line & warning */}
+            <div className="mt-4 pt-4 border-t border-zinc-100 dark:border-zinc-800 space-y-2">
+              <p className="text-xs font-medium text-zinc-600 dark:text-zinc-400 tabular-nums">
+                {t('categories.totalLimits')
+                  .replace('{limits}', formatCurrency(totalCategoryLimits, currency))
+                  .replace('{budget}', formatCurrency(walletData.wallet.monthlyBudget || 0, currency))}
+              </p>
+
+              {isLimitsOverBudget && (
+                <div className="flex items-center gap-1.5 p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-800/60 text-xs text-amber-800 dark:text-amber-300">
+                  <AlertTriangle className="w-3.5 h-3.5 shrink-0 text-amber-600 dark:text-amber-400" />
+                  <span>{t('categories.overBudgetWarning')}</span>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -527,6 +766,20 @@ export default function WalletPage() {
       <ImportWalletModal
         isOpen={isImportModalOpen}
         onClose={() => setIsImportModalOpen(false)}
+      />
+
+      {/* Category Modal */}
+      <CategoryModal
+        open={isCategoryModalOpen}
+        category={selectedCategory}
+        onClose={() => {
+          setIsCategoryModalOpen(false);
+          setSelectedCategory(null);
+        }}
+        onSaved={() => {
+          setIsCategoryModalOpen(false);
+          setSelectedCategory(null);
+        }}
       />
     </div>
   );

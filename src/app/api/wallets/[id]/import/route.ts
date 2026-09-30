@@ -36,6 +36,7 @@ export async function POST(
     const categoriesToImport = Array.isArray(body.categories) ? body.categories : [];
     const expensesToImport = Array.isArray(body.expenses) ? body.expenses : [];
     const invoicesToImport = Array.isArray(body.invoices) ? body.invoices : [];
+    const plannedExpensesToImport = Array.isArray(body.plannedExpenses) ? body.plannedExpenses : [];
 
     // Map existing categories by normalized name to prevent duplicate creation
     const categoryMap = new Map<string, { id: string; name: string }>(
@@ -112,12 +113,56 @@ export async function POST(
       importedInvoicesCount++;
     }
 
+    // Import planned expenses
+    let importedPlannedExpensesCount = 0;
+    for (const entry of plannedExpensesToImport) {
+      if (!entry || typeof entry !== 'object') continue;
+      if (typeof entry.title !== 'string' || !entry.title.trim()) continue;
+
+      const numAmount =
+        typeof entry.amount === 'number'
+          ? entry.amount
+          : typeof entry.amount === 'string' && entry.amount.trim() !== ''
+            ? Number(entry.amount)
+            : NaN;
+      if (isNaN(numAmount) || !isFinite(numAmount) || numAmount <= 0) continue;
+
+      if (!entry.expectedDate || (typeof entry.expectedDate !== 'string' && !(entry.expectedDate instanceof Date))) continue;
+      const parsedExpectedDate = new Date(entry.expectedDate);
+      if (isNaN(parsedExpectedDate.getTime())) continue;
+
+      const rawCategoryName =
+        typeof entry.category === 'string'
+          ? entry.category
+          : typeof entry.categoryName === 'string'
+            ? entry.categoryName
+            : null;
+      const catKey = rawCategoryName ? rawCategoryName.trim().toLowerCase() : null;
+      const categoryId = catKey && categoryMap.has(catKey) ? categoryMap.get(catKey)!.id : null;
+
+      const notes = typeof entry.notes === 'string' && entry.notes.trim() ? entry.notes.trim() : null;
+
+      await prisma.plannedExpense.create({
+        data: {
+          walletId: id,
+          userId: user.id,
+          categoryId,
+          title: entry.title.trim(),
+          amount: numAmount,
+          expectedDate: parsedExpectedDate,
+          notes,
+          status: 'PENDING',
+        },
+      });
+      importedPlannedExpensesCount++;
+    }
+
     await prisma.activityLog.create({
       data: {
         walletId: id,
         userId: user.id,
         action: 'DATA_IMPORTED',
-        details: `${user.name} imported ${importedCategoriesCount} new categories, ${importedExpensesCount} expenses, and ${importedInvoicesCount} invoices/subscriptions`,
+        details: `${user.name} imported ${importedCategoriesCount} new categories, ${importedExpensesCount} expenses, ${importedInvoicesCount} invoices/subscriptions, and ${importedPlannedExpensesCount} planned expenses`,
       },
     });
 
@@ -127,6 +172,7 @@ export async function POST(
         categories: importedCategoriesCount,
         expenses: importedExpensesCount,
         invoices: importedInvoicesCount,
+        plannedExpenses: importedPlannedExpensesCount,
       },
     });
   } catch (error) {

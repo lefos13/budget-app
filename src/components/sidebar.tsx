@@ -22,9 +22,11 @@ import {
   Menu,
   X,
   UserCheck,
+  CalendarClock,
 } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { useTranslation } from '@/context/LanguageContext';
+import { interpolate } from '@/lib/i18n/translator';
 import { formatCurrency } from '@/lib/formatters';
 
 function subscribeSidebar(callback: () => void) {
@@ -147,7 +149,7 @@ export function Sidebar() {
 
           <button
             type="button"
-            aria-label="Open navigation menu"
+            aria-label={t.nav.openMenu}
             onClick={() => setIsMobileDrawerOpen(true)}
             className="p-2 rounded-xl text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
           >
@@ -233,7 +235,7 @@ export function Sidebar() {
               {/* Navigation Links in Drawer */}
               <nav className="mt-6 space-y-1">
                 <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 block mb-1.5">
-                  Navigation
+                  {t.nav.navigation}
                 </label>
                 {navLinks.map((item) => {
                   const Icon = item.icon;
@@ -281,12 +283,23 @@ export function Sidebar() {
                     type="button"
                     onClick={() => {
                       setIsMobileDrawerOpen(false);
-                      openAddInvoice();
+                      openAddInvoice(undefined, 'BILL');
                     }}
                     className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold shadow-2xs cursor-pointer"
                   >
                     <FileText className="w-3.5 h-3.5" />
                     <span>{t.actions.addBill}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsMobileDrawerOpen(false);
+                      openAddExpense(undefined, 'PLANNED');
+                    }}
+                    className="col-span-2 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold shadow-2xs cursor-pointer"
+                  >
+                    <CalendarClock className="w-3.5 h-3.5" />
+                    <span>{t.planned.sidebarAction}</span>
                   </button>
                 </div>
               </div>
@@ -337,14 +350,21 @@ export function Sidebar() {
                   onClick={() => setAuthMode(authMode === 'mock' ? 'normal' : 'mock')}
                   className="px-2 py-1 rounded-lg border border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 text-[10px] font-bold uppercase tracking-wider cursor-pointer"
                 >
-                  Toggle
+                  {t.devMode.toggle}
                 </button>
               </div>
 
               {/* Profile Card & Logout */}
               {currentUser && (
-                <div className="p-2.5 rounded-xl bg-zinc-100 dark:bg-zinc-800/60 flex items-center justify-between">
-                  <div className="flex items-center gap-2 min-w-0">
+                <div className={`p-2.5 rounded-xl bg-zinc-100 dark:bg-zinc-800/60 flex items-center justify-between ${
+                  pathname === '/profile' ? 'ring-2 ring-indigo-500/50 bg-indigo-50/50 dark:bg-indigo-950/30' : ''
+                }`}>
+                  <Link
+                    href="/profile"
+                    onClick={() => setIsMobileDrawerOpen(false)}
+                    title={t.profile.openProfile}
+                    className="flex items-center gap-2 min-w-0 flex-1 hover:opacity-80 transition-opacity"
+                  >
                     {currentUser.avatarUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
@@ -363,12 +383,12 @@ export function Sidebar() {
                       </p>
                       <p className="text-[10px] text-zinc-400 truncate">{currentUser.email}</p>
                     </div>
-                  </div>
+                  </Link>
                   <button
                     type="button"
                     onClick={logout}
-                    aria-label="Logout"
-                    className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 cursor-pointer"
+                    aria-label={t.actions.logout}
+                    className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 cursor-pointer shrink-0 ml-1"
                   >
                     <LogOut className="w-4 h-4" />
                   </button>
@@ -383,7 +403,7 @@ export function Sidebar() {
       {/* 3. Modern Collapsible Sidebar for Desktop             */}
       {/* ---------------------------------------------------- */}
       <aside
-        aria-label="Main sidebar"
+        aria-label={t.nav.mainSidebar}
         className={`hidden md:flex flex-col shrink-0 h-screen sticky top-0 z-30 border-r border-zinc-200/80 dark:border-zinc-800/80 bg-white/90 dark:bg-zinc-950/90 backdrop-blur-xl transition-all duration-300 ease-in-out ${
           isCollapsed ? 'w-20' : 'w-64'
         }`}
@@ -431,8 +451,8 @@ export function Sidebar() {
           )}
         </div>
 
-        {/* Scrollable Middle Container */}
-        <div className="flex-1 overflow-y-auto px-3 py-4 space-y-4">
+        {/* Top Controls (Wallet Switcher & Quick Add) - Non-scrolling to prevent dropdown clipping */}
+        <div className="px-3 pt-4 space-y-4 shrink-0">
           {/* Active Wallet Switcher */}
           {!isCollapsed ? (
             <div className="relative">
@@ -465,7 +485,9 @@ export function Sidebar() {
                 {activeWallet && (
                   <div className="mt-1 flex items-center justify-between text-[11px] text-zinc-500 dark:text-zinc-400">
                     <span className="font-mono">
-                      {formatCurrency(remainingBudget, activeWallet.currency)} left
+                      {interpolate(t('wallet.remainingLeft'), {
+                        amount: formatCurrency(remainingBudget, activeWallet.currency),
+                      })}
                     </span>
                     <span className="font-semibold text-zinc-400 uppercase text-[10px]">
                       {activeWallet.currency}
@@ -478,12 +500,12 @@ export function Sidebar() {
               {isWalletDropdownOpen && (
                 <>
                   <div className="fixed inset-0 z-20" onClick={() => setIsWalletDropdownOpen(false)} />
-                  <div className="absolute left-0 mt-2 w-64 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-xl z-30 py-2 animate-in fade-in zoom-in-95">
+                  <div className="absolute left-0 mt-2 w-full rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-xl z-30 py-2 animate-in fade-in zoom-in-95">
                     <div className="px-3.5 py-1 text-[10px] font-bold uppercase tracking-wider text-zinc-400 flex items-center justify-between">
                       <span>{t.wallet.yourWallets}</span>
                       <span>{wallets.length}</span>
                     </div>
-                    <div className="max-h-52 overflow-y-auto py-1">
+                    <div className="max-h-[min(13rem,calc(100vh-16rem))] overflow-y-auto py-1">
                       {wallets.map((w) => (
                         <button
                           key={w.id}
@@ -500,7 +522,7 @@ export function Sidebar() {
                         >
                           <div className="flex items-center gap-2 min-w-0">
                             <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: w.color }} />
-                            <div className="truncate">
+                            <div className="min-w-0 truncate">
                               <p className="text-xs font-semibold truncate leading-tight">{w.name}</p>
                               <p className="text-[10px] text-zinc-400 truncate">{w.userRole}</p>
                             </div>
@@ -531,7 +553,9 @@ export function Sidebar() {
               <button
                 type="button"
                 onClick={toggleCollapse}
-                title={`Active wallet: ${activeWallet?.name || 'None'}`}
+                title={interpolate(t('wallet.activeWalletTooltip'), {
+                  name: activeWallet?.name || t.common.none,
+                })}
                 className="w-10 h-10 rounded-xl bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center transition-transform hover:scale-105"
               >
                 <span
@@ -564,7 +588,7 @@ export function Sidebar() {
               {isAddMenuOpen && (
                 <>
                   <div className="fixed inset-0 z-20" onClick={() => setIsAddMenuOpen(false)} />
-                  <div className="absolute left-0 mt-2 w-56 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-xl z-30 py-1.5 animate-in fade-in zoom-in-95">
+                  <div className="absolute left-0 mt-2 w-full rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-xl z-30 py-1.5 animate-in fade-in zoom-in-95">
                     <button
                       type="button"
                       onClick={() => {
@@ -585,7 +609,7 @@ export function Sidebar() {
                       type="button"
                       onClick={() => {
                         setIsAddMenuOpen(false);
-                        openAddInvoice();
+                        openAddInvoice(undefined, 'BILL');
                       }}
                       className="w-full text-left px-3 py-2 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 flex items-center gap-2.5 transition-colors cursor-pointer"
                     >
@@ -595,6 +619,22 @@ export function Sidebar() {
                       <div>
                         <p className="font-bold text-xs">{t.actions.addBill}</p>
                         <p className="text-[10px] text-zinc-400">{t.actions.addBillSub}</p>
+                      </div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsAddMenuOpen(false);
+                        openAddExpense(undefined, 'PLANNED');
+                      }}
+                      className="w-full text-left px-3 py-2 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 flex items-center gap-2.5 transition-colors cursor-pointer"
+                    >
+                      <div className="w-6 h-6 rounded-lg bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                        <CalendarClock className="w-3.5 h-3.5" />
+                      </div>
+                      <div>
+                        <p className="font-bold text-xs">{t.planned.sidebarAction}</p>
+                        <p className="text-[10px] text-zinc-400">{t.planned.sidebarActionSub}</p>
                       </div>
                     </button>
                   </div>
@@ -613,12 +653,15 @@ export function Sidebar() {
               </button>
             </div>
           )}
+        </div>
 
+        {/* Scrollable Middle Container */}
+        <div className="flex-1 overflow-y-auto px-3 py-4">
           {/* Navigation Links */}
           <nav className="space-y-1">
             {!isCollapsed && (
               <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 block px-1 mb-1">
-                Menu
+                {t.nav.menu}
               </label>
             )}
             {navLinks.map((item) => {
@@ -682,7 +725,7 @@ export function Sidebar() {
                   onClick={() => setAuthMode(authMode === 'mock' ? 'normal' : 'mock')}
                   className="text-[10px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
                 >
-                  Toggle
+                  {t.devMode.toggle}
                 </button>
               </div>
 
@@ -739,7 +782,9 @@ export function Sidebar() {
               <button
                 type="button"
                 onClick={() => setAuthMode(authMode === 'mock' ? 'normal' : 'mock')}
-                title={`Dev Mode: ${authMode}. Click to toggle.`}
+                title={interpolate(t('devMode.tooltip'), {
+                  mode: authMode === 'mock' ? t.devMode.mockMode : t.devMode.normalMode,
+                })}
                 className="w-9 h-9 rounded-xl bg-zinc-100 dark:bg-zinc-900 flex items-center justify-center text-zinc-600 dark:text-zinc-300 hover:text-amber-500 cursor-pointer"
               >
                 <Sparkles className="w-4 h-4 text-amber-500" />
@@ -784,7 +829,9 @@ export function Sidebar() {
               <button
                 type="button"
                 onClick={() => setLanguage(language === 'en' ? 'el' : 'en')}
-                title={`Language: ${language.toUpperCase()}. Click to switch.`}
+                title={interpolate(t('nav.languageTooltip'), {
+                  lang: language.toUpperCase(),
+                })}
                 className="text-[11px] font-black uppercase w-9 h-7 rounded-lg bg-zinc-100 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-300 flex items-center justify-center hover:bg-zinc-200 dark:hover:bg-zinc-800 cursor-pointer"
               >
                 {language.toUpperCase()}
@@ -795,8 +842,14 @@ export function Sidebar() {
           {/* User Profile Card & Logout */}
           {!isCollapsed ? (
             <div className="pt-1">
-              <div className="p-2 rounded-xl bg-zinc-100/80 dark:bg-zinc-900/90 flex items-center justify-between">
-                <div className="flex items-center gap-2 min-w-0">
+              <div className={`p-2 rounded-xl bg-zinc-100/80 dark:bg-zinc-900/90 flex items-center justify-between transition-all ${
+                pathname === '/profile' ? 'ring-2 ring-indigo-500/50 bg-indigo-50/50 dark:bg-indigo-950/30' : ''
+              }`}>
+                <Link
+                  href="/profile"
+                  title={t.profile.openProfile}
+                  className="flex items-center gap-2 min-w-0 flex-1 hover:opacity-80 transition-opacity rounded-lg"
+                >
                   {currentUser?.avatarUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
@@ -806,37 +859,39 @@ export function Sidebar() {
                     />
                   ) : (
                     <div className="w-7 h-7 rounded-full bg-indigo-600 text-white font-bold text-[10px] flex items-center justify-center shrink-0">
+                      {/* i18n-ignore: avatar fallback initial */}
                       {currentUser?.name?.slice(0, 2).toUpperCase() || 'U'}
                     </div>
                   )}
                   <div className="truncate">
                     <p className="text-xs font-bold text-zinc-900 dark:text-white truncate leading-tight">
-                      {currentUser?.name || 'Guest User'}
+                      {currentUser?.name || t.common.guestUser}
                     </p>
                     <p className="text-[10px] text-zinc-400 truncate leading-tight">
-                      {currentUser?.email || 'Sign in to sync'}
+                      {currentUser?.email || t.auth.signInToSync}
                     </p>
                   </div>
-                </div>
+                </Link>
 
                 <button
                   type="button"
                   onClick={logout}
                   title={t.actions.logout}
                   aria-label={t.actions.logout}
-                  className="p-1.5 rounded-lg text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
+                  className="p-1.5 rounded-lg text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer shrink-0 ml-1"
                 >
                   <LogOut className="w-4 h-4" />
                 </button>
               </div>
             </div>
           ) : (
-            <div className="flex justify-center">
-              <button
-                type="button"
-                onClick={logout}
-                title={`Logged in as ${currentUser?.name || 'User'}. Click to logout.`}
-                className="w-9 h-9 rounded-xl flex items-center justify-center hover:ring-2 hover:ring-rose-500/50 transition-all cursor-pointer"
+            <div className="flex flex-col items-center gap-1.5">
+              <Link
+                href="/profile"
+                title={t.profile.openProfile}
+                className={`w-9 h-9 rounded-xl flex items-center justify-center hover:ring-2 hover:ring-indigo-500/50 transition-all cursor-pointer ${
+                  pathname === '/profile' ? 'ring-2 ring-indigo-500 bg-indigo-50 dark:bg-indigo-950/40' : ''
+                }`}
               >
                 {currentUser?.avatarUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -847,9 +902,19 @@ export function Sidebar() {
                   />
                 ) : (
                   <div className="w-7 h-7 rounded-full bg-indigo-600 text-white font-bold text-[10px] flex items-center justify-center">
+                    {/* i18n-ignore: avatar fallback initial */}
                     {currentUser?.name?.slice(0, 2).toUpperCase() || 'U'}
                   </div>
                 )}
+              </Link>
+              <button
+                type="button"
+                onClick={logout}
+                title={t.actions.logout}
+                aria-label={t.actions.logout}
+                className="w-9 h-7 rounded-lg flex items-center justify-center text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
+              >
+                <LogOut className="w-3.5 h-3.5" />
               </button>
             </div>
           )}
@@ -861,7 +926,7 @@ export function Sidebar() {
       {/* ---------------------------------------------------- */}
       <nav
         role="navigation"
-        aria-label="Mobile navigation"
+        aria-label={t.nav.mobileNavigation}
         className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-md border-t border-zinc-200/80 dark:border-zinc-800/80 px-2 pt-1.5 pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))] flex items-center justify-around shadow-lg"
       >
         {navLinks.map((item) => {

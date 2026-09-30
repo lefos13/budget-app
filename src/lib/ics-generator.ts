@@ -3,8 +3,9 @@ export interface IcsBillItem {
   title: string;
   amount: number;
   currency: string;
-  dueDate: Date;
+  dueDate: Date | string;
   status: string;
+  type?: string;
   invoiceNumber?: string | null;
   notes?: string | null;
   categoryName?: string | null;
@@ -48,6 +49,28 @@ export function generateIcsCalendar(
 
   const nowStamp = formatDateUtc(new Date());
 
+  // Identify the bill with the latest dueDate in each recurring series
+  const seriesLatestBillId = new Map<string, string>();
+  const seriesLatestDueTime = new Map<string, number>();
+
+  for (const bill of bills) {
+    const isRecurring = Boolean(
+      (bill.isRecurring || bill.type === 'SUBSCRIPTION') &&
+      bill.recurrenceInterval &&
+      bill.recurrenceInterval !== 'NONE'
+    );
+    if (!isRecurring) continue;
+
+    const key = `${bill.title}____${bill.type || ''}____${bill.recurrenceInterval}____${bill.amount}`;
+    const dueTime = new Date(bill.dueDate).getTime();
+    const currentMax = seriesLatestDueTime.get(key);
+
+    if (currentMax === undefined || dueTime > currentMax) {
+      seriesLatestDueTime.set(key, dueTime);
+      seriesLatestBillId.set(key, bill.id);
+    }
+  }
+
   for (const bill of bills) {
     const statusPrefix = bill.status === 'PAID' ? '✓ [PAID] ' : bill.status === 'OVERDUE' ? '⚠️ [OVERDUE] ' : '📅 [DUE] ';
     const summary = `${statusPrefix}${bill.title} (${bill.currency} ${bill.amount.toFixed(2)})`;
@@ -67,14 +90,25 @@ export function generateIcsCalendar(
     lines.push(`DESCRIPTION:${desc}`);
     lines.push(`STATUS:${bill.status === 'PAID' ? 'CANCELLED' : 'CONFIRMED'}`);
 
-    // If bill is recurring, add RRULE
-    if (bill.isRecurring && bill.recurrenceInterval) {
-      if (bill.recurrenceInterval === 'MONTHLY') {
-        lines.push('RRULE:FREQ=MONTHLY');
-      } else if (bill.recurrenceInterval === 'WEEKLY') {
-        lines.push('RRULE:FREQ=WEEKLY');
-      } else if (bill.recurrenceInterval === 'YEARLY') {
-        lines.push('RRULE:FREQ=YEARLY');
+    // If bill is recurring, add RRULE ONLY on the row with the latest dueDate in its series
+    const isRecurring = Boolean(
+      (bill.isRecurring || bill.type === 'SUBSCRIPTION') &&
+      bill.recurrenceInterval &&
+      bill.recurrenceInterval !== 'NONE'
+    );
+
+    if (isRecurring) {
+      const key = `${bill.title}____${bill.type || ''}____${bill.recurrenceInterval}____${bill.amount}`;
+      const isLatestInSeries = seriesLatestBillId.get(key) === bill.id;
+
+      if (isLatestInSeries) {
+        if (bill.recurrenceInterval === 'MONTHLY') {
+          lines.push('RRULE:FREQ=MONTHLY');
+        } else if (bill.recurrenceInterval === 'WEEKLY') {
+          lines.push('RRULE:FREQ=WEEKLY');
+        } else if (bill.recurrenceInterval === 'YEARLY') {
+          lines.push('RRULE:FREQ=YEARLY');
+        }
       }
     }
 

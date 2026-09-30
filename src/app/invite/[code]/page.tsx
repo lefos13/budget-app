@@ -12,6 +12,8 @@ import {
 import confetti from 'canvas-confetti';
 import { useApp } from '@/context/AppContext';
 import { useTranslation } from '@/context/LanguageContext';
+import { translateApiError } from '@/lib/i18n/api-errors';
+import { interpolate } from '@/lib/i18n/translator';
 
 interface InviteMember {
   name: string;
@@ -62,7 +64,7 @@ export default function InviteJoinPage() {
         const res = await fetch(`/api/invite/${code}`);
         if (!res.ok) {
           const err = await res.json();
-          setError(err.error || 'Failed to load invitation');
+          setError(translateApiError(err.error, res.status, t));
         } else {
           const data: InviteDetails = await res.json();
           setInviteData(data);
@@ -71,7 +73,7 @@ export default function InviteJoinPage() {
           }
         }
       } catch {
-        setError('Error loading invitation details');
+        setError(t('invites.errorLoading'));
       } finally {
         setIsLoading(false);
       }
@@ -79,7 +81,7 @@ export default function InviteJoinPage() {
     if (code) {
       loadInvite();
     }
-  }, [code]);
+  }, [code, t]);
 
   const handleJoin = async () => {
     try {
@@ -102,7 +104,7 @@ export default function InviteJoinPage() {
 
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error || 'Failed to accept invite');
+        setError(translateApiError(data.error, res.status, t));
       } else {
         confetti({
           particleCount: 80,
@@ -119,12 +121,12 @@ export default function InviteJoinPage() {
           setActiveWalletId(data.walletId);
         }
 
-        showToast(data.message || 'Joined wallet successfully!');
+        showToast(t('invites.joinedWalletSuccess'));
         router.push('/');
       }
     } catch (err) {
       console.error('Error joining wallet:', err);
-      setError('Unexpected error while joining');
+      setError(t('invites.unexpectedError'));
     } finally {
       setIsJoining(false);
     }
@@ -134,7 +136,7 @@ export default function InviteJoinPage() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
         <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
-        <p className="text-sm font-medium text-zinc-500">Checking invitation code...</p>
+        <p className="text-sm font-medium text-zinc-500">{t('invites.checkingCode')}</p>
       </div>
     );
   }
@@ -145,16 +147,16 @@ export default function InviteJoinPage() {
         <div className="w-12 h-12 rounded-2xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center mx-auto mb-3">
           <AlertCircle className="w-6 h-6" />
         </div>
-        <h2 className="text-lg font-bold text-zinc-900 dark:text-white">Invitation Unavailable</h2>
+        <h2 className="text-lg font-bold text-zinc-900 dark:text-white">{t('invites.unavailableTitle')}</h2>
         <p className="text-xs text-zinc-500 mt-2 mb-6">
-          {error || 'This invite link may have expired or reached its maximum usage limit.'}
+          {error || t('invites.unavailableDesc')}
         </p>
         <button
           type="button"
           onClick={() => router.push('/')}
           className="px-5 py-2.5 rounded-xl bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-xs font-bold cursor-pointer"
         >
-          Return to Dashboard
+          {t('invites.returnToDashboard')}
         </button>
       </div>
     );
@@ -184,11 +186,11 @@ export default function InviteJoinPage() {
         </div>
 
         <h1 className="text-2xl font-black tracking-tight text-zinc-900 dark:text-white">
-          Join &quot;{wallet.name}&quot;
+          {interpolate(t('invites.joinWalletName'), { name: wallet.name })}
         </h1>
 
         <p className="text-xs text-zinc-500 mt-1.5">
-          Collaborate on monthly budgets, track shared expenses, and schedule bill reminders.
+          {t('invites.joinDescription')}
         </p>
       </div>
 
@@ -201,7 +203,7 @@ export default function InviteJoinPage() {
               {t('invites.lockedWarningTitle')}
             </strong>
             <p className="mt-0.5">
-              This invitation was sent specifically to <strong>{invite.targetEmail}</strong>. Please log in with <strong>{invite.targetEmail}</strong> to accept.
+              {interpolate(t('invites.lockedWarningMessage'), { email: invite.targetEmail || '' })}
             </p>
           </div>
         </div>
@@ -217,14 +219,14 @@ export default function InviteJoinPage() {
         <div className="flex items-center justify-between text-xs">
           <span className="text-zinc-500">{t('invites.accessRole')}:</span>
           <span className="font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 px-2 py-0.5 rounded-md border border-indigo-200 dark:border-indigo-800">
-            {invite.role}
+            {t.roles[invite.role as keyof typeof t.roles] || invite.role}
           </span>
         </div>
 
         <div className="flex items-center justify-between text-xs">
           <span className="text-zinc-500">{t('invites.currentMembers')}:</span>
           <span className="font-bold text-zinc-800 dark:text-zinc-200">
-            {wallet.memberCount} member{wallet.memberCount === 1 ? '' : 's'}
+            {interpolate(t(wallet.memberCount === 1 ? 'budget.membersCountOne' : 'budget.membersCountMany'), { count: wallet.memberCount })}
           </span>
         </div>
 
@@ -238,7 +240,7 @@ export default function InviteJoinPage() {
                   src={m.avatarUrl}
                   alt={m.name}
                   className="w-7 h-7 rounded-full object-cover ring-2 ring-white dark:ring-zinc-800"
-                  title={`${m.name} (${m.role})`}
+                  title={`${m.name} (${t.roles[m.role as keyof typeof t.roles] || m.role})`}
                 />
               ) : (
                 <div className="w-7 h-7 rounded-full bg-zinc-200 dark:bg-zinc-700 flex items-center justify-center text-[10px] font-bold">
@@ -259,8 +261,8 @@ export default function InviteJoinPage() {
             className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
           >
             {useCustomProfile
-              ? `← Or join directly as ${currentUser.name}`
-              : 'Join with a different name or email?'}
+              ? `← ${t('invites.useExistingProfile')} ${currentUser.name}`
+              : t('invites.useCustomProfile')}
           </button>
         </div>
       )}
@@ -269,12 +271,12 @@ export default function InviteJoinPage() {
         <div className="space-y-3 mb-6 p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200 dark:border-zinc-800">
           <div>
             <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">
-              Your Full Name
+              {t('invites.fullNameLabel')}
             </label>
             <input
               type="text"
               required
-              placeholder="e.g. Jordan Smith"
+              placeholder={t('invites.namePlaceholder')}
               value={customName}
               onChange={(e) => setCustomName(e.target.value)}
               className="w-full px-3 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-xs text-zinc-900 dark:text-white"
@@ -282,12 +284,12 @@ export default function InviteJoinPage() {
           </div>
           <div>
             <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">
-              Your Email Address
+              {t('invites.emailLabel')}
             </label>
             <input
               type="email"
               required
-              placeholder={invite.targetEmail || 'jordan@example.com'}
+              placeholder={invite.targetEmail || t('invites.emailPlaceholder')}
               value={customEmail}
               onChange={(e) => setCustomEmail(e.target.value)}
               className="w-full px-3 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-xs text-zinc-900 dark:text-white"
@@ -307,10 +309,10 @@ export default function InviteJoinPage() {
           {isJoining
             ? t('invites.joiningWallet')
             : !isEmailMatching
-            ? `Locked to ${invite.targetEmail}`
+            ? interpolate(t('invites.lockedToEmail'), { email: invite.targetEmail || '' })
             : useCustomProfile
             ? t('invites.joinWallet')
-            : `${t('invites.joinAs')} ${currentUser?.name || 'Member'}`}
+            : `${t('invites.joinAs')} ${currentUser?.name || t('roles.MEMBER')}`}
         </span>
         <ArrowRight className="w-4 h-4" />
       </button>

@@ -6,15 +6,18 @@ import {
   FileText,
   UserPlus,
   Layers,
-  Calendar,
 } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
+import { useTranslation } from '@/context/LanguageContext';
 import { UrgentRemindersBanner } from '@/components/urgent-reminders-banner';
+import { UnpaidBillsBanner } from '@/components/unpaid-bills-banner';
 import { BudgetOverviewCard } from '@/components/budget-overview-card';
 import { CategoryBreakdown } from '@/components/category-breakdown';
 import { UpcomingBillsCard } from '@/components/upcoming-bills-card';
 import { RecentExpensesCard } from '@/components/recent-expenses-card';
 import { PendingInvitesBanner } from '@/components/pending-invites-banner';
+import { MonthSwitcher } from '@/components/month-switcher';
+import { MonthProjectionCard } from '@/components/month-projection-card';
 
 export default function DashboardPage() {
   const {
@@ -22,16 +25,17 @@ export default function DashboardPage() {
     walletData,
     isLoading,
     setIsAddExpenseOpen,
-    setIsAddInvoiceOpen,
+    openAddInvoice,
     setIsInviteOpen,
     setIsNewWalletOpen,
   } = useApp();
+  const { t } = useTranslation();
 
-  if (isLoading) {
+  if (isLoading && !walletData) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
         <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
-        <p className="text-sm font-semibold text-zinc-500">Loading your collaborative finances...</p>
+        <p className="text-sm font-semibold text-zinc-500">{t.dashboard.loadingFinances}</p>
       </div>
     );
   }
@@ -45,27 +49,27 @@ export default function DashboardPage() {
             <Layers className="w-8 h-8" />
           </div>
           <h1 className="text-2xl sm:text-3xl font-black text-zinc-900 dark:text-white tracking-tight">
-            Welcome to Aura Budget
+            {t.dashboard.welcomeTitle}
           </h1>
           <p className="text-sm text-zinc-500 mt-2.5 mb-6 max-w-md mx-auto leading-relaxed">
-            Create your first wallet to track monthly budgets, manage upcoming invoice reminders, and collaborate seamlessly with your family, partner, or roommates.
+            {t.dashboard.welcomeSubtitle}
           </p>
           <button
             type="button"
             onClick={() => setIsNewWalletOpen(true)}
             className="px-6 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm shadow-lg shadow-indigo-600/25 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
           >
-            Create First Wallet
+            {t.dashboard.createFirstWallet}
           </button>
         </div>
       </div>
     );
   }
 
-  const currentMonthName = new Date().toLocaleString('default', { month: 'long', year: 'numeric' });
+  const isSwitching = isLoading && Boolean(walletData);
 
   return (
-    <div className="space-y-7">
+    <div className={`space-y-7 transition-opacity ${isSwitching ? 'opacity-60' : ''}`} aria-busy={isSwitching}>
       {/* Targeted Pending Invites Banner */}
       <PendingInvitesBanner />
 
@@ -73,13 +77,10 @@ export default function DashboardPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-5 sm:p-6 rounded-3xl border border-zinc-200/90 dark:border-zinc-800 bg-white/95 dark:bg-zinc-900/90 shadow-sm">
         <div className="space-y-1.5">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-0.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/70 text-indigo-600 dark:text-indigo-400 border border-indigo-200/80 dark:border-indigo-800/60">
-              <Calendar className="w-3 h-3" />
-              <span>{currentMonthName}</span>
-            </span>
+            <MonthSwitcher />
             <span className="text-xs text-zinc-300 dark:text-zinc-700">|</span>
             <span className="text-xs font-semibold text-zinc-500">
-              Active as <strong className="text-zinc-800 dark:text-zinc-200">{currentUser?.name}</strong> ({walletData.userRole})
+              {t.dashboard.activeAs} <strong className="text-zinc-800 dark:text-zinc-200">{currentUser?.name}</strong> ({t.roles[walletData.userRole as keyof typeof t.roles] ?? walletData.userRole})
             </span>
           </div>
 
@@ -99,7 +100,7 @@ export default function DashboardPage() {
           {/* Member avatars preview */}
           <div className="flex items-center -space-x-2 mr-1">
             {walletData.wallet.members?.slice(0, 3).map((m) => (
-              <div key={m.id} className="relative group" title={`${m.user?.name} (${m.role})`}>
+              <div key={m.id} className="relative group" title={`${m.user?.name} (${t.roles[m.role as keyof typeof t.roles] ?? m.role})`}>
                 {m.user?.avatarUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
@@ -122,7 +123,7 @@ export default function DashboardPage() {
             className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-indigo-200 dark:border-indigo-800/80 bg-indigo-50/70 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 text-xs font-bold transition-all shadow-xs"
           >
             <UserPlus className="w-3.5 h-3.5" />
-            <span>Invite</span>
+            <span>{t.actions.invite}</span>
           </button>
 
           <button
@@ -131,16 +132,16 @@ export default function DashboardPage() {
             className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs shadow-emerald-600/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
           >
             <Receipt className="w-3.5 h-3.5" />
-            <span>+ Expense</span>
+            <span>{t.dashboard.addExpenseBtn}</span>
           </button>
 
           <button
             type="button"
-            onClick={() => setIsAddInvoiceOpen(true)}
+            onClick={() => openAddInvoice(undefined, 'BILL')}
             className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold shadow-xs shadow-amber-600/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
           >
             <FileText className="w-3.5 h-3.5" />
-            <span>+ Bill</span>
+            <span>{t.dashboard.addBillBtn}</span>
           </button>
         </div>
       </div>
@@ -148,8 +149,14 @@ export default function DashboardPage() {
       {/* Urgent Reminders Alert Banner (if overdue/imminent bills exist) */}
       <UrgentRemindersBanner />
 
+      {/* Unpaid Bills Banner for Selected Month */}
+      <UnpaidBillsBanner />
+
       {/* Monthly Budget Overview Gauge */}
       <BudgetOverviewCard />
+
+      {/* "If everything is paid" Month Projection */}
+      <MonthProjectionCard />
 
       {/* Main Grid: Upcoming Invoices & Recent Expenses */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-7">

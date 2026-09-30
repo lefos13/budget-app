@@ -3,20 +3,23 @@
 import React from 'react';
 import { TrendingUp, ShieldCheck, DollarSign, Calendar, Users } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
+import { useTranslation } from '@/context/LanguageContext';
+import { interpolate } from '@/lib/i18n/translator';
 import { formatCurrency, calculateBudgetPacing } from '@/lib/formatters';
+import { getMonthBounds, getPacingReferenceDate } from '@/lib/month';
 
 export function BudgetOverviewCard() {
-  const { walletData } = useApp();
+  const { walletData, selectedMonth } = useApp();
+  const { t } = useTranslation();
 
   if (!walletData) return null;
 
   const { monthlyBudget, totalSpentMonth, remainingBudget } = walletData.metrics;
   const currency = walletData.wallet.currency;
 
-  const pacing = calculateBudgetPacing(monthlyBudget, totalSpentMonth);
+  const pacing = calculateBudgetPacing(monthlyBudget, totalSpentMonth, getPacingReferenceDate(selectedMonth));
 
-  const now = new Date();
-  const endOfCurrentMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+  const endOfCurrentMonth = getMonthBounds(selectedMonth).end;
 
   // Sum of pending / overdue bills due up to the end of this month
   const committedBillsMonth = (walletData.invoices || [])
@@ -37,7 +40,7 @@ export function BudgetOverviewCard() {
         <div className="space-y-1.5">
           <div className="flex items-center gap-2">
             <span className="text-xs font-bold uppercase tracking-wider text-zinc-400">
-              Monthly Budget Status
+              {t.budget.monthlyStatus}
             </span>
             <span
               className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border ${
@@ -46,7 +49,7 @@ export function BudgetOverviewCard() {
                   : 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900/60'
               }`}
             >
-              {pacing.statusText}
+              {t.pacing[pacing.statusKey]}
             </span>
           </div>
 
@@ -55,7 +58,7 @@ export function BudgetOverviewCard() {
               {formatCurrency(totalSpentMonth, currency)}
             </h2>
             <span className="text-sm font-semibold text-zinc-500 tabular-nums">
-              spent of {formatCurrency(monthlyBudget, currency)} target
+              {interpolate(t('budget.spentOfTarget'), { target: formatCurrency(monthlyBudget, currency) })}
             </span>
           </div>
         </div>
@@ -67,11 +70,11 @@ export function BudgetOverviewCard() {
           </div>
           <div>
             <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
-              Remaining Daily Pace
+              {t.budget.remainingDailyPace}
             </p>
             <p className="text-lg font-black text-zinc-900 dark:text-white tabular-nums">
               {formatCurrency(pacing.dailyBudgetRemaining, currency)}
-              <span className="text-xs font-medium text-zinc-400"> / day</span>
+              <span className="text-xs font-medium text-zinc-400"> {t.budget.perDay}</span>
             </p>
           </div>
         </div>
@@ -81,10 +84,10 @@ export function BudgetOverviewCard() {
       <div className="mt-6">
         <div className="flex items-center justify-between text-xs font-semibold mb-2 text-zinc-600 dark:text-zinc-400">
           <span className="font-bold text-zinc-900 dark:text-white">
-            {pacing.percentageSpent}% Budget Spent
+            {interpolate(t('budget.percentBudgetSpent'), { percent: pacing.percentageSpent })}
           </span>
           <span className="text-zinc-400">
-            Day of month target: <strong className="text-zinc-700 dark:text-zinc-300 font-bold">{pacing.expectedPercentage}%</strong>
+            {t.budget.dayOfMonthTarget} <strong className="text-zinc-700 dark:text-zinc-300 font-bold">{pacing.expectedPercentage}%</strong>
           </span>
         </div>
 
@@ -93,7 +96,7 @@ export function BudgetOverviewCard() {
           <div
             className="absolute top-0 bottom-0 w-1 bg-zinc-900 dark:bg-white z-10 shadow-sm ring-1 ring-zinc-300 dark:ring-zinc-600"
             style={{ left: `${Math.min(100, pacing.expectedPercentage)}%` }}
-            title={`Pace expected today: ${pacing.expectedPercentage}%`}
+            title={interpolate(t('budget.paceExpectedToday'), { percent: pacing.expectedPercentage })}
           />
           {/* Actual Spent Bar */}
           <div
@@ -115,7 +118,7 @@ export function BudgetOverviewCard() {
         <div className="p-4 rounded-2xl bg-zinc-50/70 dark:bg-zinc-800/40 border border-zinc-200/60 dark:border-zinc-800">
           <div className="flex items-center justify-between">
             <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">
-              Remaining Budget
+              {t.budget.remainingBudget}
             </p>
             <TrendingUp className="w-3.5 h-3.5 text-zinc-400" />
           </div>
@@ -123,7 +126,7 @@ export function BudgetOverviewCard() {
             {formatCurrency(remainingBudget, currency)}
           </p>
           <p className="text-[11px] text-zinc-500 mt-0.5">
-            {100 - pacing.percentageSpent}% unallocated
+            {interpolate(t('budget.unallocated'), { percent: 100 - pacing.percentageSpent })}
           </p>
         </div>
 
@@ -131,7 +134,7 @@ export function BudgetOverviewCard() {
         <div className="p-4 rounded-2xl bg-zinc-50/70 dark:bg-zinc-800/40 border border-zinc-200/60 dark:border-zinc-800">
           <div className="flex items-center justify-between">
             <p className="text-[11px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
-              Committed Bills
+              {t.budget.committedBills}
             </p>
             <Calendar className="w-3.5 h-3.5 text-amber-500" />
           </div>
@@ -139,7 +142,9 @@ export function BudgetOverviewCard() {
             {formatCurrency(committedBillsMonth, currency)}
           </p>
           <p className="text-[11px] text-zinc-500 mt-0.5">
-            {walletData.metrics.pendingCount} unpaid invoice{walletData.metrics.pendingCount === 1 ? '' : 's'}
+            {walletData.metrics.pendingCount === 1
+              ? t.budget.unpaidInvoiceOne
+              : interpolate(t('budget.unpaidInvoiceMany'), { count: walletData.metrics.pendingCount })}
           </p>
         </div>
 
@@ -147,7 +152,7 @@ export function BudgetOverviewCard() {
         <div className="p-4 rounded-2xl bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200/60 dark:border-emerald-900/40">
           <div className="flex items-center justify-between">
             <p className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider">
-              Safe Free Spend
+              {t.budget.safeFreeSpend}
             </p>
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
           </div>
@@ -155,7 +160,7 @@ export function BudgetOverviewCard() {
             {formatCurrency(safeDiscretionarySpend, currency)}
           </p>
           <p className="text-[11px] text-emerald-600/80 dark:text-emerald-400/80 mt-0.5">
-            After upcoming bills
+            {t.budget.afterUpcomingBills}
           </p>
         </div>
 
@@ -163,12 +168,14 @@ export function BudgetOverviewCard() {
         <div className="p-4 rounded-2xl bg-zinc-50/70 dark:bg-zinc-800/40 border border-zinc-200/60 dark:border-zinc-800">
           <div className="flex items-center justify-between">
             <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">
-              Collaborators
+              {t.budget.collaborators}
             </p>
             <Users className="w-3.5 h-3.5 text-indigo-500" />
           </div>
           <p className="text-lg sm:text-xl font-black text-indigo-600 dark:text-indigo-400 mt-1.5 tabular-nums">
-            {walletData.wallet.members?.length || 1} members
+            {(walletData.wallet.members?.length || 1) === 1
+              ? t.budget.membersCountOne
+              : interpolate(t('budget.membersCountMany'), { count: walletData.wallet.members?.length || 1 })}
           </p>
           <div className="flex items-center gap-1 mt-1">
             {walletData.wallet.members?.slice(0, 3).map((m, idx) => (

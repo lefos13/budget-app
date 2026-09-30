@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/session';
 import { Prisma } from '@prisma/client';
+import { isValidMonthKey, getMonthBounds } from '@/lib/month';
 
 export async function GET(req: NextRequest) {
   try {
@@ -10,12 +11,22 @@ export async function GET(req: NextRequest) {
     const categoryId = searchParams.get('categoryId');
     const search = searchParams.get('search');
     const limit = parseInt(searchParams.get('limit') || '50');
+    const month = searchParams.get('month');
 
     if (!walletId) {
       return NextResponse.json({ error: 'walletId is required' }, { status: 400 });
     }
 
     const where: Prisma.ExpenseWhereInput = { walletId };
+
+    if (month !== null) {
+      if (!isValidMonthKey(month)) {
+        return NextResponse.json({ error: 'Invalid month' }, { status: 400 });
+      }
+      const { start, end } = getMonthBounds(month);
+      where.date = { gte: start, lte: end };
+    }
+
     if (categoryId && categoryId !== 'all') {
       where.categoryId = categoryId;
     }

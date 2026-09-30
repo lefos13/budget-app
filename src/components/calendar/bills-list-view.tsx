@@ -7,27 +7,38 @@ import {
   Search,
   Trash2,
   Calendar,
+  Pencil,
 } from 'lucide-react';
 import { useApp, InvoiceItem } from '@/context/AppContext';
 import { useTranslation } from '@/context/LanguageContext';
+import { interpolate } from '@/lib/i18n/translator';
 import { formatCurrency, formatDate } from '@/lib/formatters';
+import { getMonthBounds } from '@/lib/month';
 
 export function BillsListView({
   typeFilter = 'ALL',
+  statusFilter = 'ALL',
 }: {
   typeFilter?: 'ALL' | 'BILL' | 'SUBSCRIPTION';
+  statusFilter?: 'ALL' | 'PENDING' | 'OVERDUE' | 'PAID';
 }) {
-  const { walletData, currentUser, refreshWallet, showToast } = useApp();
-  const { t } = useTranslation();
+  const { walletData, currentUser, refreshWallet, showToast, selectedMonth, openEditInvoice } = useApp();
+  const { t, dateLocale } = useTranslation();
 
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'ALL' | 'PENDING' | 'OVERDUE' | 'PAID'>('ALL');
   const [payingId, setPayingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const filteredBills = useMemo(() => {
     if (!walletData) return [];
-    let list = [...walletData.invoices];
+    const { start, end } = getMonthBounds(selectedMonth);
+    const startMs = start.getTime();
+    const endMs = end.getTime();
+
+    let list = walletData.invoices.filter((i) => {
+      const dueMs = new Date(i.dueDate).getTime();
+      return dueMs >= startMs && dueMs <= endMs;
+    });
 
     // Filter by type
     if (typeFilter === 'BILL') {
@@ -56,7 +67,7 @@ export function BillsListView({
     list.sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
 
     return list;
-  }, [walletData, typeFilter, statusFilter, search]);
+  }, [walletData, selectedMonth, typeFilter, statusFilter, search]);
 
   if (!walletData) return null;
   const currency = walletData.wallet.currency;
@@ -75,8 +86,8 @@ export function BillsListView({
       if (res.ok) {
         showToast(
           bill.type === 'SUBSCRIPTION'
-            ? `Renewed subscription: "${bill.title}"`
-            : `Paid bill: "${bill.title}"`
+            ? interpolate(t('bills.renewedSubscriptionToast'), { title: bill.title })
+            : interpolate(t('bills.paidBillToast'), { title: bill.title })
         );
         await refreshWallet();
       }
@@ -94,7 +105,7 @@ export function BillsListView({
         method: 'DELETE',
       });
       if (res.ok) {
-        showToast(`Deleted "${title}"`);
+        showToast(interpolate(t('bills.deletedBillToast'), { title }));
         await refreshWallet();
       }
     } catch (err) {
@@ -106,9 +117,9 @@ export function BillsListView({
 
   return (
     <div className="rounded-3xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/90 shadow-sm overflow-hidden">
-      {/* Search and Filters Bar */}
-      <div className="p-4 sm:p-5 border-b border-zinc-100 dark:border-zinc-800 flex flex-col sm:flex-row items-center justify-between gap-3">
-        <div className="relative flex-1 w-full">
+      {/* Search Bar */}
+      <div className="p-4 sm:p-5 border-b border-zinc-100 dark:border-zinc-800">
+        <div className="relative w-full">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
           <input
             type="text"
@@ -117,31 +128,6 @@ export function BillsListView({
             onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-9 pr-3 py-2 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950/50 text-xs text-zinc-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
           />
-        </div>
-
-        <div className="flex items-center gap-2 w-full sm:w-auto">
-          <div className="flex items-center p-1 rounded-xl bg-zinc-100 dark:bg-zinc-800/80 text-xs">
-            {(['ALL', 'PENDING', 'OVERDUE', 'PAID'] as const).map((st) => (
-              <button
-                key={st}
-                type="button"
-                onClick={() => setStatusFilter(st)}
-                className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
-                  statusFilter === st
-                    ? 'bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white shadow-xs'
-                    : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-white'
-                }`}
-              >
-                {st === 'ALL'
-                  ? t('common.all')
-                  : st === 'PENDING'
-                  ? t('bills.pending')
-                  : st === 'OVERDUE'
-                  ? t('bills.overdue')
-                  : t('bills.paid')}
-              </button>
-            ))}
-          </div>
         </div>
       </div>
 
@@ -153,7 +139,7 @@ export function BillsListView({
             {t('bills.noBillsFound')}
           </p>
           <p className="text-xs text-zinc-500 mt-1">
-            Try adjusting your search query or filter settings.
+            {t('bills.noBillsMatchingSub')}
           </p>
         </div>
       ) : (
@@ -193,17 +179,17 @@ export function BillsListView({
                             : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300'
                         }`}
                       >
-                        {isSub ? 'Subscription' : 'Bill'}
+                        {isSub ? t('unpaidBanner.typeSubscription') : t('unpaidBanner.typeBill')}
                       </span>
                       {inv.isRecurring && (
                         <span className="text-[10px] font-semibold text-zinc-400">
-                          ({inv.recurrenceInterval.toLowerCase()})
+                          ({(t.recurrence[inv.recurrenceInterval as keyof typeof t.recurrence] || inv.recurrenceInterval).toLowerCase()})
                         </span>
                       )}
                     </div>
 
                     <div className="flex items-center gap-2 mt-1 text-xs text-zinc-400 flex-wrap">
-                      <span>Due: {formatDate(inv.dueDate, 'MMM d, yyyy')}</span>
+                      <span>{t('bills.dueColon')} {formatDate(inv.dueDate, 'MMM d, yyyy', dateLocale)}</span>
                       {inv.category && (
                         <>
                           <span>·</span>
@@ -261,6 +247,15 @@ export function BillsListView({
                         {isPaying ? t('common.processing') : t('bills.markAsPaidAction')}
                       </button>
                     )}
+                    <button
+                      type="button"
+                      onClick={() => openEditInvoice(inv)}
+                      className="p-1.5 rounded-xl text-zinc-400 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/50 transition-colors cursor-pointer"
+                      title={t('bills.edit')}
+                      aria-label={t('bills.edit')}
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </button>
                     <button
                       type="button"
                       disabled={isDeleting}

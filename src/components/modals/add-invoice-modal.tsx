@@ -1,9 +1,11 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, FileText, Bell, Repeat, Sparkles } from 'lucide-react';
+import { X, FileText, Bell, Repeat, Sparkles, AlertCircle } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { useTranslation } from '@/context/LanguageContext';
+import { interpolate } from '@/lib/i18n/translator';
+import { toDateKey } from '@/lib/month';
 
 export function AddInvoiceModal({ initialDate }: { initialDate?: string }) {
   const { isAddInvoiceOpen } = useApp();
@@ -19,21 +21,43 @@ function AddInvoiceModalDialog({ initialDate }: { initialDate?: string }) {
     walletData,
     currentUser,
     modalInitialDate,
+    modalInitialType,
+    editingInvoice,
     refreshWallet,
     showToast,
   } = useApp();
 
-  const [type, setType] = useState<'BILL' | 'SUBSCRIPTION'>('BILL');
-  const [title, setTitle] = useState('');
-  const [amount, setAmount] = useState('');
-  const [dueDate, setDueDate] = useState(() => modalInitialDate || initialDate || new Date().toISOString().slice(0, 10));
-  const [categoryId, setCategoryId] = useState('');
-  const [invoiceNumber, setInvoiceNumber] = useState('');
-  const [notes, setNotes] = useState('');
-  const [isRecurring, setIsRecurring] = useState(false);
-  const [recurrenceInterval, setRecurrenceInterval] = useState('MONTHLY');
-  const [reminderDaysBefore, setReminderDaysBefore] = useState('3');
+  const isEdit = Boolean(editingInvoice);
+  const isPaid = editingInvoice?.status === 'PAID';
+  const isPaidNonSub = isPaid && editingInvoice?.type !== 'SUBSCRIPTION';
+
+  const [type, setType] = useState<'BILL' | 'SUBSCRIPTION'>(() => {
+    if (editingInvoice) {
+      return editingInvoice.type?.toUpperCase() === 'SUBSCRIPTION' ? 'SUBSCRIPTION' : 'BILL';
+    }
+    return modalInitialType ?? 'BILL';
+  });
+  const [title, setTitle] = useState(() => editingInvoice?.title ?? '');
+  const [amount, setAmount] = useState(() => (editingInvoice ? String(editingInvoice.amount) : ''));
+  const [dueDate, setDueDate] = useState(() => {
+    if (editingInvoice) {
+      return new Date(editingInvoice.dueDate).toISOString().slice(0, 10);
+    }
+    return modalInitialDate || initialDate || toDateKey(new Date());
+  });
+  const [categoryId, setCategoryId] = useState(() => editingInvoice?.categoryId ?? '');
+  const [invoiceNumber, setInvoiceNumber] = useState(() => editingInvoice?.invoiceNumber ?? '');
+  const [notes, setNotes] = useState(() => editingInvoice?.notes ?? '');
+  const [isRecurring, setIsRecurring] = useState(() => {
+    if (editingInvoice) {
+      return editingInvoice.isRecurring;
+    }
+    return (modalInitialType ?? 'BILL') === 'SUBSCRIPTION';
+  });
+  const [recurrenceInterval, setRecurrenceInterval] = useState(() => editingInvoice?.recurrenceInterval || 'MONTHLY');
+  const [reminderDaysBefore, setReminderDaysBefore] = useState(() => (editingInvoice ? String(editingInvoice.reminderDaysBefore) : '3'));
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -45,48 +69,85 @@ function AddInvoiceModalDialog({ initialDate }: { initialDate?: string }) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title || !amount || !dueDate || !activeWalletId) return;
+    if (!title || !amount || !dueDate) return;
+    if (!isEdit && !activeWalletId) return;
 
     try {
       setIsSubmitting(true);
+      setErrorMessage(null);
       const isSub = type === 'SUBSCRIPTION';
-      const res = await fetch('/api/invoices', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(currentUser ? { 'x-user-id': currentUser.id } : {}),
-        },
-        body: JSON.stringify({
-          walletId: activeWalletId,
-          title: title.trim(),
-          amount: parseFloat(amount),
-          type,
-          dueDate: new Date(dueDate).toISOString(),
-          categoryId: categoryId || null,
-          invoiceNumber: invoiceNumber.trim() || null,
-          notes: notes.trim() || null,
-          isRecurring: isSub ? true : isRecurring,
-          recurrenceInterval: isSub ? recurrenceInterval : (isRecurring ? recurrenceInterval : 'NONE'),
-          reminderDaysBefore: parseInt(reminderDaysBefore) || 3,
-        }),
-      });
 
-      if (res.ok) {
-        showToast(
-          isSub
-            ? `Added recurring subscription: "${title}"`
-            : `Scheduled bill reminder: "${title}"`
-        );
-        setIsAddInvoiceOpen(false);
-        setTitle('');
-        setAmount('');
-        setInvoiceNumber('');
-        setNotes('');
-        setType('BILL');
-        await refreshWallet();
+      if (isEdit && editingInvoice) {
+        const res = await fetch(`/api/invoices/${editingInvoice.id}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(currentUser ? { 'x-user-id': currentUser.id } : {}),
+          },
+          body: JSON.stringify({
+            title: title.trim(),
+            amount: parseFloat(amount),
+            type,
+            dueDate: new Date(dueDate).toISOString(),
+            categoryId: categoryId || null,
+            invoiceNumber: invoiceNumber.trim() || null,
+            notes: notes.trim() || null,
+            isRecurring: isSub ? true : isRecurring,
+            recurrenceInterval: isSub ? recurrenceInterval : (isRecurring ? recurrenceInterval : 'NONE'),
+            reminderDaysBefore: parseInt(reminderDaysBefore) || 3,
+          }),
+        });
+
+        if (res.ok) {
+          showToast(interpolate(t('bills.updatedToast'), { title: title.trim() }));
+          setIsAddInvoiceOpen(false);
+          await refreshWallet();
+        } else {
+          const data = await res.json().catch(() => ({}));
+          setErrorMessage(data.error || t.bills.updateFailed);
+        }
+      } else {
+        const res = await fetch('/api/invoices', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(currentUser ? { 'x-user-id': currentUser.id } : {}),
+          },
+          body: JSON.stringify({
+            walletId: activeWalletId,
+            title: title.trim(),
+            amount: parseFloat(amount),
+            type,
+            dueDate: new Date(dueDate).toISOString(),
+            categoryId: categoryId || null,
+            invoiceNumber: invoiceNumber.trim() || null,
+            notes: notes.trim() || null,
+            isRecurring: isSub ? true : isRecurring,
+            recurrenceInterval: isSub ? recurrenceInterval : (isRecurring ? recurrenceInterval : 'NONE'),
+            reminderDaysBefore: parseInt(reminderDaysBefore) || 3,
+          }),
+        });
+
+        if (res.ok) {
+          showToast(
+            isSub
+              ? interpolate(t('bills.addedSubscriptionToast'), { title: title.trim() })
+              : interpolate(t('bills.scheduledBillToast'), { title: title.trim() })
+          );
+          setIsAddInvoiceOpen(false);
+          setTitle('');
+          setAmount('');
+          setInvoiceNumber('');
+          setNotes('');
+          setType('BILL');
+          await refreshWallet();
+        }
       }
     } catch (err) {
-      console.error('Failed to create invoice:', err);
+      console.error(isEdit ? 'Failed to update invoice:' : 'Failed to create invoice:', err);
+      if (isEdit) {
+        setErrorMessage(t.bills.updateFailed);
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -110,12 +171,14 @@ function AddInvoiceModalDialog({ initialDate }: { initialDate?: string }) {
             </div>
             <div>
               <h2 className="text-base font-bold text-zinc-900 dark:text-white">
-                {type === 'SUBSCRIPTION' ? t.bills.addSubscription : t.bills.addBillOrInvoice}
+                {isEdit
+                  ? (type === 'SUBSCRIPTION' ? t.bills.editSubscriptionTitle : t.bills.editBillTitle)
+                  : (type === 'SUBSCRIPTION' ? t.bills.addSubscription : t.bills.addBillOrInvoice)}
               </h2>
               <p className="text-xs text-zinc-500">
                 {type === 'SUBSCRIPTION'
-                  ? 'Track recurring subscriptions & monthly burn'
-                  : 'Track due date and set calendar reminders'}
+                  ? t('bills.subscriptionModalSubtitle')
+                  : t('bills.billModalSubtitle')}
               </p>
             </div>
           </div>
@@ -132,8 +195,11 @@ function AddInvoiceModalDialog({ initialDate }: { initialDate?: string }) {
         <div className="mt-4 grid grid-cols-2 gap-1.5 p-1 bg-zinc-100 dark:bg-zinc-800/70 rounded-xl">
           <button
             type="button"
-            onClick={() => setType('BILL')}
-            className={`py-2 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+            disabled={isPaid}
+            onClick={() => !isPaid && setType('BILL')}
+            className={`py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+              isPaid ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'
+            } ${
               type === 'BILL'
                 ? 'bg-white dark:bg-zinc-900 text-amber-600 dark:text-amber-400 shadow-xs'
                 : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
@@ -144,12 +210,16 @@ function AddInvoiceModalDialog({ initialDate }: { initialDate?: string }) {
           </button>
           <button
             type="button"
+            disabled={isPaid}
             onClick={() => {
+              if (isPaid) return;
               setType('SUBSCRIPTION');
               setIsRecurring(true);
               if (recurrenceInterval === 'NONE') setRecurrenceInterval('MONTHLY');
             }}
-            className={`py-2 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+            className={`py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+              isPaid ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'
+            } ${
               type === 'SUBSCRIPTION'
                 ? 'bg-white dark:bg-zinc-900 text-indigo-600 dark:text-indigo-400 shadow-xs'
                 : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
@@ -159,6 +229,13 @@ function AddInvoiceModalDialog({ initialDate }: { initialDate?: string }) {
             <span>{t.bills.subscription}</span>
           </button>
         </div>
+
+        {isPaidNonSub && (
+          <div className="mt-2.5 p-2.5 rounded-xl bg-amber-50/70 dark:bg-amber-950/40 border border-amber-200/70 dark:border-amber-800/60 flex items-start gap-2 text-[11px] text-amber-900 dark:text-amber-200">
+            <AlertCircle className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
+            <span>{t.bills.paidLockedHint}</span>
+          </div>
+        )}
 
         {type === 'SUBSCRIPTION' && (
           <div className="mt-2.5 p-2.5 rounded-xl bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-200/70 dark:border-indigo-800/60 flex items-start gap-2 text-[11px] text-indigo-900 dark:text-indigo-200">
@@ -170,12 +247,12 @@ function AddInvoiceModalDialog({ initialDate }: { initialDate?: string }) {
         <form onSubmit={handleSubmit} className="mt-4 space-y-4">
           <div>
             <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
-              {type === 'SUBSCRIPTION' ? 'Subscription Name *' : `${t.bills.billTitleLabel} *`}
+              {type === 'SUBSCRIPTION' ? t('bills.subscriptionNameLabel') : t('bills.billTitleLabel')}
             </label>
             <input
               type="text"
               required
-              placeholder={type === 'SUBSCRIPTION' ? 'e.g. Netflix 4K, Spotify Family, Gym, iCloud' : 'e.g. Electricity Power Bill, Internet Fiber, Landlord Rent'}
+              placeholder={type === 'SUBSCRIPTION' ? t('bills.subscriptionPlaceholder') : t('bills.billPlaceholder')}
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               className="w-full px-3 py-2 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950/50 text-sm text-zinc-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-amber-500"
@@ -185,29 +262,31 @@ function AddInvoiceModalDialog({ initialDate }: { initialDate?: string }) {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
-                Amount ({walletData?.wallet.currency || 'EUR'}) *
+                {interpolate(t('bills.amountWithCurrency'), { currency: walletData?.wallet.currency || 'EUR' })}
               </label>
               <input
                 type="number"
                 step="0.01"
                 min="0.01"
                 required
+                disabled={isPaidNonSub}
                 placeholder="0.00"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950/50 text-sm font-semibold text-zinc-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-amber-500"
+                className="w-full px-3 py-2 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950/50 text-sm font-semibold text-zinc-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-amber-500 disabled:opacity-60 disabled:cursor-not-allowed"
               />
             </div>
             <div>
               <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
-                Due Date *
+                {t('bills.dueDateRequired')}
               </label>
               <input
                 type="date"
                 required
+                disabled={isPaidNonSub}
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950/50 text-sm text-zinc-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-amber-500"
+                className="w-full px-3 py-2 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950/50 text-sm text-zinc-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-amber-500 disabled:opacity-60 disabled:cursor-not-allowed"
               />
             </div>
           </div>
@@ -215,14 +294,14 @@ function AddInvoiceModalDialog({ initialDate }: { initialDate?: string }) {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
-                Category
+                {t('bills.categoryLabel')}
               </label>
               <select
                 value={categoryId}
                 onChange={(e) => setCategoryId(e.target.value)}
                 className="w-full px-3 py-2 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950/50 text-sm text-zinc-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-amber-500"
               >
-                <option value="">General</option>
+                <option value="">{t('bills.generalCategory')}</option>
                 {walletData?.categories.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name}
@@ -232,11 +311,11 @@ function AddInvoiceModalDialog({ initialDate }: { initialDate?: string }) {
             </div>
             <div>
               <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
-                Invoice Reference #
+                {t('bills.invoiceNumberLabel')}
               </label>
               <input
                 type="text"
-                placeholder="INV-2026-09"
+                placeholder={t('bills.invoiceNumberPlaceholder')}
                 value={invoiceNumber}
                 onChange={(e) => setInvoiceNumber(e.target.value)}
                 className="w-full px-3 py-2 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950/50 text-sm text-zinc-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-amber-500"
@@ -249,24 +328,24 @@ function AddInvoiceModalDialog({ initialDate }: { initialDate?: string }) {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Bell className="w-3.5 h-3.5 text-amber-500" />
-                <span className="text-xs font-medium text-zinc-800 dark:text-zinc-200">Alert me beforehand:</span>
+                <span className="text-xs font-medium text-zinc-800 dark:text-zinc-200">{t('bills.reminderLabel')}</span>
               </div>
               <select
                 value={reminderDaysBefore}
                 onChange={(e) => setReminderDaysBefore(e.target.value)}
                 className="text-xs bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg px-2 py-1 text-zinc-800 dark:text-zinc-200"
               >
-                <option value="1">1 day before</option>
-                <option value="3">3 days before</option>
-                <option value="5">5 days before</option>
-                <option value="7">1 week before</option>
+                <option value="1">{t.bills.daysBefore['1']}</option>
+                <option value="3">{t.bills.daysBefore['3']}</option>
+                <option value="5">{t.bills.daysBefore['5']}</option>
+                <option value="7">{t.bills.daysBefore['7']}</option>
               </select>
             </div>
 
             <div className="flex items-center justify-between pt-2 border-t border-zinc-200/60 dark:border-zinc-700/60">
               <label htmlFor="recurringBill" className="flex items-center gap-2 text-xs font-medium text-zinc-800 dark:text-zinc-200 cursor-pointer">
                 <Repeat className="w-3.5 h-3.5 text-indigo-500" />
-                <span>Repeats periodically</span>
+                <span>{t('bills.recurrenceLabel')}</span>
               </label>
               <input
                 type="checkbox"
@@ -279,16 +358,16 @@ function AddInvoiceModalDialog({ initialDate }: { initialDate?: string }) {
 
             {isRecurring && (
               <div className="pt-2 flex items-center justify-between">
-                <span className="text-xs text-zinc-500">Recurrence:</span>
+                <span className="text-xs text-zinc-500">{t('bills.recurrenceColon')}</span>
                 <select
                   value={recurrenceInterval}
                   onChange={(e) => setRecurrenceInterval(e.target.value)}
                   className="text-xs bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg px-2 py-1 text-zinc-800 dark:text-zinc-200"
                 >
-                  <option value="WEEKLY">Weekly</option>
-                  <option value="MONTHLY">Monthly</option>
-                  <option value="QUARTERLY">Quarterly</option>
-                  <option value="YEARLY">Yearly</option>
+                  <option value="WEEKLY">{t.recurrence.WEEKLY}</option>
+                  <option value="MONTHLY">{t.recurrence.MONTHLY}</option>
+                  <option value="QUARTERLY">{t.recurrence.QUARTERLY}</option>
+                  <option value="YEARLY">{t.recurrence.YEARLY}</option>
                 </select>
               </div>
             )}
@@ -296,40 +375,49 @@ function AddInvoiceModalDialog({ initialDate }: { initialDate?: string }) {
 
           <div>
             <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
-              Payment Instructions / Notes (optional)
+              {t('bills.notesLabel')}
             </label>
             <input
               type="text"
-              placeholder="e.g. IBAN details, RF payment code, or card reference"
+              placeholder={t('bills.notesPlaceholder')}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               className="w-full px-3 py-2 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950/50 text-sm text-zinc-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-amber-500"
             />
           </div>
 
-          <div className="flex items-center justify-end gap-2 pt-4 border-t border-zinc-100 dark:border-zinc-800">
-            <button
-              type="button"
-              onClick={() => setIsAddInvoiceOpen(false)}
-              className="px-4 py-2 rounded-xl text-xs font-semibold text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer transition-colors"
-            >
-              {t.common.cancel}
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className={`px-5 py-2 rounded-xl text-white text-xs font-semibold shadow-md cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
-                type === 'SUBSCRIPTION'
-                  ? 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-600/20'
-                  : 'bg-amber-600 hover:bg-amber-700 shadow-amber-600/20'
-              }`}
-            >
-              {isSubmitting
-                ? t.common.saving
-                : type === 'SUBSCRIPTION'
-                ? t.bills.addSubscription
-                : t.bills.addBillOrInvoice}
-            </button>
+          <div className="flex items-center justify-between gap-2 pt-4 border-t border-zinc-100 dark:border-zinc-800">
+            {errorMessage ? (
+              <p className="text-xs text-rose-500 font-medium truncate max-w-[200px]" title={errorMessage}>
+                {errorMessage}
+              </p>
+            ) : <div />}
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setIsAddInvoiceOpen(false)}
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer transition-colors"
+              >
+                {t.common.cancel}
+              </button>
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className={`px-5 py-2 rounded-xl text-white text-xs font-semibold shadow-md cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+                  type === 'SUBSCRIPTION'
+                    ? 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-600/20'
+                    : 'bg-amber-600 hover:bg-amber-700 shadow-amber-600/20'
+                }`}
+              >
+                {isEdit
+                  ? (isSubmitting ? t.bills.savingChanges : t.bills.saveChanges)
+                  : (isSubmitting
+                    ? t.common.saving
+                    : type === 'SUBSCRIPTION'
+                    ? t.bills.addSubscription
+                    : t.bills.addBillOrInvoice)}
+              </button>
+            </div>
           </div>
         </form>
       </div>

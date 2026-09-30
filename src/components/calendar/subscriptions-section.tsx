@@ -8,14 +8,16 @@ import {
   Plus,
   Trash2,
   Calendar,
+  Pencil,
 } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { useTranslation } from '@/context/LanguageContext';
+import { interpolate } from '@/lib/i18n/translator';
 import { formatCurrency, formatDate } from '@/lib/formatters';
 
 export function SubscriptionsSection({ onAddSubscription }: { onAddSubscription?: () => void }) {
-  const { walletData, currentUser, refreshWallet, showToast, setIsAddInvoiceOpen } = useApp();
-  const { t } = useTranslation();
+  const { walletData, currentUser, refreshWallet, showToast, openAddInvoice, openEditInvoice } = useApp();
+  const { t, dateLocale } = useTranslation();
   const [payingId, setPayingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
@@ -57,7 +59,7 @@ export function SubscriptionsSection({ onAddSubscription }: { onAddSubscription?
       });
 
       if (res.ok) {
-        showToast(`Renewed subscription: "${title}"`);
+        showToast(interpolate(t('bills.renewedSubscriptionToast'), { title }));
         await refreshWallet();
       }
     } catch (err) {
@@ -74,7 +76,7 @@ export function SubscriptionsSection({ onAddSubscription }: { onAddSubscription?
         method: 'DELETE',
       });
       if (res.ok) {
-        showToast(`Removed subscription: "${title}"`);
+        showToast(interpolate(t('bills.removedSubscriptionToast'), { title }));
         await refreshWallet();
       }
     } catch (err) {
@@ -102,7 +104,7 @@ export function SubscriptionsSection({ onAddSubscription }: { onAddSubscription?
               </span>
             </div>
             <p className="text-xs text-zinc-500 mt-0.5">
-              Fixed recurring services (e.g. Netflix, Gym, Software)
+              {t('bills.subscriptionsSubtitle')}
             </p>
           </div>
         </div>
@@ -128,7 +130,7 @@ export function SubscriptionsSection({ onAddSubscription }: { onAddSubscription?
       <div className="p-3 rounded-2xl bg-indigo-50/60 dark:bg-indigo-950/30 border border-indigo-200/60 dark:border-indigo-800/40 flex items-start gap-2.5 text-xs text-indigo-950 dark:text-indigo-200">
         <Sparkles className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5" />
         <div className="flex-1">
-          <strong className="font-semibold block sm:inline mr-1">Decoupled Spending:</strong>
+          <strong className="font-semibold block sm:inline mr-1">{t('bills.decoupledSpending')}</strong>
           <span>{t.bills.subscriptionsNote}</span>
         </div>
       </div>
@@ -145,7 +147,7 @@ export function SubscriptionsSection({ onAddSubscription }: { onAddSubscription?
           </p>
           <button
             type="button"
-            onClick={onAddSubscription || (() => setIsAddInvoiceOpen(true))}
+            onClick={onAddSubscription || (() => openAddInvoice(undefined, 'SUBSCRIPTION'))}
             className="mt-4 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-xs cursor-pointer inline-flex items-center gap-1.5 transition-all"
           >
             <Plus className="w-3.5 h-3.5" />
@@ -184,7 +186,7 @@ export function SubscriptionsSection({ onAddSubscription }: { onAddSubscription?
                           </span>
                         )}
                         <span className="font-semibold text-zinc-600 dark:text-zinc-400 capitalize">
-                          {sub.recurrenceInterval.toLowerCase()}
+                          {t.recurrence[sub.recurrenceInterval as keyof typeof t.recurrence] || sub.recurrenceInterval}
                         </span>
                       </div>
                     </div>
@@ -196,9 +198,9 @@ export function SubscriptionsSection({ onAddSubscription }: { onAddSubscription?
 
                   <div className="mt-3 flex items-center gap-1.5 text-xs text-zinc-500">
                     <Calendar className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
-                    <span>Next: </span>
+                    <span>{t('bills.nextColon')} </span>
                     <strong className="text-zinc-800 dark:text-zinc-200">
-                      {formatDate(sub.dueDate, 'MMM d, yyyy')}
+                      {formatDate(sub.dueDate, 'MMM d, yyyy', dateLocale)}
                     </strong>
                   </div>
                 </div>
@@ -227,6 +229,15 @@ export function SubscriptionsSection({ onAddSubscription }: { onAddSubscription?
                         {isPaying ? t.common.processing : t.bills.markAsPaidAction}
                       </button>
                     )}
+                    <button
+                      type="button"
+                      onClick={() => openEditInvoice(sub)}
+                      className="p-1 rounded-lg text-zinc-400 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/50 transition-colors cursor-pointer"
+                      title={t('bills.edit')}
+                      aria-label={t('bills.edit')}
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
                     <button
                       type="button"
                       disabled={isDeleting}

@@ -4,6 +4,8 @@ import React, { useState } from 'react';
 import { X, UserPlus, Copy, Check, Shield, Users, RefreshCw, Mail, Lock } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { useTranslation } from '@/context/LanguageContext';
+import { interpolate } from '@/lib/i18n/translator';
+import { translateApiError } from '@/lib/i18n/api-errors';
 
 export function InviteModal() {
   const {
@@ -62,13 +64,17 @@ export function InviteModal() {
       if (res.ok) {
         showToast(
           targetEmail.trim()
-            ? `Generated targeted invite for ${targetEmail.trim()}`
-            : t('toasts.inviteCreated')
+            ? interpolate(t('invites.targetedInviteToast'), { email: targetEmail.trim() })
+            : t('invites.inviteCreatedToast')
         );
         await refreshWallet();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        showToast(translateApiError(data.error, res.status, t));
       }
     } catch (err) {
       console.error('Failed to generate invite:', err);
+      showToast(translateApiError(undefined, undefined, t));
     } finally {
       setIsGenerating(false);
     }
@@ -111,12 +117,15 @@ export function InviteModal() {
                 {walletData.wallet.name}
               </p>
               <p className="text-[11px] text-zinc-500">
-                {walletData.wallet.members?.length || 1} active member
-                {walletData.wallet.members?.length === 1 ? '' : 's'}
+                {(walletData.wallet.members?.length || 1) === 1
+                  ? t('invites.activeMembersCountOne')
+                  : interpolate(t('invites.activeMembersCountMany'), {
+                      count: walletData.wallet.members?.length || 1,
+                    })}
               </p>
             </div>
             <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/60">
-              Invite Active
+              {t('invites.inviteActiveBadge')}
             </span>
           </div>
 
@@ -124,7 +133,7 @@ export function InviteModal() {
           <div>
             <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5 flex items-center justify-between">
               <span>{t('invites.targetEmailLabel')}</span>
-              <span className="text-[10px] text-zinc-400">Optional</span>
+              <span className="text-[10px] text-zinc-400">{t('common.optional')}</span>
             </label>
             <div className="relative">
               <Mail className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
@@ -237,7 +246,9 @@ export function InviteModal() {
                   : t('invites.generateNewCode')}
               </span>
             </button>
-            <span className="text-[11px] text-zinc-400 font-mono">Code: {inviteCode}</span>
+            <span className="text-[11px] text-zinc-400 font-mono">
+              {interpolate(t('invites.codeDisplay'), { code: inviteCode })}
+            </span>
           </div>
 
           <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800 flex justify-end">

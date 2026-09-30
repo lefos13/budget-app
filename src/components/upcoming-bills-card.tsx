@@ -5,18 +5,27 @@ import Link from 'next/link';
 import { Calendar, CheckCircle2, ChevronRight, Plus, Check } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useApp, InvoiceItem } from '@/context/AppContext';
+import { useTranslation } from '@/context/LanguageContext';
+import { interpolate } from '@/lib/i18n/translator';
 import { formatCurrency, formatRelativeDueDate, formatDate } from '@/lib/formatters';
+import { getMonthBounds } from '@/lib/month';
 
 export function UpcomingBillsCard() {
-  const { walletData, currentUser, refreshWallet, showToast, setIsAddInvoiceOpen } = useApp();
+  const { walletData, currentUser, refreshWallet, showToast, openAddInvoice, selectedMonth } = useApp();
+  const { t, dateLocale } = useTranslation();
   const [payingId, setPayingId] = useState<string | null>(null);
   const [tab, setTab] = useState<'pending' | 'paid'>('pending');
 
   if (!walletData || !walletData.invoices) return null;
 
   const currency = walletData.wallet.currency;
-  const pendingInvoices = walletData.invoices.filter((i) => i.status !== 'PAID');
-  const paidInvoices = walletData.invoices.filter((i) => i.status === 'PAID');
+  const { start: monthStart, end: monthEnd } = getMonthBounds(selectedMonth);
+  const monthInvoices = walletData.invoices.filter((i) => {
+    const due = new Date(i.dueDate);
+    return due >= monthStart && due <= monthEnd;
+  });
+  const pendingInvoices = monthInvoices.filter((i) => i.status !== 'PAID');
+  const paidInvoices = monthInvoices.filter((i) => i.status === 'PAID');
 
   const displayedInvoices = tab === 'pending' ? pendingInvoices : paidInvoices;
 
@@ -37,7 +46,7 @@ export function UpcomingBillsCard() {
           spread: 60,
           origin: { y: 0.7 },
         });
-        showToast(`Paid "${bill.title}"!`);
+        showToast(interpolate(t('upcoming.paidToast'), { title: bill.title }));
         await refreshWallet();
       }
     } catch (err) {
@@ -56,17 +65,17 @@ export function UpcomingBillsCard() {
               <Calendar className="w-4 h-4" />
             </div>
             <div>
-              <h2 className="text-base font-extrabold text-zinc-900 dark:text-white">Upcoming Bills & Invoices</h2>
-              <p className="text-xs text-zinc-500">Scheduled reminders and due dates</p>
+              <h2 className="text-base font-extrabold text-zinc-900 dark:text-white">{t('upcoming.title')}</h2>
+              <p className="text-xs text-zinc-500">{t('upcoming.subtitle')}</p>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={() => setIsAddInvoiceOpen(true)}
+              onClick={() => openAddInvoice(undefined, 'BILL')}
               className="p-1.5 rounded-xl border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-300 transition-colors"
-              title="Add Invoice"
+              title={t('upcoming.addInvoice')}
             >
               <Plus className="w-4 h-4" />
             </button>
@@ -74,7 +83,7 @@ export function UpcomingBillsCard() {
               href="/calendar"
               className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-0.5"
             >
-              <span>Calendar</span>
+              <span>{t('upcoming.calendar')}</span>
               <ChevronRight className="w-3.5 h-3.5" />
             </Link>
           </div>
@@ -91,7 +100,7 @@ export function UpcomingBillsCard() {
                 : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
             }`}
           >
-            Pending ({pendingInvoices.length})
+            {interpolate(t('upcoming.tabPending'), { count: pendingInvoices.length })}
           </button>
           <button
             type="button"
@@ -102,7 +111,7 @@ export function UpcomingBillsCard() {
                 : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
             }`}
           >
-            Paid ({paidInvoices.length})
+            {interpolate(t('upcoming.tabPaid'), { count: paidInvoices.length })}
           </button>
         </div>
 
@@ -111,17 +120,17 @@ export function UpcomingBillsCard() {
             <div className="text-center py-10">
               <CheckCircle2 className="w-10 h-10 text-emerald-500 mx-auto mb-2 opacity-80" />
               <p className="text-sm font-bold text-zinc-800 dark:text-zinc-200">
-                {tab === 'pending' ? 'All caught up!' : 'No paid bills yet'}
+                {tab === 'pending' ? t('upcoming.allCaughtUp') : t('upcoming.noPaidYet')}
               </p>
               <p className="text-xs text-zinc-500 mt-0.5">
                 {tab === 'pending'
-                  ? 'No pending bills or invoices due in this wallet.'
-                  : 'Bills marked as paid this month will appear here.'}
+                  ? t('upcoming.noPendingDesc')
+                  : t('upcoming.noPaidDesc')}
               </p>
             </div>
           ) : (
             displayedInvoices.slice(0, 5).map((bill) => {
-              const { text: dueText, isOverdue } = formatRelativeDueDate(bill.dueDate);
+              const { text: dueText, isOverdue } = formatRelativeDueDate(bill.dueDate, t);
               const isPaying = payingId === bill.id;
               const isPaid = bill.status === 'PAID';
 
@@ -137,7 +146,7 @@ export function UpcomingBillsCard() {
                       </p>
                       {bill.isRecurring && (
                         <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950/70 text-indigo-600 dark:text-indigo-400 border border-indigo-200/60 dark:border-indigo-800/60">
-                          {bill.recurrenceInterval.toLowerCase()}
+                          {t.recurrence[bill.recurrenceInterval as keyof typeof t.recurrence] ?? bill.recurrenceInterval}
                         </span>
                       )}
                     </div>
@@ -151,10 +160,10 @@ export function UpcomingBillsCard() {
                             : 'bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300'
                         }`}
                       >
-                        {isPaid ? 'Paid' : dueText}
+                        {isPaid ? t.bills.statusPaid : dueText}
                       </span>
                       <span className="text-[11px] text-zinc-400">
-                        {formatDate(bill.dueDate, 'MMM d')}
+                        {formatDate(bill.dueDate, 'MMM d', dateLocale)}
                       </span>
                       {bill.invoiceNumber && (
                         <span className="text-[10px] text-zinc-400 font-mono">
@@ -176,10 +185,10 @@ export function UpcomingBillsCard() {
                         className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs flex items-center gap-1 transition-all disabled:opacity-50 cursor-pointer"
                       >
                         <CheckCircle2 className="w-3.5 h-3.5" />
-                        <span>{isPaying ? 'Saving...' : 'Pay'}</span>
+                        <span>{isPaying ? t.common.saving : t.common.pay}</span>
                       </button>
                     ) : (
-                      <span className="p-1 text-emerald-600 dark:text-emerald-400" title="Settled">
+                      <span className="p-1 text-emerald-600 dark:text-emerald-400" title={t('upcoming.settled')}>
                         <Check className="w-4 h-4" />
                       </span>
                     )}
@@ -197,7 +206,7 @@ export function UpcomingBillsCard() {
             href="/calendar"
             className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline"
           >
-            +{displayedInvoices.length - 5} more bills in calendar
+            {interpolate(t('upcoming.moreBillsInCalendar'), { count: displayedInvoices.length - 5 })}
           </Link>
         </div>
       )}

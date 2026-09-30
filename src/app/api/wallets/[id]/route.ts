@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/session';
+import { isValidMonthKey, getCurrentMonthKey, getMonthBounds } from '@/lib/month';
+import { computeMonthProjection } from '@/lib/month-projection';
 
 export async function GET(
   req: NextRequest,
@@ -44,10 +46,12 @@ export async function GET(
     const membership = wallet.members.find((m) => m.userId === user.id);
     const userRole = membership ? membership.role : 'VIEWER';
 
-    // Current month bounds
+    // Effective month and bounds
+    const { searchParams } = new URL(req.url);
+    const monthParam = searchParams.get('month');
+    const effectiveMonth = monthParam && isValidMonthKey(monthParam) ? monthParam : getCurrentMonthKey();
+    const { start: startOfMonth, end: endOfMonth } = getMonthBounds(effectiveMonth);
     const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
 
     // Fetch this month's expenses (variable expenses + one-off paid bills)
     // Subscriptions NEVER create Expense records and do not pollute this query.
@@ -113,10 +117,70 @@ export async function GET(
       return sum + s.amount;
     }, 0);
 
+    const plannedExpenses = await prisma.plannedExpense.findMany({
+      where: {
+        walletId: id,
+        expectedDate: {
+          gte: startOfMonth,
+          lte: endOfMonth,
+        },
+      },
+      include: {
+        category: true,
+      },
+      orderBy: { expectedDate: 'asc' },
+    });
+
+    const linkedExpenses = await prisma.expense.findMany({
+      where: {
+        walletId: id,
+        invoiceId: { not: null },
+      },
+      select: {
+        invoiceId: true,
+        date: true,
+      },
+    });
+
+    const earliestExpenseDateByInvoiceId = new Map<string, Date>();
+    for (const exp of linkedExpenses) {
+      if (!exp.invoiceId) continue;
+      const existing = earliestExpenseDateByInvoiceId.get(exp.invoiceId);
+      if (!existing || exp.date < existing) {
+        earliestExpenseDateByInvoiceId.set(exp.invoiceId, exp.date);
+      }
+    }
+
+    const billInputs = invoices.map((inv) => ({
+      type: inv.type,
+      amount: inv.amount,
+      dueDate: inv.dueDate,
+      status: inv.status,
+      paidAt: inv.paidAt,
+      linkedExpenseDate: earliestExpenseDateByInvoiceId.get(inv.id) ?? null,
+    }));
+
+    const plannedInputs = plannedExpenses.map((pe) => ({
+      amount: pe.amount,
+      expectedDate: pe.expectedDate,
+      status: pe.status,
+    }));
+
+    const projection = computeMonthProjection({
+      monthKey: effectiveMonth,
+      monthlyBudget: wallet.monthlyBudget,
+      spent: totalSpentMonth,
+      bills: billInputs,
+      planned: plannedInputs,
+    });
+
     return NextResponse.json({
       wallet,
       userRole,
       currentUser: user,
+      month: effectiveMonth,
+      monthExpenses: expenses,
+      plannedExpenses,
       metrics: {
         monthlyBudget: wallet.monthlyBudget,
         totalSpentMonth,
@@ -127,6 +191,7 @@ export async function GET(
         subscriptionCount: subscriptions.length,
         monthlySubscriptionsTotal: Math.round(monthlySubscriptionsTotal * 100) / 100,
         pendingBillsCount: bills.filter((b) => b.status === 'PENDING' || b.status === 'OVERDUE').length,
+        projection,
       },
       categories: categorySpending,
       recentExpenses: expenses.slice(0, 8),
@@ -159,8 +224,8 @@ export async function PATCH(
       },
     });
 
-    if (membership && membership.role === 'VIEWER') {
-      return NextResponse.json({ error: 'Viewers cannot modify wallet settings' }, { status: 403 });
+    if (!membership || membership.role !== 'OWNER') {
+      return NextResponse.json({ error: 'Only the wallet owner can edit wallet settings' }, { status: 403 });
     }
 
     const body = await req.json();

@@ -5,6 +5,7 @@ import { Check, X, Wallet, Sparkles } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useApp } from '@/context/AppContext';
 import { useTranslation } from '@/context/LanguageContext';
+import { interpolate } from '@/lib/i18n/translator';
 
 interface PendingInvite {
   id: string;
@@ -77,11 +78,11 @@ export function PendingInvitesBanner() {
             spread: 70,
             origin: { y: 0.6 },
           });
-          showToast(`Joined ${invite.wallet.name} successfully!`);
+          showToast(interpolate(t('invites.joinedSuccess'), { name: invite.wallet.name }));
           await refreshWallets();
           setActiveWalletId(invite.wallet.id);
         } else {
-          showToast(`Declined invitation to ${invite.wallet.name}`);
+          showToast(interpolate(t('invites.declinedToast'), { name: invite.wallet.name }));
         }
       }
     } catch (err) {
@@ -112,14 +113,14 @@ export function PendingInvitesBanner() {
                 <div className="flex items-center gap-1.5 flex-wrap">
                   <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300">
                     <Sparkles className="w-3 h-3 text-indigo-500" />
-                    Targeted Invite
+                    {t('invites.targetedInvite')}
                   </span>
                   <span className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">
-                    ({invite.role})
+                    ({t.roles[invite.role as keyof typeof t.roles] ?? invite.role})
                   </span>
                 </div>
                 <p className="text-sm font-black text-zinc-900 dark:text-white mt-0.5">
-                  You&apos;ve been invited to join &quot;{invite.wallet.name}&quot;!
+                  {interpolate(t('invites.invitedToJoin'), { name: invite.wallet.name })}
                 </p>
               </div>
             </div>

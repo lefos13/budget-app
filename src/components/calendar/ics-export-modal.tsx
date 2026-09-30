@@ -3,9 +3,11 @@
 import React, { useState } from 'react';
 import { X, Calendar, Download, Copy, Check, ExternalLink } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
+import { useTranslation } from '@/context/LanguageContext';
 
 export function IcsExportModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const { walletData, showToast } = useApp();
+  const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
 
   React.useEffect(() => {
@@ -28,7 +30,7 @@ export function IcsExportModal({ isOpen, onClose }: { isOpen: boolean; onClose: 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(fullIcsUrl);
     setCopied(true);
-    showToast('Calendar subscription link copied!');
+    showToast(t('icsModal.copiedToast'));
     setTimeout(() => setCopied(false), 2500);
   };
 
@@ -43,10 +45,10 @@ export function IcsExportModal({ isOpen, onClose }: { isOpen: boolean; onClose: 
             </div>
             <div>
               <h2 className="text-base font-bold text-zinc-900 dark:text-white">
-                Sync with Your External Calendar
+                {t('icsModal.title')}
               </h2>
               <p className="text-xs text-zinc-500">
-                Apple Calendar, Google Calendar, and Microsoft Outlook
+                {t('icsModal.subtitle')}
               </p>
             </div>
           </div>
@@ -61,7 +63,7 @@ export function IcsExportModal({ isOpen, onClose }: { isOpen: boolean; onClose: 
 
         <div className="mt-4 space-y-4">
           <p className="text-xs text-zinc-600 dark:text-zinc-300 leading-relaxed">
-            Never miss an invoice due date! Subscribe or export your wallet&apos;s bills directly into your personal calendar with automatic 1-day and 3-day reminder notifications.
+            {t('icsModal.description')}
           </p>
 
           {/* Option 1: Direct Download .ics & Direct WebCal */}
@@ -69,10 +71,10 @@ export function IcsExportModal({ isOpen, onClose }: { isOpen: boolean; onClose: 
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-1">
               <div>
                 <p className="text-xs font-bold text-zinc-900 dark:text-white">
-                  1. One-Click Subscribe or Download
+                  {t('icsModal.option1Title')}
                 </p>
                 <p className="text-[11px] text-zinc-500 mt-0.5">
-                  Direct import into Apple Calendar or download static .ICS file
+                  {t('icsModal.option1Desc')}
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -81,7 +83,7 @@ export function IcsExportModal({ isOpen, onClose }: { isOpen: boolean; onClose: 
                   className="px-3 py-1.5 rounded-xl border border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-300 text-xs font-bold flex items-center gap-1 shadow-xs hover:bg-indigo-100"
                 >
                   <ExternalLink className="w-3.5 h-3.5" />
-                  <span>Subscribe</span>
+                  <span>{t('icsModal.subscribeButton')}</span>
                 </a>
                 <a
                   href={icsDownloadUrl}
@@ -89,7 +91,7 @@ export function IcsExportModal({ isOpen, onClose }: { isOpen: boolean; onClose: 
                   className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-xs flex items-center gap-1 transition-all"
                 >
                   <Download className="w-3.5 h-3.5" />
-                  <span>.ICS File</span>
+                  <span>{t('icsModal.icsFileButton')}</span>
                 </a>
               </div>
             </div>
@@ -98,10 +100,10 @@ export function IcsExportModal({ isOpen, onClose }: { isOpen: boolean; onClose: 
           {/* Option 2: Live Subscription Link */}
           <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200/80 dark:border-zinc-800">
             <p className="text-xs font-bold text-zinc-900 dark:text-white mb-1">
-              2. Live Calendar Feed Subscription URL
+              {t('icsModal.option2Title')}
             </p>
             <p className="text-[11px] text-zinc-500 mb-2">
-              Automatically updates when you add new invoices or mark them as paid.
+              {t('icsModal.option2Desc')}
             </p>
             <div className="flex items-center gap-2">
               <input
@@ -120,7 +122,7 @@ export function IcsExportModal({ isOpen, onClose }: { isOpen: boolean; onClose: 
                 }`}
               >
                 {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                <span>{copied ? 'Copied' : 'Copy Feed'}</span>
+                <span>{copied ? t('common.copied') : t('icsModal.copyFeed')}</span>
               </button>
             </div>
           </div>
@@ -128,12 +130,12 @@ export function IcsExportModal({ isOpen, onClose }: { isOpen: boolean; onClose: 
           {/* Instructions Accordion / Guide */}
           <div className="p-3.5 rounded-2xl bg-indigo-50/60 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/40 text-xs space-y-1.5 text-zinc-700 dark:text-zinc-300">
             <p className="font-bold text-indigo-900 dark:text-indigo-300">
-              How to add to Google Calendar or Apple Calendar:
+              {t('icsModal.instructionsTitle')}
             </p>
             <ul className="list-disc list-inside space-y-1 text-[11px] text-zinc-600 dark:text-zinc-400">
-              <li><strong>Apple Calendar (Mac/iPhone):</strong> File → New Calendar Subscription → Paste feed link.</li>
-              <li><strong>Google Calendar:</strong> Other calendars (+) → &quot;From URL&quot; → Paste feed link.</li>
-              <li><strong>Outlook:</strong> Add Calendar → &quot;Subscribe from web&quot; → Paste feed link.</li>
+              <li><strong>{t('icsModal.appleCalendar')}</strong> {t('icsModal.appleCalendarStep')}</li>
+              <li><strong>{t('icsModal.googleCalendar')}</strong> {t('icsModal.googleCalendarStep')}</li>
+              <li><strong>{t('icsModal.outlook')}</strong> {t('icsModal.outlookStep')}</li>
             </ul>
           </div>
 
@@ -143,7 +145,7 @@ export function IcsExportModal({ isOpen, onClose }: { isOpen: boolean; onClose: 
               onClick={onClose}
               className="px-4 py-2 rounded-xl text-xs font-bold bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 transition-colors"
             >
-              Close
+              {t('common.close')}
             </button>
           </div>
         </div>

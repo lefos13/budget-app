@@ -1,24 +1,17 @@
 'use client';
 
 import React from 'react';
-import { Tag, ShoppingCart, Home, Zap, Utensils, Tv, Car, HeartPulse, Film, CheckCircle2, AlertTriangle } from 'lucide-react';
+import Link from 'next/link';
+import { CheckCircle2, AlertTriangle, Sliders } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
+import { useTranslation } from '@/context/LanguageContext';
+import { interpolate } from '@/lib/i18n/translator';
 import { formatCurrency } from '@/lib/formatters';
-
-const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
-  Home,
-  Zap,
-  ShoppingCart,
-  Utensils,
-  Tv,
-  Car,
-  HeartPulse,
-  Film,
-  Tag,
-};
+import { getCategoryIcon } from '@/lib/category-icons';
 
 export function CategoryBreakdown() {
   const { walletData } = useApp();
+  const { t } = useTranslation();
 
   if (!walletData || !walletData.categories) return null;
 
@@ -38,13 +31,15 @@ export function CategoryBreakdown() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-zinc-100 dark:border-zinc-800 gap-2">
         <div>
           <div className="flex items-center gap-2">
-            <h2 className="text-base font-extrabold text-zinc-900 dark:text-white">Category Budgets & Envelopes</h2>
+            <h2 className="text-base font-extrabold text-zinc-900 dark:text-white">{t('categories.cardTitle')}</h2>
             <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300">
-              {walletData.categories.length} categories
+              {walletData.categories.length === 1
+                ? t('categories.categoriesCountOne')
+                : interpolate(t('categories.categoriesCountMany'), { count: walletData.categories.length })}
             </span>
           </div>
           <p className="text-xs text-zinc-500 mt-0.5">
-            Monitor spend caps across household and personal categories
+            {t('categories.cardSubtitle')}
           </p>
         </div>
 
@@ -52,25 +47,35 @@ export function CategoryBreakdown() {
           {overCount > 0 ? (
             <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900/60">
               <AlertTriangle className="w-3.5 h-3.5" />
-              <span>{overCount} exceeded limit</span>
+              <span>{interpolate(t('categories.exceededLimit'), { count: overCount })}</span>
             </span>
           ) : warningCount > 0 ? (
             <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-900/60">
               <AlertTriangle className="w-3.5 h-3.5" />
-              <span>{warningCount} near limit</span>
+              <span>{interpolate(t('categories.nearLimit'), { count: warningCount })}</span>
             </span>
           ) : (
             <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900/60">
               <CheckCircle2 className="w-3.5 h-3.5" />
-              <span>All envelopes on track</span>
+              <span>{t('categories.allOnTrack')}</span>
             </span>
+          )}
+
+          {walletData.userRole === 'OWNER' && (
+            <Link
+              href="/wallet#categories"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-xs font-semibold text-zinc-700 dark:text-zinc-300 transition-colors"
+            >
+              <Sliders className="w-3.5 h-3.5" />
+              <span>{t('categories.manageLimits')}</span>
+            </Link>
           )}
         </div>
       </div>
 
       <div className="mt-5 grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
         {walletData.categories.map((cat) => {
-          const Icon = iconMap[cat.icon] || Tag;
+          const Icon = getCategoryIcon(cat.icon);
           const limit = cat.monthlyLimit || 0;
           const spent = cat.spent || 0;
           const percentage = limit > 0 ? Math.round((spent / limit) * 100) : 0;
@@ -106,7 +111,7 @@ export function CategoryBreakdown() {
                         : 'bg-zinc-200/70 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300'
                     }`}
                   >
-                    {limit > 0 ? `${percentage}%` : 'No Limit'}
+                    {limit > 0 ? `${percentage}%` : t('categories.noLimitBadge')}
                   </span>
                 </div>
 
@@ -115,7 +120,7 @@ export function CategoryBreakdown() {
                     {formatCurrency(spent, currency)}
                   </span>
                   <span className="text-zinc-400 font-medium tabular-nums">
-                    {limit > 0 ? `of ${formatCurrency(limit, currency)}` : 'Flexible'}
+                    {limit > 0 ? interpolate(t('categories.ofLimit'), { amount: formatCurrency(limit, currency) }) : t('categories.flexible')}
                   </span>
                 </div>
               </div>
@@ -138,11 +143,11 @@ export function CategoryBreakdown() {
                   <p className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400 mt-1.5 flex justify-between tabular-nums">
                     <span>
                       {isExceeded
-                        ? `${formatCurrency(Math.abs(remaining), currency)} over`
-                        : `${formatCurrency(remaining, currency)} left`}
+                        ? interpolate(t('categories.overLimit'), { amount: formatCurrency(Math.abs(remaining), currency) })
+                        : interpolate(t('categories.leftLimit'), { amount: formatCurrency(remaining, currency) })}
                     </span>
                     <span className="text-zinc-400">
-                      {isExceeded ? 'Exceeded' : `${100 - Math.min(100, percentage)}% remaining`}
+                      {isExceeded ? t('categories.exceededBadge') : interpolate(t('categories.percentRemaining'), { percent: 100 - Math.min(100, percentage) })}
                     </span>
                   </p>
                 )}

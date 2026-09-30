@@ -2,16 +2,20 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { CreditCard, ChevronRight, Plus, Trash2 } from 'lucide-react';
+import { CreditCard, ChevronRight, Plus, Trash2, Pencil } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
+import { useTranslation } from '@/context/LanguageContext';
+import { interpolate } from '@/lib/i18n/translator';
 import { formatCurrency, formatDate } from '@/lib/formatters';
 
 export function RecentExpensesCard() {
-  const { walletData, refreshWallet, showToast, setIsAddExpenseOpen } = useApp();
+  const { walletData, refreshWallet, showToast, setIsAddExpenseOpen, openEditExpense } = useApp();
+  const { t, dateLocale } = useTranslation();
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   if (!walletData || !walletData.recentExpenses) return null;
 
+  const isViewer = walletData.userRole === 'VIEWER';
   const currency = walletData.wallet.currency;
 
   const handleDelete = async (id: string, title: string) => {
@@ -19,7 +23,7 @@ export function RecentExpensesCard() {
       setDeletingId(id);
       const res = await fetch(`/api/expenses?id=${id}`, { method: 'DELETE' });
       if (res.ok) {
-        showToast(`Deleted expense "${title}"`);
+        showToast(interpolate(t('recentExpenses.deletedToast'), { title }));
         await refreshWallet();
       }
     } catch (err) {
@@ -38,8 +42,8 @@ export function RecentExpensesCard() {
               <CreditCard className="w-4 h-4" />
             </div>
             <div>
-              <h2 className="text-base font-extrabold text-zinc-900 dark:text-white">Recent Expenses</h2>
-              <p className="text-xs text-zinc-500">Latest shared payments & receipts</p>
+              <h2 className="text-base font-extrabold text-zinc-900 dark:text-white">{t('recentExpenses.title')}</h2>
+              <p className="text-xs text-zinc-500">{t('recentExpenses.subtitle')}</p>
             </div>
           </div>
 
@@ -48,7 +52,7 @@ export function RecentExpensesCard() {
               type="button"
               onClick={() => setIsAddExpenseOpen(true)}
               className="p-1.5 rounded-xl border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-300 transition-colors"
-              title="Add Expense"
+              title={t('recentExpenses.addExpense')}
             >
               <Plus className="w-4 h-4" />
             </button>
@@ -56,7 +60,7 @@ export function RecentExpensesCard() {
               href="/expenses"
               className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-0.5"
             >
-              <span>View All</span>
+              <span>{t('recentExpenses.viewAll')}</span>
               <ChevronRight className="w-3.5 h-3.5" />
             </Link>
           </div>
@@ -66,8 +70,8 @@ export function RecentExpensesCard() {
           {walletData.recentExpenses.length === 0 ? (
             <div className="text-center py-12">
               <CreditCard className="w-10 h-10 text-zinc-300 dark:text-zinc-700 mx-auto mb-2" />
-              <p className="text-sm font-bold text-zinc-700 dark:text-zinc-300">No expenses yet</p>
-              <p className="text-xs text-zinc-500 mt-0.5">Click + to record the first payment in this wallet.</p>
+              <p className="text-sm font-bold text-zinc-700 dark:text-zinc-300">{t('recentExpenses.emptyTitle')}</p>
+              <p className="text-xs text-zinc-500 mt-0.5">{t('recentExpenses.emptySubtitle')}</p>
             </div>
           ) : (
             walletData.recentExpenses.slice(0, 6).map((exp) => {
@@ -84,10 +88,11 @@ export function RecentExpensesCard() {
                         src={exp.user.avatarUrl}
                         alt={exp.user.name}
                         className="w-8 h-8 rounded-full object-cover shrink-0 ring-1 ring-zinc-300 dark:ring-zinc-700 shadow-xs"
-                        title={`Paid by ${exp.user.name}`}
+                        title={interpolate(t('recentExpenses.paidBy'), { name: exp.user.name })}
                       />
                     ) : (
                       <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 flex items-center justify-center text-xs font-bold shrink-0 shadow-xs">
+                        {/* i18n-ignore: Default avatar initial */}
                         {exp.user?.name?.slice(0, 1) || 'U'}
                       </div>
                     )}
@@ -98,7 +103,7 @@ export function RecentExpensesCard() {
                       </p>
                       <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                         <span className="text-[10px] text-zinc-400 font-medium">
-                          {formatDate(exp.date, 'MMM d')} · {exp.user?.name.split(' ')[0]}
+                          {formatDate(exp.date, 'MMM d', dateLocale)} · {exp.user?.name.split(' ')[0]}
                         </span>
                         {exp.category && (
                           <span
@@ -119,12 +124,23 @@ export function RecentExpensesCard() {
                     <span className="text-sm font-black text-zinc-900 dark:text-white tabular-nums">
                       -{formatCurrency(exp.amount, currency)}
                     </span>
+                    {!isViewer && (
+                      <button
+                        type="button"
+                        onClick={() => openEditExpense(exp)}
+                        className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 focus:opacity-100 sm:focus:opacity-100 p-1.5 text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 rounded-lg hover:bg-indigo-50 dark:hover:bg-zinc-800 transition-all cursor-pointer"
+                        aria-label={t('expenseEdit.edit')}
+                        title={t('expenseEdit.edit')}
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                     <button
                       type="button"
                       disabled={isDeleting}
                       onClick={() => handleDelete(exp.id, exp.title)}
                       className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 p-1.5 text-zinc-400 hover:text-rose-500 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-all cursor-pointer"
-                      title="Delete expense"
+                      title={t('recentExpenses.deleteExpense')}
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -142,7 +158,7 @@ export function RecentExpensesCard() {
             href="/expenses"
             className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline"
           >
-            +{walletData.recentExpenses.length - 6} more in expenses list
+            {interpolate(t('recentExpenses.moreInList'), { count: walletData.recentExpenses.length - 6 })}
           </Link>
         </div>
       )}

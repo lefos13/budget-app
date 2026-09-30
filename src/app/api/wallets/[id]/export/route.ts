@@ -27,6 +27,11 @@ export async function GET(
           include: { category: true },
           orderBy: { dueDate: 'asc' },
         },
+        plannedExpenses: {
+          where: { status: 'PENDING' },
+          include: { category: true },
+          orderBy: { expectedDate: 'asc' },
+        },
       },
     });
 
@@ -76,6 +81,13 @@ export async function GET(
         invoiceNumber: i.invoiceNumber,
         notes: i.notes,
         paidAt: i.paidAt ? i.paidAt.toISOString() : null,
+      })),
+      plannedExpenses: wallet.plannedExpenses.map((p) => ({
+        title: p.title,
+        amount: p.amount,
+        expectedDate: p.expectedDate.toISOString(),
+        notes: p.notes,
+        category: p.category ? p.category.name : null,
       })),
     };
 

@@ -1,7 +1,10 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
+import { isValidMonthKey, getCurrentMonthKey, addMonthsToKey } from '@/lib/month';
+import { MonthProjection } from '@/lib/month-projection';
+import { useTranslation } from '@/context/LanguageContext';
 
 export interface User {
   id: string;
@@ -86,10 +89,27 @@ export interface InvoiceItem {
   category: { id: string; name: string; color: string; icon: string } | null;
 }
 
+export interface PlannedExpenseItem {
+  id: string;
+  walletId: string;
+  userId: string;
+  categoryId: string | null;
+  title: string;
+  amount: number;
+  expectedDate: string;
+  notes: string | null;
+  status: 'PENDING' | 'REALIZED';
+  realizedExpenseId: string | null;
+  category: { id: string; name: string; color: string; icon: string } | null;
+}
+
 export interface WalletDetailData {
   wallet: WalletSummary;
   userRole: string;
   currentUser: User;
+  month: string;
+  monthExpenses: ExpenseItem[];
+  plannedExpenses: PlannedExpenseItem[];
   metrics: {
     monthlyBudget: number;
     totalSpentMonth: number;
@@ -97,6 +117,7 @@ export interface WalletDetailData {
     pendingCount: number;
     overdueCount: number;
     paidCount: number;
+    projection: MonthProjection;
   };
   categories: CategoryWithSpent[];
   recentExpenses: ExpenseItem[];
@@ -109,6 +130,7 @@ interface AppContextType {
   currentUser: User | null;
   users: User[];
   setCurrentUser: (user: User) => void;
+  updateCurrentUser: (user: User) => void;
   wallets: WalletSummary[];
   activeWalletId: string | null;
   setActiveWalletId: (id: string) => void;
@@ -116,6 +138,12 @@ interface AppContextType {
   isLoading: boolean;
   refreshWallet: () => Promise<void>;
   refreshWallets: () => Promise<void>;
+  // Month state
+  selectedMonth: string;
+  setSelectedMonth: (key: string) => void;
+  goToPrevMonth: () => void;
+  goToNextMonth: () => void;
+  goToCurrentMonth: () => void;
   // Auth & Dual Mode
   authMode: AuthMode;
   setAuthMode: (mode: AuthMode) => void;
@@ -123,11 +151,19 @@ interface AppContextType {
   // Modals
   isAddExpenseOpen: boolean;
   setIsAddExpenseOpen: (open: boolean) => void;
+  editingExpense: ExpenseItem | null;
+  editingPlannedExpense: PlannedExpenseItem | null;
+  openEditExpense: (expense: ExpenseItem) => void;
+  openEditPlannedExpense: (planned: PlannedExpenseItem) => void;
   isAddInvoiceOpen: boolean;
   setIsAddInvoiceOpen: (open: boolean) => void;
+  editingInvoice: InvoiceItem | null;
+  openEditInvoice: (invoice: InvoiceItem) => void;
   modalInitialDate: string | null;
-  openAddExpense: (dateStr?: string) => void;
-  openAddInvoice: (dateStr?: string) => void;
+  modalInitialExpenseKind: 'ACTUAL' | 'PLANNED' | null;
+  modalInitialType: 'BILL' | 'SUBSCRIPTION' | null;
+  openAddExpense: (dateStr?: string, kind?: 'ACTUAL' | 'PLANNED') => void;
+  openAddInvoice: (dateStr?: string, type?: 'BILL' | 'SUBSCRIPTION') => void;
   isInviteOpen: boolean;
   setIsInviteOpen: (open: boolean) => void;
   isNewWalletOpen: boolean;
@@ -157,9 +193,30 @@ function getAuthModeServerSnapshot(): AuthMode {
   return process.env.NEXT_PUBLIC_AUTH_MODE === 'normal' ? 'normal' : 'mock';
 }
 
+function subscribeMonth(callback: () => void) {
+  window.addEventListener('storage', callback);
+  return () => window.removeEventListener('storage', callback);
+}
+
+function getSelectedMonthSnapshot(): string {
+  if (typeof window === 'undefined') {
+    return getCurrentMonthKey();
+  }
+  const savedMonth = localStorage.getItem('aura_selected_month');
+  if (savedMonth && isValidMonthKey(savedMonth)) {
+    return savedMonth;
+  }
+  return getCurrentMonthKey();
+}
+
+function getSelectedMonthServerSnapshot(): string {
+  return getCurrentMonthKey();
+}
+
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
+  const { t } = useTranslation();
 
   const storeAuthMode = React.useSyncExternalStore(
     subscribeAuthMode,
@@ -170,36 +227,103 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [activeAuthMode, setActiveAuthMode] = useState<AuthMode | null>(null);
   const authMode = activeAuthMode ?? storeAuthMode;
 
+  const storeSelectedMonth = React.useSyncExternalStore(
+    subscribeMonth,
+    getSelectedMonthSnapshot,
+    getSelectedMonthServerSnapshot
+  );
+
+  const [activeSelectedMonth, setActiveSelectedMonth] = useState<string | null>(null);
+  const selectedMonth = activeSelectedMonth ?? storeSelectedMonth;
+
+  const setSelectedMonth = useCallback((key: string) => {
+    if (!isValidMonthKey(key)) return;
+    setActiveSelectedMonth(key);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('aura_selected_month', key);
+      window.dispatchEvent(new Event('storage'));
+    }
+  }, []);
+
+  const goToPrevMonth = useCallback(() => {
+    setSelectedMonth(addMonthsToKey(selectedMonth, -1));
+  }, [selectedMonth, setSelectedMonth]);
+
+  const goToNextMonth = useCallback(() => {
+    setSelectedMonth(addMonthsToKey(selectedMonth, 1));
+  }, [selectedMonth, setSelectedMonth]);
+
+  const goToCurrentMonth = useCallback(() => {
+    setSelectedMonth(getCurrentMonthKey());
+  }, [setSelectedMonth]);
+
   const [currentUser, setCurrentUserState] = useState<User | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [wallets, setWallets] = useState<WalletSummary[]>([]);
   const [activeWalletId, setActiveWalletIdState] = useState<string | null>(null);
   const [walletData, setWalletData] = useState<WalletDetailData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
 
   const [isAddExpenseOpen, setIsAddExpenseOpenState] = useState(false);
+  const [editingExpense, setEditingExpense] = useState<ExpenseItem | null>(null);
+  const [editingPlannedExpense, setEditingPlannedExpense] = useState<PlannedExpenseItem | null>(null);
   const [isAddInvoiceOpen, setIsAddInvoiceOpenState] = useState(false);
+  const [editingInvoice, setEditingInvoice] = useState<InvoiceItem | null>(null);
   const [modalInitialDate, setModalInitialDate] = useState<string | null>(null);
+  const [modalInitialExpenseKind, setModalInitialExpenseKind] = useState<'ACTUAL' | 'PLANNED' | null>(null);
+  const [modalInitialType, setModalInitialType] = useState<'BILL' | 'SUBSCRIPTION' | null>(null);
   const [isInviteOpen, setIsInviteOpen] = useState(false);
   const [isNewWalletOpen, setIsNewWalletOpen] = useState(false);
 
   const setIsAddExpenseOpen = useCallback((open: boolean) => {
     setIsAddExpenseOpenState(open);
-    if (!open) setModalInitialDate(null);
+    if (!open) {
+      setModalInitialDate(null);
+      setModalInitialExpenseKind(null);
+      setEditingExpense(null);
+      setEditingPlannedExpense(null);
+    }
   }, []);
 
   const setIsAddInvoiceOpen = useCallback((open: boolean) => {
     setIsAddInvoiceOpenState(open);
-    if (!open) setModalInitialDate(null);
+    if (!open) {
+      setModalInitialDate(null);
+      setModalInitialType(null);
+      setEditingInvoice(null);
+    }
   }, []);
 
-  const openAddExpense = useCallback((dateStr?: string) => {
+  const openAddExpense = useCallback((dateStr?: string, kind?: 'ACTUAL' | 'PLANNED') => {
+    setEditingExpense(null);
+    setEditingPlannedExpense(null);
     if (dateStr) setModalInitialDate(dateStr);
+    if (kind) setModalInitialExpenseKind(kind);
     setIsAddExpenseOpenState(true);
   }, []);
 
-  const openAddInvoice = useCallback((dateStr?: string) => {
+  const openEditExpense = useCallback((expense: ExpenseItem) => {
+    setEditingExpense(expense);
+    setEditingPlannedExpense(null);
+    setIsAddExpenseOpenState(true);
+  }, []);
+
+  const openEditPlannedExpense = useCallback((planned: PlannedExpenseItem) => {
+    setEditingPlannedExpense(planned);
+    setEditingExpense(null);
+    setIsAddExpenseOpenState(true);
+  }, []);
+
+  const openAddInvoice = useCallback((dateStr?: string, type?: 'BILL' | 'SUBSCRIPTION') => {
+    setEditingInvoice(null);
     if (dateStr) setModalInitialDate(dateStr);
+    if (type) setModalInitialType(type);
+    setIsAddInvoiceOpenState(true);
+  }, []);
+
+  const openEditInvoice = useCallback((invoice: InvoiceItem) => {
+    setEditingInvoice(invoice);
     setIsAddInvoiceOpenState(true);
   }, []);
 
@@ -225,6 +349,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // Load user asynchronously when authMode changes
   useEffect(() => {
     let isMounted = true;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setIsAuthLoading(true);
     async function initUser() {
       try {
         if (authMode === 'normal') {
@@ -250,7 +376,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       } catch (err) {
         console.error('Failed to load user:', err);
       } finally {
-        if (isMounted) setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+          setIsAuthLoading(false);
+        }
       }
     }
     void initUser();
@@ -261,7 +390,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   // Route protection in Normal mode
   useEffect(() => {
-    if (isLoading) return;
+    if (isAuthLoading) return;
     const isAuthPage = pathname === '/login' || pathname === '/register';
     const isPublicPage = isAuthPage || pathname?.startsWith('/invite');
 
@@ -272,7 +401,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         router.push('/');
       }
     }
-  }, [authMode, currentUser, isLoading, pathname, router]);
+  }, [authMode, currentUser, isAuthLoading, pathname, router]);
 
   const setAuthMode = (mode: AuthMode) => {
     setActiveAuthMode(mode);
@@ -282,8 +411,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
     showToast(
       mode === 'normal'
-        ? 'Switched to Normal Flow (Real Auth)'
-        : 'Switched to Dev Mock Mode (Simulate Users)'
+        ? t('auth.switchedToNormal')
+        : t('auth.switchedToMock')
     );
   };
 
@@ -301,7 +430,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         localStorage.removeItem('aura_active_user_id');
         localStorage.removeItem('aura_active_wallet_id');
       }
-      showToast('Logged out successfully');
+      showToast(t('auth.loggedOutSuccess'));
       router.push('/login');
     }
   };
@@ -312,6 +441,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem('aura_active_user_id', user.id);
     }
   };
+
+  const updateCurrentUser = useCallback((user: User) => {
+    setCurrentUserState(user);
+    setUsers((prev) => prev.map((u) => (u.id === user.id ? user : u)));
+  }, []);
 
   const setActiveWalletId = (id: string) => {
     setActiveWalletIdState(id);
@@ -362,6 +496,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
   }, [currentUser, refreshWallets]);
 
+  const walletRequestCounterRef = useRef(0);
+
   // Fetch active wallet data
   const refreshWallet = useCallback(async () => {
     if (!activeWalletId) {
@@ -369,22 +505,26 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(false);
       return;
     }
+    const requestId = ++walletRequestCounterRef.current;
     try {
       setIsLoading(true);
-      const res = await fetch(`/api/wallets/${activeWalletId}`, {
+      const res = await fetch(`/api/wallets/${activeWalletId}?month=${selectedMonth}`, {
         headers: getHeaders(),
         credentials: 'include',
       });
+      if (requestId !== walletRequestCounterRef.current) return;
       if (res.ok) {
         const data = await res.json();
+        if (requestId !== walletRequestCounterRef.current) return;
         setWalletData(data);
       }
+      setIsLoading(false);
     } catch (err) {
+      if (requestId !== walletRequestCounterRef.current) return;
       console.error('Failed to fetch wallet details:', err);
-    } finally {
       setIsLoading(false);
     }
-  }, [activeWalletId, getHeaders]);
+  }, [activeWalletId, selectedMonth, getHeaders]);
 
   useEffect(() => {
     let isMounted = true;
@@ -412,6 +552,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         currentUser,
         users,
         setCurrentUser,
+        updateCurrentUser,
         wallets,
         activeWalletId,
         setActiveWalletId,
@@ -419,14 +560,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         isLoading,
         refreshWallet,
         refreshWallets,
+        selectedMonth,
+        setSelectedMonth,
+        goToPrevMonth,
+        goToNextMonth,
+        goToCurrentMonth,
         authMode,
         setAuthMode,
         logout,
         isAddExpenseOpen,
         setIsAddExpenseOpen,
+        editingExpense,
+        editingPlannedExpense,
+        openEditExpense,
+        openEditPlannedExpense,
         isAddInvoiceOpen,
         setIsAddInvoiceOpen,
+        editingInvoice,
+        openEditInvoice,
         modalInitialDate,
+        modalInitialExpenseKind,
+        modalInitialType,
         openAddExpense,
         openAddInvoice,
         isInviteOpen,

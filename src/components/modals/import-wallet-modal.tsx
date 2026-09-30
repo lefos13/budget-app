@@ -13,6 +13,8 @@ import {
 } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { useTranslation } from '@/context/LanguageContext';
+import { interpolate } from '@/lib/i18n/translator';
+import { translateApiError } from '@/lib/i18n/api-errors';
 
 interface ImportPreviewData {
   wallet?: { name?: string; currency?: string };
@@ -55,7 +57,7 @@ function ImportWalletModalDialog({ onClose }: { onClose: () => void }) {
 
   const processFile = (file: File) => {
     if (!file.name.endsWith('.json') && file.type !== 'application/json') {
-      setError('Please select a valid JSON backup file.');
+      setError(t('importModal.selectJsonFile'));
       setSelectedFile(null);
       setParsedData(null);
       return;
@@ -83,7 +85,7 @@ function ImportWalletModalDialog({ onClose }: { onClose: () => void }) {
       }
     };
     reader.onerror = () => {
-      setError('Failed to read file content.');
+      setError(t('importModal.readError'));
       setParsedData(null);
     };
     reader.readAsText(file);
@@ -122,17 +124,20 @@ function ImportWalletModalDialog({ onClose }: { onClose: () => void }) {
       const result = await res.json();
 
       if (!res.ok) {
-        setError(result.error || 'Failed to import wallet data');
+        setError(translateApiError(result.error, res.status, t));
       } else {
         showToast(
-          `Imported ${result.imported?.expenses || 0} expenses & ${result.imported?.invoices || 0} bills/subscriptions!`
+          interpolate(t('importModal.importedToast'), {
+            expenses: result.imported?.expenses || 0,
+            invoices: result.imported?.invoices || 0,
+          })
         );
         await refreshWallet();
         onClose();
       }
     } catch (err) {
       console.error('Error importing wallet data:', err);
-      setError('An unexpected error occurred during import.');
+      setError(t('importModal.unexpectedError'));
     } finally {
       setIsImporting(false);
     }
@@ -199,7 +204,7 @@ function ImportWalletModalDialog({ onClose }: { onClose: () => void }) {
                 {t('importModal.browseFiles')}
               </span>
             </p>
-            <p className="text-[11px] text-zinc-400 mt-1">Supports Aura Wallet JSON export files</p>
+            <p className="text-[11px] text-zinc-400 mt-1">{t('importModal.supportsFormat')}</p>
           </div>
 
           {selectedFile && (
@@ -210,11 +215,13 @@ function ImportWalletModalDialog({ onClose }: { onClose: () => void }) {
                   {selectedFile.name}
                 </span>
                 <span className="text-[10px] text-zinc-400">
-                  ({(selectedFile.size / 1024).toFixed(1)} KB)
+                  {interpolate(t('importModal.fileSizeKb'), {
+                    size: (selectedFile.size / 1024).toFixed(1),
+                  })}
                 </span>
               </div>
               <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-md border border-emerald-200 dark:border-emerald-800/60">
-                Ready
+                {t('importModal.ready')}
               </span>
             </div>
           )}
@@ -234,7 +241,7 @@ function ImportWalletModalDialog({ onClose }: { onClose: () => void }) {
                   {t('importModal.previewTitle')}
                 </p>
                 <span className="text-[11px] text-zinc-500">
-                  Target: <strong>{walletData.wallet.name}</strong>
+                  {t('importModal.targetLabel')} <strong>{walletData.wallet.name}</strong>
                 </span>
               </div>
 
@@ -244,7 +251,7 @@ function ImportWalletModalDialog({ onClose }: { onClose: () => void }) {
                   <p className="text-base font-black text-zinc-900 dark:text-white tabular-nums">
                     {expensesCount}
                   </p>
-                  <p className="text-[10px] text-zinc-400 leading-tight">Expenses</p>
+                  <p className="text-[10px] text-zinc-400 leading-tight">{t('importModal.expenses')}</p>
                 </div>
 
                 <div className="p-2.5 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200/70 dark:border-zinc-800">
@@ -252,7 +259,7 @@ function ImportWalletModalDialog({ onClose }: { onClose: () => void }) {
                   <p className="text-base font-black text-zinc-900 dark:text-white tabular-nums">
                     {categoriesCount}
                   </p>
-                  <p className="text-[10px] text-zinc-400 leading-tight">Categories</p>
+                  <p className="text-[10px] text-zinc-400 leading-tight">{t('importModal.categories')}</p>
                 </div>
 
                 <div className="p-2.5 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200/70 dark:border-zinc-800">
@@ -260,7 +267,7 @@ function ImportWalletModalDialog({ onClose }: { onClose: () => void }) {
                   <p className="text-base font-black text-zinc-900 dark:text-white tabular-nums">
                     {billsCount}
                   </p>
-                  <p className="text-[10px] text-zinc-400 leading-tight">Bills / Subs</p>
+                  <p className="text-[10px] text-zinc-400 leading-tight">{t('importModal.billsAndSubs')}</p>
                 </div>
               </div>
 

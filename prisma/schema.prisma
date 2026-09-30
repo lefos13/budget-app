@@ -28,33 +28,35 @@ enum RecurrenceInterval {
 }
 
 model User {
-  id           String         @id @default(cuid())
-  email        String         @unique
-  name         String
-  passwordHash String?
-  avatarUrl    String?
-  memberships  WalletMember[]
-  expenses     Expense[]
-  paidBills    InvoiceBill[]  @relation("PaidByUser")
-  activityLogs ActivityLog[]
-  createdAt    DateTime       @default(now())
+  id              String           @id @default(cuid())
+  email           String           @unique
+  name            String
+  passwordHash    String?
+  avatarUrl       String?
+  memberships     WalletMember[]
+  expenses        Expense[]
+  plannedExpenses PlannedExpense[]
+  paidBills       InvoiceBill[]    @relation("PaidByUser")
+  activityLogs    ActivityLog[]
+  createdAt       DateTime         @default(now())
 }
 
 model Wallet {
-  id            String         @id @default(cuid())
-  name          String
-  currency      String         @default("EUR")
-  monthlyBudget Float          @default(2000.0)
-  color         String         @default("#6366f1")
-  icon          String         @default("Wallet")
-  members       WalletMember[]
-  invites       WalletInvite[]
-  categories    Category[]
-  expenses      Expense[]
-  invoices      InvoiceBill[]
-  activityLogs  ActivityLog[]
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  id              String           @id @default(cuid())
+  name            String
+  currency        String           @default("EUR")
+  monthlyBudget   Float            @default(2000.0)
+  color           String           @default("#6366f1")
+  icon            String           @default("Wallet")
+  members         WalletMember[]
+  invites         WalletInvite[]
+  categories      Category[]
+  expenses        Expense[]
+  plannedExpenses PlannedExpense[]
+  invoices        InvoiceBill[]
+  activityLogs    ActivityLog[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
 }
 
 model WalletMember {
@@ -84,31 +86,35 @@ model WalletInvite {
 }
 
 model Category {
-  id           String        @id @default(cuid())
-  walletId     String
-  name         String
-  icon         String        @default("Tag")
-  color        String        @default("#3b82f6")
-  monthlyLimit Float?
-  wallet       Wallet        @relation(fields: [walletId], references: [id], onDelete: Cascade)
-  expenses     Expense[]
-  invoices     InvoiceBill[]
+  id              String           @id @default(cuid())
+  walletId        String
+  name            String
+  icon            String           @default("Tag")
+  color           String           @default("#3b82f6")
+  monthlyLimit    Float?
+  wallet          Wallet           @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  expenses        Expense[]
+  plannedExpenses PlannedExpense[]
+  invoices        InvoiceBill[]
 }
 
 model Expense {
-  id          String    @id @default(cuid())
-  walletId    String
-  userId      String
-  categoryId  String?
-  title       String
-  amount      Float
-  date        DateTime  @default(now())
-  notes       String?
-  isRecurring Boolean   @default(false)
-  wallet      Wallet    @relation(fields: [walletId], references: [id], onDelete: Cascade)
-  user        User      @relation(fields: [userId], references: [id])
-  category    Category? @relation(fields: [categoryId], references: [id])
-  createdAt   DateTime  @default(now())
+  id            String          @id @default(cuid())
+  walletId      String
+  userId        String
+  categoryId    String?
+  invoiceId     String?
+  title         String
+  amount        Float
+  date          DateTime        @default(now())
+  notes         String?
+  isRecurring   Boolean         @default(false)
+  wallet        Wallet          @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  user          User            @relation(fields: [userId], references: [id])
+  category      Category?       @relation(fields: [categoryId], references: [id])
+  invoice       InvoiceBill?    @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+  plannedSource PlannedExpense?
+  createdAt     DateTime        @default(now())
 }
 
 model InvoiceBill {
@@ -131,6 +137,7 @@ model InvoiceBill {
   wallet             Wallet    @relation(fields: [walletId], references: [id], onDelete: Cascade)
   category           Category? @relation(fields: [categoryId], references: [id])
   paidByUser         User?     @relation("PaidByUser", fields: [paidByUserId], references: [id])
+  expenses           Expense[]
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 }
@@ -144,4 +151,25 @@ model ActivityLog {
   wallet    Wallet   @relation(fields: [walletId], references: [id], onDelete: Cascade)
   user      User     @relation(fields: [userId], references: [id])
   timestamp DateTime @default(now())
+}
+
+model PlannedExpense {
+  id                String    @id @default(cuid())
+  walletId          String
+  userId            String
+  categoryId        String?
+  title             String
+  amount            Float
+  expectedDate      DateTime
+  notes             String?
+  status            String    @default("PENDING")
+  realizedExpenseId String?   @unique
+  wallet            Wallet    @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  user              User      @relation(fields: [userId], references: [id])
+  category          Category? @relation(fields: [categoryId], references: [id])
+  realizedExpense   Expense?  @relation(fields: [realizedExpenseId], references: [id], onDelete: SetNull)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([walletId, expectedDate])
 }
