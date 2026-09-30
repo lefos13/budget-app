@@ -970,7 +970,8 @@ export function findSourceFiles(rootDir: string = 'src'): string[] {
               base === 'ics-generator.ts' ||
               base === 'auth.ts' ||
               base === 'session.ts' ||
-              base === 'prisma.ts'
+              base === 'prisma.ts' ||
+              base === 'savings-server.ts'
             ) {
               continue;
             }

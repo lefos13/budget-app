@@ -7,6 +7,11 @@ import { useTranslation } from '@/context/LanguageContext';
 import { interpolate } from '@/lib/i18n/translator';
 import { translateApiError } from '@/lib/i18n/api-errors';
 import { toDateKey, isCurrentMonthKey, parseMonthKey } from '@/lib/month';
+import { canLinkToSavings } from '@/lib/savings';
+import { useSavings } from '@/components/savings/use-savings';
+import { useDisposition, type DispositionChoice } from '@/components/savings/disposition-modal';
+
+const NEW_BUCKET = '__new__';
 
 export function AddExpenseModal() {
   const { isAddExpenseOpen } = useApp();
@@ -29,6 +34,11 @@ function AddExpenseModalDialog() {
     showToast,
   } = useApp();
   const { t } = useTranslation();
+  const { data: savings, staleData: staleSavings } = useSavings();
+  const disposition = useDisposition((savings ?? staleSavings)?.buckets ?? []);
+  const [savingsChoice, setSavingsChoice] = useState('');
+  // null = follow the expense title until the user types their own bucket name.
+  const [newBucketName, setNewBucketName] = useState<string | null>(null);
 
   const isEditExpense = Boolean(editingExpense);
   const isEditPlanned = Boolean(editingPlannedExpense);
@@ -103,6 +113,16 @@ function AddExpenseModalDialog() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isSubmitting, setIsAddExpenseOpen]);
 
+  // Parse the YYYY-MM-DD input as local noon so the month is the one the user picked.
+  const showSavingsChoice =
+    kind === 'PLANNED' && !isEdit && Boolean(date) && canLinkToSavings(new Date(`${date}T12:00:00`));
+  // Editing a linked expense's date into the current/past month unlinks it from its bucket (server-side).
+  const willUnlinkFromSavings =
+    isEditPlanned &&
+    Boolean(editingPlannedExpense?.savingsBucketId) &&
+    Boolean(date) &&
+    !canLinkToSavings(new Date(`${date}T12:00:00`));
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !amount) return;
@@ -145,27 +165,34 @@ function AddExpenseModalDialog() {
           }
         }
       } else if (isEditPlanned && editingPlannedExpense) {
-        const res = await fetch(`/api/planned-expenses/${editingPlannedExpense.id}`, {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(currentUser ? { 'x-user-id': currentUser.id } : {}),
-          },
-          body: JSON.stringify({
-            title: title.trim(),
-            amount: parseFloat(amount),
-            expectedDate: date,
-            categoryId: categoryId || null,
-            notes: notes.trim() || null,
-          }),
-        });
+        const patchPlanned = async (choice?: DispositionChoice): Promise<boolean> => {
+          const res = await fetch(`/api/planned-expenses/${editingPlannedExpense.id}`, {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(currentUser ? { 'x-user-id': currentUser.id } : {}),
+            },
+            body: JSON.stringify({
+              title: title.trim(),
+              amount: parseFloat(amount),
+              expectedDate: date,
+              categoryId: categoryId || null,
+              notes: notes.trim() || null,
+              ...(choice ? { disposition: choice } : {}),
+            }),
+          });
 
-        if (res.ok) {
-          showToast(t('expenseEdit.updatedToast').replace('{title}', title.trim()));
-          setIsAddExpenseOpen(false);
-          await refreshWallet();
-        } else {
-          if (res.status === 403) {
+          if (res.ok) {
+            showToast(t('expenseEdit.updatedToast').replace('{title}', title.trim()));
+            setIsAddExpenseOpen(false);
+            await refreshWallet();
+            return true;
+          }
+          const json = await res.json().catch(() => ({}));
+          if (res.status === 409 && json?.error === 'Disposition required' && !choice) {
+            // The date change unlinks the last expense of a bucket that still holds money.
+            disposition.ask(json.bucketId, json.leftover, patchPlanned);
+          } else if (res.status === 403) {
             setErrorMessage(t('expenseEdit.errorForbidden'));
           } else if (res.status === 409) {
             setErrorMessage(t('expenseEdit.errorLocked'));
@@ -174,7 +201,9 @@ function AddExpenseModalDialog() {
           } else {
             setErrorMessage(t('expenseEdit.errorGeneric'));
           }
-        }
+          return false;
+        };
+        await patchPlanned();
       } else if (kind === 'PLANNED') {
         const res = await fetch('/api/planned-expenses', {
           method: 'POST',
@@ -194,6 +223,30 @@ function AddExpenseModalDialog() {
 
         if (res.ok) {
           showToast(t('planned.createdToast').replace('{title}', title.trim()));
+          if (savingsChoice && showSavingsChoice) {
+            const created = await res.json().catch(() => null);
+            const plannedId: string | undefined = created?.plannedExpense?.id;
+            if (plannedId) {
+              const linkRes = await fetch(`/api/planned-expenses/${plannedId}/savings`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  ...(currentUser ? { 'x-user-id': currentUser.id } : {}),
+                },
+                body: JSON.stringify(
+                  savingsChoice === NEW_BUCKET
+                    ? { newBucket: { name: ((newBucketName ?? '').trim() || title.trim()).slice(0, 60) } }
+                    : { bucketId: savingsChoice }
+                ),
+              });
+              const linkJson = await linkRes.json().catch(() => ({}));
+              showToast(
+                linkRes.ok
+                  ? interpolate(t('savings.linkedToast'), { title: title.trim(), bucket: linkJson.bucket?.name ?? '' })
+                  : translateApiError(linkJson?.error, linkRes.status, t)
+              );
+            }
+          }
           setIsAddExpenseOpen(false);
           await refreshWallet();
         } else {
@@ -410,6 +463,46 @@ function AddExpenseModalDialog() {
             </select>
           </div>
 
+          {showSavingsChoice && (
+            <div>
+              <label htmlFor="planned-savings-bucket" className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
+                {t('savings.bucketFieldLabel')}
+              </label>
+              <select
+                id="planned-savings-bucket"
+                value={savingsChoice}
+                onChange={(e) => setSavingsChoice(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950/50 text-sm text-zinc-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
+              >
+                <option value="">{t('savings.bucketNone')}</option>
+                {((savings ?? staleSavings)?.buckets ?? []).map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.name}
+                  </option>
+                ))}
+                <option value={NEW_BUCKET}>{t('savings.newBucket')}</option>
+              </select>
+              {savingsChoice === NEW_BUCKET && (
+                <div className="mt-2">
+                  <label
+                    htmlFor="planned-new-bucket-name"
+                    className="block text-[11px] font-semibold text-zinc-600 dark:text-zinc-400 mb-1"
+                  >
+                    {t('savings.newBucketNameFor')}
+                  </label>
+                  <input
+                    id="planned-new-bucket-name"
+                    type="text"
+                    maxLength={60}
+                    value={newBucketName ?? title.slice(0, 60)}
+                    onChange={(e) => setNewBucketName(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950/50 text-sm text-zinc-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+              )}
+            </div>
+          )}
+
           <div>
             <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
               {t('expenses.notesLabel')}
@@ -439,6 +532,12 @@ function AddExpenseModalDialog() {
                 {t('expenses.recurringCheckbox')}
               </label>
             </div>
+          )}
+
+          {willUnlinkFromSavings && editingPlannedExpense?.savingsBucket && (
+            <p className="text-[11px] text-amber-800 dark:text-amber-200 bg-amber-50 dark:bg-amber-950/40 p-2.5 rounded-xl border border-amber-200/80 dark:border-amber-800/60 leading-relaxed">
+              {interpolate(t('savings.dateUnlinkWarning'), { bucket: editingPlannedExpense.savingsBucket.name })}
+            </p>
           )}
 
           {errorMessage && (
@@ -477,6 +576,7 @@ function AddExpenseModalDialog() {
           </div>
         </form>
       </div>
+      {disposition.element}
     </div>
   );
 }

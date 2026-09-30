@@ -2,6 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/session';
 import { toDateKey } from '@/lib/month';
+import {
+  closeBucketIfEmpty,
+  getBucketBalance,
+  parseDisposition,
+  savingsErrorResponse,
+} from '@/lib/savings-server';
+import { round2 } from '@/lib/savings';
 
 class AlreadyRealizedError extends Error {
   constructor() {
@@ -113,6 +120,10 @@ export async function POST(
       expenseDate = new Date(toDateKey(new Date()));
     }
 
+    const disposition = parseDisposition(body.disposition);
+    if (disposition === null) {
+      return NextResponse.json({ error: 'Invalid disposition' }, { status: 400 });
+    }
     const result = await prisma.$transaction(async (tx) => {
       const updateResult = await tx.plannedExpense.updateMany({
         where: {
@@ -128,6 +139,12 @@ export async function POST(
         throw new AlreadyRealizedError();
       }
 
+      // A linked expense is paid from its bucket first; only the shortfall counts against this month.
+      const bucketId = plannedExpense.savingsBucketId;
+      const fundedFromSavings = bucketId
+        ? round2(Math.min(Math.max(0, await getBucketBalance(tx, bucketId)), finalAmount))
+        : 0;
+
       const expense = await tx.expense.create({
         data: {
           walletId: plannedExpense.walletId,
@@ -135,6 +152,7 @@ export async function POST(
           categoryId: plannedExpense.categoryId,
           title: plannedExpense.title,
           amount: finalAmount,
+          savingsFundedAmount: fundedFromSavings,
           date: expenseDate,
           notes: plannedExpense.notes,
         },
@@ -143,6 +161,21 @@ export async function POST(
           user: true,
         },
       });
+
+      if (bucketId && fundedFromSavings > 0) {
+        await tx.savingsTransaction.create({
+          data: {
+            walletId: plannedExpense.walletId,
+            bucketId,
+            userId: user.id,
+            type: 'EXPENSE_DRAW',
+            amount: -fundedFromSavings,
+            date: expenseDate,
+            plannedExpenseId: plannedExpense.id,
+            expenseId: expense.id,
+          },
+        });
+      }
 
       const updatedPlanned = await tx.plannedExpense.update({
         where: { id },
@@ -160,13 +193,20 @@ export async function POST(
           walletId: plannedExpense.walletId,
           userId: user.id,
           action: 'PLANNED_EXPENSE_REALIZED',
-          details: `${user.name} marked planned expense "${plannedExpense.title}" as spent (€${expense.amount.toFixed(2)})`,
+          details:
+            fundedFromSavings > 0
+              ? `${user.name} marked planned expense "${plannedExpense.title}" as spent (€${expense.amount.toFixed(2)}, €${fundedFromSavings.toFixed(2)} from savings)`
+              : `${user.name} marked planned expense "${plannedExpense.title}" as spent (€${expense.amount.toFixed(2)})`,
         },
       });
 
+      if (plannedExpense.savingsBucketId) {
+        await closeBucketIfEmpty(tx, plannedExpense.savingsBucketId, user, disposition);
+      }
       return {
         plannedExpense: updatedPlanned,
         expense,
+        fundedFromSavings,
       };
     });
 
@@ -175,6 +215,8 @@ export async function POST(
     if (error instanceof AlreadyRealizedError) {
       return NextResponse.json({ error: 'Already realized' }, { status: 409 });
     }
+    const mapped = savingsErrorResponse(error);
+    if (mapped) return NextResponse.json(mapped.body, { status: mapped.status });
     console.error('Error realizing planned expense:', error);
     return NextResponse.json(
       { error: 'Failed to realize planned expense' },

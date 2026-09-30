@@ -5,15 +5,16 @@ import { Clock, AlertCircle, CheckCircle2 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useApp, InvoiceItem } from '@/context/AppContext';
 import { useTranslation } from '@/context/LanguageContext';
-import { formatCurrency, formatDate, formatRelativeDueDate } from '@/lib/formatters';
+import { formatCurrency, formatDate } from '@/lib/formatters';
 import {
-  getMonthBounds,
   getCurrentMonthKey,
   compareMonthKeys,
   formatMonthKey,
 } from '@/lib/month';
+import { getUnpaidForMonth, isInvoiceOverdue } from '@/lib/bill-alerts';
+import { MonthSwitcher } from '@/components/month-switcher';
 
-export function UnpaidBillsBanner() {
+export function UnpaidBillsBanner({ alwaysRender = false }: { alwaysRender?: boolean }) {
   const { walletData, selectedMonth, setSelectedMonth, refreshWallet, showToast, currentUser } =
     useApp();
   const { t, dateLocale } = useTranslation();
@@ -26,30 +27,14 @@ export function UnpaidBillsBanner() {
   const currency = walletData.wallet?.currency || 'EUR';
   const isViewer = walletData.userRole === 'VIEWER';
 
-  const { start: monthStart, end: monthEnd } = getMonthBounds(selectedMonth);
+  const { monthItems, carryOverItems, monthTotal, carryOverTotal } = getUnpaidForMonth(
+    walletData.invoices,
+    selectedMonth
+  );
 
-  const monthItems = walletData.invoices
-    .filter((inv) => {
-      if (inv.status === 'PAID') return false;
-      const due = new Date(inv.dueDate);
-      return due >= monthStart && due <= monthEnd;
-    })
-    .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
-
-  const carryOverItems = walletData.invoices
-    .filter((inv) => {
-      if (inv.status === 'PAID') return false;
-      const due = new Date(inv.dueDate);
-      return due < monthStart;
-    })
-    .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
-
-  if (monthItems.length === 0 && carryOverItems.length === 0) {
+  if (!alwaysRender && monthItems.length === 0 && carryOverItems.length === 0) {
     return null;
   }
-
-  const monthTotal = monthItems.reduce((acc, item) => acc + item.amount, 0);
-  const carryOverTotal = carryOverItems.reduce((acc, item) => acc + item.amount, 0);
 
   const earliestDue = carryOverItems.length > 0 ? new Date(carryOverItems[0].dueDate) : null;
   const earliestMonthKey = earliestDue
@@ -118,7 +103,7 @@ export function UnpaidBillsBanner() {
 
   return (
     <div className="rounded-3xl border border-amber-200/90 dark:border-amber-900/60 bg-gradient-to-r from-amber-50/90 via-orange-50/60 to-amber-50/40 dark:from-amber-950/30 dark:via-orange-950/20 dark:to-zinc-900/60 p-5 sm:p-6 shadow-sm transition-all">
-      {/* Header: Title, Count Badge, Total */}
+      {/* Header: Title, Count Badge, MonthSwitcher, Total */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-amber-200/60 dark:border-amber-900/40 gap-3">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-2xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-xs shadow-amber-500/25">
@@ -134,16 +119,19 @@ export function UnpaidBillsBanner() {
           </div>
         </div>
 
-        <div className="text-sm font-black text-amber-950 dark:text-amber-100 tabular-nums self-start sm:self-auto">
-          <span className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 mr-1.5">
-            {t('unpaidBanner.total')}
-          </span>
-          {formatCurrency(monthTotal, currency)}
+        <div className="flex items-center gap-3 flex-wrap self-start sm:self-auto">
+          <MonthSwitcher />
+          <div className="text-sm font-black text-amber-950 dark:text-amber-100 tabular-nums">
+            <span className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 mr-1.5">
+              {t('unpaidBanner.total')}
+            </span>
+            {formatCurrency(monthTotal, currency)}
+          </div>
         </div>
       </div>
 
       {/* Month Items List or Empty Message */}
-      <div className="mt-3.5 space-y-2.5">
+      <div className="mt-3.5 space-y-2.5 max-h-[32rem] overflow-y-auto pr-1">
         {monthItems.length === 0 ? (
           <p className="text-xs font-medium text-amber-800/90 dark:text-amber-300/80 italic py-1">
             {t('unpaidBanner.nothingLeft')}
@@ -153,7 +141,7 @@ export function UnpaidBillsBanner() {
             const isPaying = payingId === bill.id;
             const dueTime = new Date(bill.dueDate).getTime();
             const isOverdue =
-              dueTime < startOfToday || formatRelativeDueDate(bill.dueDate, t).isOverdue;
+              dueTime < startOfToday || isInvoiceOverdue(bill.dueDate) || bill.status === 'OVERDUE';
 
             return (
               <div

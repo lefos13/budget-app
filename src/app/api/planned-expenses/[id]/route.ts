@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/session';
+import { canLinkToSavings } from '@/lib/savings';
+import { closeBucketIfEmpty, parseDisposition, savingsErrorResponse } from '@/lib/savings-server';
 
 export async function PATCH(
   req: NextRequest,
@@ -56,6 +58,10 @@ export async function PATCH(
     }
 
     const { title, amount, expectedDate, categoryId, notes } = body;
+    const disposition = parseDisposition(body.disposition);
+    if (disposition === null) {
+      return NextResponse.json({ error: 'Invalid disposition' }, { status: 400 });
+    }
 
     // Validate title: non-empty trimmed <= 120
     let trimmedTitle: string | undefined;
@@ -144,31 +150,56 @@ export async function PATCH(
       }
     }
 
-    const updated = await prisma.plannedExpense.update({
-      where: { id },
-      data: {
-        ...(trimmedTitle !== undefined ? { title: trimmedTitle } : {}),
-        ...(numAmount !== undefined ? { amount: numAmount } : {}),
-        ...(parsedExpectedDate !== undefined ? { expectedDate: parsedExpectedDate } : {}),
-        ...(finalCategoryId !== undefined ? { categoryId: finalCategoryId } : {}),
-        ...(finalNotes !== undefined ? { notes: finalNotes } : {}),
-      },
-      include: {
-        category: true,
-      },
+    // A linked expense moved into the current or a past month stops being saved for (unlinked);
+    // its bucket closes if that was its last pending expense (leftover needs a disposition).
+    const unlinkBucketId =
+      plannedExpense.savingsBucketId && parsedExpectedDate && !canLinkToSavings(parsedExpectedDate)
+        ? plannedExpense.savingsBucketId
+        : null;
+
+    const updated = await prisma.$transaction(async (tx) => {
+      const result = await tx.plannedExpense.update({
+        where: { id },
+        data: {
+          ...(trimmedTitle !== undefined ? { title: trimmedTitle } : {}),
+          ...(numAmount !== undefined ? { amount: numAmount } : {}),
+          ...(parsedExpectedDate !== undefined ? { expectedDate: parsedExpectedDate } : {}),
+          ...(finalCategoryId !== undefined ? { categoryId: finalCategoryId } : {}),
+          ...(finalNotes !== undefined ? { notes: finalNotes } : {}),
+          ...(unlinkBucketId ? { savingsBucketId: null } : {}),
+        },
+        include: {
+          category: true,
+        },
+      });
+
+      await tx.activityLog.create({
+        data: {
+          walletId: plannedExpense.walletId,
+          userId: user.id,
+          action: 'PLANNED_EXPENSE_UPDATED',
+          details: `${user.name} updated planned expense "${result.title}"`,
+        },
+      });
+
+      if (unlinkBucketId) {
+        await tx.activityLog.create({
+          data: {
+            walletId: plannedExpense.walletId,
+            userId: user.id,
+            action: 'PLANNED_EXPENSE_UNLINKED',
+            details: `${user.name} moved "${result.title}" to the current or a past month, so it is no longer saved for`,
+          },
+        });
+        await closeBucketIfEmpty(tx, unlinkBucketId, user, disposition);
+      }
+      return result;
     });
 
-    await prisma.activityLog.create({
-      data: {
-        walletId: plannedExpense.walletId,
-        userId: user.id,
-        action: 'PLANNED_EXPENSE_UPDATED',
-        details: `${user.name} updated planned expense "${updated.title}"`,
-      },
-    });
-
-    return NextResponse.json({ plannedExpense: updated });
+    return NextResponse.json({ plannedExpense: updated, unlinkedFromSavings: Boolean(unlinkBucketId) });
   } catch (error) {
+    const mapped = savingsErrorResponse(error);
+    if (mapped) return NextResponse.json(mapped.body, { status: mapped.status });
     console.error('Error updating planned expense:', error);
     return NextResponse.json({ error: 'Failed to update planned expense' }, { status: 500 });
   }
@@ -213,21 +244,40 @@ export async function DELETE(
       );
     }
 
-    await prisma.plannedExpense.delete({
-      where: { id },
-    });
+    let disposition: ReturnType<typeof parseDisposition>;
+    try {
+      const text = await req.text();
+      disposition = text.trim() ? parseDisposition(JSON.parse(text)?.disposition) : undefined;
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+    }
+    if (disposition === null) {
+      return NextResponse.json({ error: 'Invalid disposition' }, { status: 400 });
+    }
 
-    await prisma.activityLog.create({
-      data: {
-        walletId: plannedExpense.walletId,
-        userId: user.id,
-        action: 'PLANNED_EXPENSE_DELETED',
-        details: `${user.name} deleted planned expense "${plannedExpense.title}"`,
-      },
+    await prisma.$transaction(async (tx) => {
+      await tx.plannedExpense.delete({
+        where: { id },
+      });
+
+      await tx.activityLog.create({
+        data: {
+          walletId: plannedExpense.walletId,
+          userId: user.id,
+          action: 'PLANNED_EXPENSE_DELETED',
+          details: `${user.name} deleted planned expense "${plannedExpense.title}"`,
+        },
+      });
+
+      if (plannedExpense.savingsBucketId && plannedExpense.status === 'PENDING') {
+        await closeBucketIfEmpty(tx, plannedExpense.savingsBucketId, user, disposition);
+      }
     });
 
     return NextResponse.json({ success: true });
   } catch (error) {
+    const mapped = savingsErrorResponse(error);
+    if (mapped) return NextResponse.json(mapped.body, { status: mapped.status });
     console.error('Error deleting planned expense:', error);
     return NextResponse.json({ error: 'Failed to delete planned expense' }, { status: 500 });
   }

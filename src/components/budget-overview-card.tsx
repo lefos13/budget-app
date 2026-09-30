@@ -15,9 +15,16 @@ export function BudgetOverviewCard() {
   if (!walletData) return null;
 
   const { monthlyBudget, totalSpentMonth, remainingBudget } = walletData.metrics;
+  const savings = walletData.metrics.savings ?? { deposited: 0, savingsDue: 0, boost: 0 };
   const currency = walletData.wallet.currency;
 
-  const pacing = calculateBudgetPacing(monthlyBudget, totalSpentMonth, getPacingReferenceDate(selectedMonth));
+  // Money moved into savings this month is used budget; General money used as extra budget raises the target.
+  const effectiveBudget = monthlyBudget + savings.boost;
+  const usedThisMonth = totalSpentMonth + savings.deposited;
+  const pacing = calculateBudgetPacing(effectiveBudget, usedThisMonth, getPacingReferenceDate(selectedMonth));
+  const spentWidth = effectiveBudget > 0 ? Math.min(100, (totalSpentMonth / effectiveBudget) * 100) : 0;
+  const savedWidth =
+    effectiveBudget > 0 ? Math.min(100 - spentWidth, (savings.deposited / effectiveBudget) * 100) : 0;
 
   const endOfCurrentMonth = getMonthBounds(selectedMonth).end;
 
@@ -55,13 +62,27 @@ export function BudgetOverviewCard() {
 
           <div className="flex items-baseline gap-3 flex-wrap">
             <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-zinc-900 dark:text-white tabular-nums">
-              {formatCurrency(totalSpentMonth, currency)}
+              {formatCurrency(usedThisMonth, currency)}
             </h2>
             <span className="text-sm font-semibold text-zinc-500 tabular-nums">
-              {interpolate(t('budget.spentOfTarget'), { target: formatCurrency(monthlyBudget, currency) })}
+              {interpolate(t('budget.spentOfTarget'), { target: formatCurrency(effectiveBudget, currency) })}
             </span>
           </div>
-        </div>
+          {(savings.deposited > 0 || savings.boost > 0) && (
+            <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 tabular-nums">
+              {[
+                savings.deposited > 0
+                  ? interpolate(t('budget.inclSaved'), { amount: formatCurrency(savings.deposited, currency) })
+                  : null,
+                savings.boost > 0
+                  ? interpolate(t('budget.extraFromGeneral'), { amount: formatCurrency(savings.boost, currency) })
+                  : null,
+              ]
+                .filter(Boolean)
+                .join(' · ')}
+            </p>
+          )}
+          </div>
 
         {/* Daily Pacing Badge */}
         <div className="flex items-center gap-3.5 bg-zinc-50 dark:bg-zinc-800/60 p-3 sm:p-3.5 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 self-start lg:self-auto shrink-0 shadow-xs">
@@ -98,17 +119,25 @@ export function BudgetOverviewCard() {
             style={{ left: `${Math.min(100, pacing.expectedPercentage)}%` }}
             title={interpolate(t('budget.paceExpectedToday'), { percent: pacing.expectedPercentage })}
           />
-          {/* Actual Spent Bar */}
-          <div
-            className={`h-full rounded-full transition-all duration-700 ${
-              pacing.percentageSpent > 100
-                ? 'bg-rose-500'
-                : pacing.isOverPace
-                ? 'bg-amber-500'
-                : 'bg-indigo-600'
-            }`}
-            style={{ width: `${Math.min(100, pacing.percentageSpent)}%` }}
-          />
+          {/* Actual Spent Bar + money saved this month */}
+          <div className="flex h-full">
+            <div
+              className={`h-full transition-all duration-700 ${savedWidth > 0 ? 'rounded-l-full' : 'rounded-full'} ${
+                pacing.percentageSpent > 100
+                  ? 'bg-rose-500'
+                  : pacing.isOverPace
+                  ? 'bg-amber-500'
+                  : 'bg-indigo-600'
+              }`}
+              style={{ width: `${spentWidth}%` }}
+            />
+            {savedWidth > 0 && (
+              <div
+                className={`h-full bg-emerald-500 transition-all duration-700 ${spentWidth > 0 ? 'rounded-r-full' : 'rounded-full'}`}
+                style={{ width: `${savedWidth}%` }}
+              />
+            )}
+          </div>
         </div>
       </div>
 

@@ -9,8 +9,6 @@ import {
 } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { useTranslation } from '@/context/LanguageContext';
-import { UrgentRemindersBanner } from '@/components/urgent-reminders-banner';
-import { UnpaidBillsBanner } from '@/components/unpaid-bills-banner';
 import { BudgetOverviewCard } from '@/components/budget-overview-card';
 import { CategoryBreakdown } from '@/components/category-breakdown';
 import { UpcomingBillsCard } from '@/components/upcoming-bills-card';
@@ -18,6 +16,7 @@ import { RecentExpensesCard } from '@/components/recent-expenses-card';
 import { PendingInvitesBanner } from '@/components/pending-invites-banner';
 import { MonthSwitcher } from '@/components/month-switcher';
 import { MonthProjectionCard } from '@/components/month-projection-card';
+import { MonthlySavingsCard } from '@/components/savings/monthly-savings-card';
 
 export default function DashboardPage() {
   const {
@@ -146,17 +145,14 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Urgent Reminders Alert Banner (if overdue/imminent bills exist) */}
-      <UrgentRemindersBanner />
-
-      {/* Unpaid Bills Banner for Selected Month */}
-      <UnpaidBillsBanner />
-
       {/* Monthly Budget Overview Gauge */}
       <BudgetOverviewCard />
 
       {/* "If everything is paid" Month Projection */}
       <MonthProjectionCard />
+
+      {/* Savings contributions for this month (hidden when there are no buckets) */}
+      <MonthlySavingsCard />
 
       {/* Main Grid: Upcoming Invoices & Recent Expenses */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-7">

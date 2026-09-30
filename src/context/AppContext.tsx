@@ -62,6 +62,8 @@ export interface ExpenseItem {
   categoryId: string | null;
   title: string;
   amount: number;
+  /** Part of the amount paid from a savings bucket (does not count against the month's budget). */
+  savingsFundedAmount?: number;
   date: string;
   notes: string | null;
   isRecurring: boolean;
@@ -100,6 +102,8 @@ export interface PlannedExpenseItem {
   notes: string | null;
   status: 'PENDING' | 'REALIZED';
   realizedExpenseId: string | null;
+  savingsBucketId?: string | null;
+  savingsBucket?: { id: string; name: string; color: string; status: string } | null;
   category: { id: string; name: string; color: string; icon: string } | null;
 }
 
@@ -114,6 +118,7 @@ export interface WalletDetailData {
     monthlyBudget: number;
     totalSpentMonth: number;
     remainingBudget: number;
+    savings: { deposited: number; savingsDue: number; boost: number };
     pendingCount: number;
     overdueCount: number;
     paidCount: number;

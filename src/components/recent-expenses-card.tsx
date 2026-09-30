@@ -7,6 +7,7 @@ import { useApp } from '@/context/AppContext';
 import { useTranslation } from '@/context/LanguageContext';
 import { interpolate } from '@/lib/i18n/translator';
 import { formatCurrency, formatDate } from '@/lib/formatters';
+import { FromSavingsBadge } from '@/components/savings/from-savings-badge';
 
 export function RecentExpensesCard() {
   const { walletData, refreshWallet, showToast, setIsAddExpenseOpen, openEditExpense } = useApp();
@@ -121,8 +122,11 @@ export function RecentExpensesCard() {
                   </div>
 
                   <div className="flex items-center gap-2 shrink-0">
-                    <span className="text-sm font-black text-zinc-900 dark:text-white tabular-nums">
-                      -{formatCurrency(exp.amount, currency)}
+                    <span className="flex flex-col items-end">
+                      <span className="text-sm font-black text-zinc-900 dark:text-white tabular-nums">
+                        -{formatCurrency(exp.amount, currency)}
+                      </span>
+                      <FromSavingsBadge amount={exp.savingsFundedAmount} currency={currency} />
                     </span>
                     {!isViewer && (
                       <button

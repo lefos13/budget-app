@@ -28,35 +28,38 @@ enum RecurrenceInterval {
 }
 
 model User {
-  id              String           @id @default(cuid())
-  email           String           @unique
-  name            String
-  passwordHash    String?
-  avatarUrl       String?
-  memberships     WalletMember[]
-  expenses        Expense[]
-  plannedExpenses PlannedExpense[]
-  paidBills       InvoiceBill[]    @relation("PaidByUser")
-  activityLogs    ActivityLog[]
-  createdAt       DateTime         @default(now())
+  id                  String               @id @default(cuid())
+  email               String               @unique
+  name                String
+  passwordHash        String?
+  avatarUrl           String?
+  memberships         WalletMember[]
+  expenses            Expense[]
+  plannedExpenses     PlannedExpense[]
+  paidBills           InvoiceBill[]        @relation("PaidByUser")
+  activityLogs        ActivityLog[]
+  savingsTransactions SavingsTransaction[]
+  createdAt           DateTime             @default(now())
 }
 
 model Wallet {
-  id              String           @id @default(cuid())
-  name            String
-  currency        String           @default("EUR")
-  monthlyBudget   Float            @default(2000.0)
-  color           String           @default("#6366f1")
-  icon            String           @default("Wallet")
-  members         WalletMember[]
-  invites         WalletInvite[]
-  categories      Category[]
-  expenses        Expense[]
-  plannedExpenses PlannedExpense[]
-  invoices        InvoiceBill[]
-  activityLogs    ActivityLog[]
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
+  id                  String               @id @default(cuid())
+  name                String
+  currency            String               @default("EUR")
+  monthlyBudget       Float                @default(2000.0)
+  color               String               @default("#6366f1")
+  icon                String               @default("Wallet")
+  members             WalletMember[]
+  invites             WalletInvite[]
+  categories          Category[]
+  expenses            Expense[]
+  plannedExpenses     PlannedExpense[]
+  invoices            InvoiceBill[]
+  activityLogs        ActivityLog[]
+  savingsBuckets      SavingsBucket[]
+  savingsTransactions SavingsTransaction[]
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
 }
 
 model WalletMember {
@@ -99,22 +102,24 @@ model Category {
 }
 
 model Expense {
-  id            String          @id @default(cuid())
-  walletId      String
-  userId        String
-  categoryId    String?
-  invoiceId     String?
-  title         String
-  amount        Float
-  date          DateTime        @default(now())
-  notes         String?
-  isRecurring   Boolean         @default(false)
-  wallet        Wallet          @relation(fields: [walletId], references: [id], onDelete: Cascade)
-  user          User            @relation(fields: [userId], references: [id])
-  category      Category?       @relation(fields: [categoryId], references: [id])
-  invoice       InvoiceBill?    @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
-  plannedSource PlannedExpense?
-  createdAt     DateTime        @default(now())
+  id                  String               @id @default(cuid())
+  walletId            String
+  userId              String
+  categoryId          String?
+  invoiceId           String?
+  title               String
+  amount              Float
+  date                DateTime             @default(now())
+  notes               String?
+  savingsFundedAmount Float                @default(0)
+  isRecurring         Boolean              @default(false)
+  wallet              Wallet               @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  user                User                 @relation(fields: [userId], references: [id])
+  category            Category?            @relation(fields: [categoryId], references: [id])
+  invoice             InvoiceBill?         @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+  plannedSource       PlannedExpense?
+  savingsTransactions SavingsTransaction[]
+  createdAt           DateTime             @default(now())
 }
 
 model InvoiceBill {
@@ -154,22 +159,68 @@ model ActivityLog {
 }
 
 model PlannedExpense {
-  id                String    @id @default(cuid())
-  walletId          String
-  userId            String
-  categoryId        String?
-  title             String
-  amount            Float
-  expectedDate      DateTime
-  notes             String?
-  status            String    @default("PENDING")
-  realizedExpenseId String?   @unique
-  wallet            Wallet    @relation(fields: [walletId], references: [id], onDelete: Cascade)
-  user              User      @relation(fields: [userId], references: [id])
-  category          Category? @relation(fields: [categoryId], references: [id])
-  realizedExpense   Expense?  @relation(fields: [realizedExpenseId], references: [id], onDelete: SetNull)
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  id                  String               @id @default(cuid())
+  walletId            String
+  userId              String
+  categoryId          String?
+  title               String
+  amount              Float
+  expectedDate        DateTime
+  notes               String?
+  status              String               @default("PENDING")
+  savingsBucketId     String?
+  realizedExpenseId   String?              @unique
+  wallet              Wallet               @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  user                User                 @relation(fields: [userId], references: [id])
+  category            Category?            @relation(fields: [categoryId], references: [id])
+  realizedExpense     Expense?             @relation(fields: [realizedExpenseId], references: [id], onDelete: SetNull)
+  savingsBucket       SavingsBucket?       @relation(fields: [savingsBucketId], references: [id], onDelete: SetNull)
+  savingsTransactions SavingsTransaction[]
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
 
   @@index([walletId, expectedDate])
+  @@index([savingsBucketId])
+}
+
+model SavingsBucket {
+  id              String               @id @default(cuid())
+  walletId        String
+  kind            String               @default("GOAL") // GENERAL | GOAL
+  name            String
+  color           String               @default("#10b981")
+  icon            String               @default("PiggyBank")
+  status          String               @default("ACTIVE") // ACTIVE | CLOSED
+  closedAt        DateTime?
+  wallet          Wallet               @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  plannedExpenses PlannedExpense[]
+  transactions    SavingsTransaction[]
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  @@index([walletId, status])
+}
+
+// Append-only ledger; bucket balance = sum(amount). See src/lib/savings.ts for types and sign conventions.
+model SavingsTransaction {
+  id               String          @id @default(cuid())
+  walletId         String
+  bucketId         String
+  userId           String
+  type             String // DEPOSIT | TRANSFER_IN | TRANSFER_OUT | EXPENSE_DRAW | BUDGET_BOOST | ADJUSTMENT_IN | ADJUSTMENT_OUT
+  amount           Float
+  date             DateTime
+  transferGroupId  String?
+  plannedExpenseId String?
+  expenseId        String?
+  note             String?
+  wallet           Wallet          @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  bucket           SavingsBucket   @relation(fields: [bucketId], references: [id], onDelete: Cascade)
+  user             User            @relation(fields: [userId], references: [id])
+  plannedExpense   PlannedExpense? @relation(fields: [plannedExpenseId], references: [id], onDelete: SetNull)
+  expense          Expense?        @relation(fields: [expenseId], references: [id], onDelete: SetNull)
+  createdAt        DateTime        @default(now())
+
+  @@index([walletId, date])
+  @@index([bucketId])
 }

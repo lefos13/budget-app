@@ -9,32 +9,50 @@ import { useApp, InvoiceItem } from '@/context/AppContext';
 import { useTranslation } from '@/context/LanguageContext';
 import { interpolate } from '@/lib/i18n/translator';
 import { formatCurrency, formatRelativeDueDate } from '@/lib/formatters';
+import { getUrgentBills, isInvoiceOverdue } from '@/lib/bill-alerts';
+import { compareMonthKeys, getCurrentMonthKey, formatMonthKey } from '@/lib/month';
 
 export function UrgentRemindersBanner() {
   const pathname = usePathname();
   const { walletData, currentUser, refreshWallet, showToast } = useApp();
   const { t } = useTranslation();
   const [payingId, setPayingId] = useState<string | null>(null);
+  const [showAll, setShowAll] = useState(false);
 
   if (!walletData || !walletData.invoices) return null;
 
-  const urgentBills = walletData.invoices.filter((inv) => {
-    if (inv.status === 'PAID') return false;
-    const { isOverdue, isImminent } = formatRelativeDueDate(inv.dueDate, t);
-    return isOverdue || isImminent;
-  });
+  const urgentBills = getUrgentBills(walletData.invoices);
 
   if (urgentBills.length === 0) return null;
+
+  const isViewer = walletData.userRole === 'VIEWER';
 
   const handlePay = async (bill: InvoiceItem) => {
     try {
       setPayingId(bill.id);
+
+      const due = new Date(bill.dueDate);
+      const billMonthKey = formatMonthKey(due.getFullYear(), due.getMonth());
+      const isPastMonth = compareMonthKeys(billMonthKey, getCurrentMonthKey()) < 0;
+
+      const payload = isPastMonth
+        ? JSON.stringify({
+            paidDate: due.toISOString().slice(0, 10),
+          })
+        : undefined;
+
+      const headers: Record<string, string> = {};
+      if (payload) {
+        headers['Content-Type'] = 'application/json';
+      }
+      if (currentUser?.id) {
+        headers['x-user-id'] = currentUser.id;
+      }
+
       const res = await fetch(`/api/invoices/${bill.id}/pay`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(currentUser ? { 'x-user-id': currentUser.id } : {}),
-        },
+        headers,
+        ...(payload ? { body: payload } : {}),
       });
 
       if (res.ok) {
@@ -58,7 +76,8 @@ export function UrgentRemindersBanner() {
     }
   };
 
-  const overdueCount = urgentBills.filter((b) => formatRelativeDueDate(b.dueDate, t).isOverdue).length;
+  const overdueCount = urgentBills.filter((b) => isInvoiceOverdue(b.dueDate) || b.status === 'OVERDUE').length;
+  const displayedItems = showAll ? urgentBills : urgentBills.slice(0, 5);
 
   return (
     <div
@@ -123,8 +142,8 @@ export function UrgentRemindersBanner() {
         )}
       </div>
 
-      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {urgentBills.slice(0, 3).map((bill) => {
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 max-h-[32rem] overflow-y-auto pr-1">
+        {displayedItems.map((bill) => {
           const { text: relativeText, isOverdue } = formatRelativeDueDate(bill.dueDate, t);
           const isPaying = payingId === bill.id;
 
@@ -153,32 +172,38 @@ export function UrgentRemindersBanner() {
                 </div>
               </div>
 
-              <button
-                type="button"
-                disabled={isPaying}
-                onClick={() => handlePay(bill)}
-                className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shrink-0 cursor-pointer ${
-                  isOverdue
-                    ? 'bg-rose-600 hover:bg-rose-700 text-white shadow-xs shadow-rose-600/20'
-                    : 'bg-amber-600 hover:bg-amber-700 text-white shadow-xs shadow-amber-600/20'
-                } disabled:opacity-50`}
-              >
-                <CheckCircle2 className="w-3.5 h-3.5" />
-                <span>{isPaying ? t.common.saving : t.common.pay}</span>
-              </button>
+              {!isViewer && (
+                <button
+                  type="button"
+                  disabled={isPaying}
+                  onClick={() => handlePay(bill)}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shrink-0 cursor-pointer ${
+                    isOverdue
+                      ? 'bg-rose-600 hover:bg-rose-700 text-white shadow-xs shadow-rose-600/20'
+                      : 'bg-amber-600 hover:bg-amber-700 text-white shadow-xs shadow-amber-600/20'
+                  } disabled:opacity-50`}
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span>{isPaying ? t.common.saving : t.common.pay}</span>
+                </button>
+              )}
             </div>
           );
         })}
       </div>
 
-      {urgentBills.length > 3 && (
+      {urgentBills.length > 5 && (
         <div className="mt-3 pt-2.5 border-t border-rose-200/40 dark:border-rose-900/30 text-center">
-          <Link
-            href="/calendar"
-            className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline"
+          <button
+            type="button"
+            onClick={() => setShowAll((prev) => !prev)}
+            aria-expanded={showAll}
+            className="text-xs font-bold text-rose-700 dark:text-rose-400 hover:underline cursor-pointer"
           >
-            {interpolate(t('urgent.moreUrgentBills'), { count: urgentBills.length - 3 })}
-          </Link>
+            {showAll
+              ? t('urgent.showLess')
+              : interpolate(t('urgent.showAll'), { count: urgentBills.length })}
+          </button>
         </div>
       )}
     </div>

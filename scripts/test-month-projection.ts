@@ -16,6 +16,9 @@ function run() {
     assert.deepEqual(res1, {
       budget: 1500,
       spent: 0,
+      savingsDeposited: 0,
+      savingsDue: 0,
+      boost: 0,
       plannedPending: 0,
       billsDue: 0,
       subscriptionsDue: 0,
@@ -412,6 +415,36 @@ function run() {
     assert.equal(res11.isOverBudget, false);
     assert.equal(res11.overBy, 0);
     console.log('✓ Test 11: full hand-calculated example matches exactly (projectedRemaining = 1255)');
+
+    // 12. savings: deposits count as used budget, the still-due contribution is committed,
+    //     General boost raises the budget, and a linked expense due this month commits only its unfunded part
+    const res12 = computeMonthProjection({
+      monthKey: '2026-09',
+      monthlyBudget: 2000,
+      spent: 300,
+      planned: [
+        { amount: 1000, expectedDate: '2026-09-20T00:00:00.000Z', status: 'PENDING', fundedAmount: 400 },
+        { amount: 50, expectedDate: '2026-09-21T00:00:00.000Z', status: 'PENDING', fundedAmount: 80 },
+      ],
+      bills: [],
+      savings: { deposited: 500, savingsDue: 375, boost: 100 },
+    });
+    assert.equal(res12.savingsDeposited, 500);
+    assert.equal(res12.savingsDue, 375);
+    assert.equal(res12.boost, 100);
+    assert.equal(res12.plannedPending, 600); // 1000 − 400, over-funded item never negative
+    assert.equal(res12.committedTotal, 975); // 600 + 375
+    assert.equal(res12.projectedRemaining, 325); // 2000 + 100 − 300 − 500 − 975
+    const res12b = computeMonthProjection({
+      monthKey: '2026-09',
+      monthlyBudget: 2000,
+      spent: 300,
+      planned: [],
+      bills: [],
+      savings: { deposited: 875, savingsDue: 0, boost: 0 },
+    });
+    assert.equal(res12b.projectedRemaining, 825, 'depositing the due amount moves it from committed to used');
+    console.log('✓ Test 12: savings deposits, due contribution, boost and funded planned expenses');
 
     console.log('\n🎉 All month projection tests passed successfully!\n');
   } catch (err) {

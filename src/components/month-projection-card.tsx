@@ -15,8 +15,8 @@ export function MonthProjectionCard() {
 
   const currency = walletData.wallet.currency;
 
-  const totalCommittedAndSpent = projection.spent + projection.committedTotal;
-  const budget = projection.budget;
+  const totalCommittedAndSpent = projection.spent + projection.savingsDeposited + projection.committedTotal;
+  const budget = projection.budget + projection.boost;
 
   let ratio = 0;
   let clampedWidth = 0;
@@ -123,6 +123,14 @@ export function MonthProjectionCard() {
               </span>
             </div>
 
+            {/* General savings used as extra budget (ONLY when boost > 0) */}
+            {projection.boost > 0 && (
+              <div className="flex items-center justify-between text-xs sm:text-sm py-1.5 text-emerald-700 dark:text-emerald-400">
+                <span className="font-medium">{t.projection.boost}</span>
+                <span className="font-semibold tabular-nums">+{formatCurrency(projection.boost, currency)}</span>
+              </div>
+            )}
+
             {/* Spent so far */}
             <div className="flex items-center justify-between text-xs sm:text-sm py-1.5">
               <span className="font-semibold text-zinc-700 dark:text-zinc-300">
@@ -132,6 +140,28 @@ export function MonthProjectionCard() {
                 −{formatCurrency(projection.spent, currency)}
               </span>
             </div>
+
+            {/* Saved into savings this month (used budget) */}
+            {projection.savingsDeposited > 0 && (
+              <div className="flex items-center justify-between text-xs sm:text-sm py-1.5 text-zinc-700 dark:text-zinc-300">
+                <span className="font-medium">{t.projection.savingsDeposited}</span>
+                <span className="font-semibold tabular-nums">−{formatCurrency(projection.savingsDeposited, currency)}</span>
+              </div>
+            )}
+
+            {/* Savings contributions still to deposit (committed) */}
+            {(projection.savingsDue > 0 || projection.savingsDeposited > 0) && (
+              <div
+                className={`flex items-center justify-between text-xs sm:text-sm py-1.5 transition-opacity ${
+                  projection.savingsDue === 0
+                    ? 'opacity-40 text-zinc-400 dark:text-zinc-500'
+                    : 'text-zinc-700 dark:text-zinc-300'
+                }`}
+              >
+                <span className="font-medium">{t.projection.savingsDue}</span>
+                <span className="font-semibold tabular-nums">−{formatCurrency(projection.savingsDue, currency)}</span>
+              </div>
+            )}
 
             {/* Planned expenses (pending) */}
             <div

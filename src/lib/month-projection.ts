@@ -13,6 +13,17 @@ export interface ProjectionPlannedInput {
   amount: number;
   expectedDate: Date | string;
   status: string;
+  /** Part of a pending expense already covered by its savings bucket (only that remainder is committed). */
+  fundedAmount?: number;
+}
+
+export interface ProjectionSavingsInput {
+  /** DEPOSIT total in the month: money moved from the budget into savings. */
+  deposited: number;
+  /** Contribution still to deposit this month. */
+  savingsDue: number;
+  /** General money explicitly used as extra budget this month. */
+  boost: number;
 }
 
 export interface MonthProjectionInput {
@@ -21,11 +32,15 @@ export interface MonthProjectionInput {
   spent: number;
   bills: ProjectionBillInput[];
   planned: ProjectionPlannedInput[];
+  savings?: ProjectionSavingsInput;
 }
 
 export interface MonthProjection {
   budget: number;
   spent: number;
+  savingsDeposited: number;
+  savingsDue: number;
+  boost: number;
   plannedPending: number;
   billsDue: number;
   subscriptionsDue: number;
@@ -50,8 +65,8 @@ const round2 = (x: number): number => Math.round(x * 100) / 100;
 /**
  * Computes projected remaining budget for a given month key.
  *
- * projectedRemaining = B − spent − plannedPending − billsDue − subscriptionsDue − carryOver
- * committedTotal = plannedPending + billsDue + subscriptionsDue + carryOver
+ * projectedRemaining = B + boost − spent − savingsDeposited − committedTotal
+ * committedTotal = plannedPending + savingsDue + billsDue + subscriptionsDue + carryOver
  * overBy = Math.max(0, -projectedRemaining)
  */
 export function computeMonthProjection(input: MonthProjectionInput): MonthProjection {
@@ -64,7 +79,7 @@ export function computeMonthProjection(input: MonthProjectionInput): MonthProjec
     if (item.status === 'PENDING') {
       const expMs = toTime(item.expectedDate);
       if (expMs !== null && expMs >= startMs && expMs <= endMs) {
-        plannedPending += item.amount;
+        plannedPending += Math.max(0, item.amount - (item.fundedAmount ?? 0));
       }
     }
   }
@@ -118,14 +133,17 @@ export function computeMonthProjection(input: MonthProjectionInput): MonthProjec
 
   const budget = round2(input.monthlyBudget ?? 0);
   const spent = round2(input.spent ?? 0);
+  const savingsDeposited = round2(input.savings?.deposited ?? 0);
+  const savingsDue = round2(input.savings?.savingsDue ?? 0);
+  const boost = round2(input.savings?.boost ?? 0);
   const rPlannedPending = round2(plannedPending);
   const rBillsDue = round2(billsDue);
   const rSubscriptionsDue = round2(subscriptionsDue);
   const rCarryOverBills = round2(carryOverBills);
   const rCarryOverSubscriptions = round2(carryOverSubscriptions);
   const carryOver = round2(rCarryOverBills + rCarryOverSubscriptions);
-  const committedTotal = round2(rPlannedPending + rBillsDue + rSubscriptionsDue + carryOver);
-  let projectedRemaining = round2(budget - spent - committedTotal);
+  const committedTotal = round2(rPlannedPending + savingsDue + rBillsDue + rSubscriptionsDue + carryOver);
+  let projectedRemaining = round2(budget + boost - spent - savingsDeposited - committedTotal);
   if (projectedRemaining === 0) {
     projectedRemaining = 0;
   }
@@ -135,6 +153,9 @@ export function computeMonthProjection(input: MonthProjectionInput): MonthProjec
   return {
     budget,
     spent,
+    savingsDeposited,
+    savingsDue,
+    boost,
     plannedPending: rPlannedPending,
     billsDue: rBillsDue,
     subscriptionsDue: rSubscriptionsDue,

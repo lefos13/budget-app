@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
+import Link from 'next/link';
 import {
   CreditCard,
   Plus,
@@ -16,6 +17,7 @@ import {
   CalendarClock,
   Pencil,
   CheckCircle2,
+  PiggyBank,
 } from 'lucide-react';
 import { useApp, ExpenseItem, PlannedExpenseItem } from '@/context/AppContext';
 import { useTranslation } from '@/context/LanguageContext';
@@ -23,6 +25,13 @@ import { interpolate } from '@/lib/i18n/translator';
 import { formatCurrency, formatDate } from '@/lib/formatters';
 import { MonthSwitcher } from '@/components/month-switcher';
 import { getCurrentMonthKey, compareMonthKeys } from '@/lib/month';
+import { canLinkToSavings } from '@/lib/savings';
+import { SaveForThisModal } from '@/components/savings/save-for-this-modal';
+import { useSavings } from '@/components/savings/use-savings';
+import { FromSavingsBadge } from '@/components/savings/from-savings-badge';
+import { MonthlySavingsCard } from '@/components/savings/monthly-savings-card';
+import { useDisposition, type DispositionChoice } from '@/components/savings/disposition-modal';
+import { translateApiError } from '@/lib/i18n/api-errors';
 
 export default function ExpensesPage() {
   const {
@@ -51,6 +60,10 @@ export default function ExpensesPage() {
   const [deletingPlannedId, setDeletingPlannedId] = useState<string | null>(null);
   const [isDeletingPlanned, setIsDeletingPlanned] = useState(false);
   const [realizingPlannedId, setRealizingPlannedId] = useState<string | null>(null);
+  const [linkingPlanned, setLinkingPlanned] = useState<PlannedExpenseItem | null>(null);
+  const [confirmingRealizeId, setConfirmingRealizeId] = useState<string | null>(null);
+  const { data: savings, staleData: staleSavings, reload: reloadSavings } = useSavings();
+  const disposition = useDisposition((savings ?? staleSavings)?.buckets ?? []);
 
   const currentFetchKey = activeWalletId ? `${activeWalletId}:${selectedMonth}` : null;
   const isFetched = Boolean(currentFetchKey && fetchedKey === currentFetchKey);
@@ -122,7 +135,11 @@ export default function ExpensesPage() {
     return list;
   }, [effectiveExpenses, search, selectedCategory, selectedUser, sortBy]);
 
-  const totalFilteredSpent = filteredExpenses.reduce((sum, e) => sum + e.amount, 0);
+  // Budget view: the part paid from savings was already budgeted through the monthly deposits.
+  const totalFilteredSpent = filteredExpenses.reduce(
+    (sum, e) => sum + Math.max(0, e.amount - (e.savingsFundedAmount ?? 0)),
+    0
+  );
   const averageSpent = filteredExpenses.length > 0 ? totalFilteredSpent / filteredExpenses.length : 0;
 
   const isFiltering = search.trim() !== '' || selectedCategory !== 'ALL' || selectedUser !== 'ALL';
@@ -149,7 +166,7 @@ export default function ExpensesPage() {
     }
   };
 
-  const handleDeletePlanned = async (id: string, title: string) => {
+  const handleDeletePlanned = async (id: string, title: string, choice?: DispositionChoice): Promise<boolean> => {
     try {
       setIsDeletingPlanned(true);
       const res = await fetch(`/api/planned-expenses/${id}`, {
@@ -159,24 +176,32 @@ export default function ExpensesPage() {
           ...(currentUser ? { 'x-user-id': currentUser.id } : {}),
         },
         credentials: 'include',
+        body: choice ? JSON.stringify({ disposition: choice }) : undefined,
       });
       if (res.ok) {
         showToast(t('planned.deletedToast').replace('{title}', title));
         setDeletingPlannedId(null);
         await refreshWallet();
+        return true;
+      }
+      const json = await res.json().catch(() => ({}));
+      if (res.status === 409 && json?.error === 'Disposition required' && !choice) {
+        disposition.ask(json.bucketId, json.leftover, (c) => handleDeletePlanned(id, title, c));
       } else {
         showToast(t('planned.errorGeneric'));
       }
+      return false;
     } catch (err) {
       console.error('Failed to delete planned expense:', err);
       showToast(t('planned.errorGeneric'));
+      return false;
     } finally {
       setIsDeletingPlanned(false);
     }
   };
 
-  const handleRealizePlanned = async (p: PlannedExpenseItem) => {
-    if (realizingPlannedId) return;
+  const handleRealizePlanned = async (p: PlannedExpenseItem, choice?: DispositionChoice): Promise<boolean> => {
+    if (realizingPlannedId && !choice) return false;
     setRealizingPlannedId(p.id);
     try {
       const expectedDateIso = new Date(p.expectedDate).toISOString().slice(0, 10);
@@ -184,7 +209,10 @@ export default function ExpensesPage() {
       const currentRealMonth = getCurrentMonthKey();
       const isBeforeCurrentMonth = compareMonthKeys(expectedMonth, currentRealMonth) < 0;
 
-      const payload = isBeforeCurrentMonth ? { date: expectedDateIso } : {};
+      const payload = {
+        ...(isBeforeCurrentMonth ? { date: expectedDateIso } : {}),
+        ...(choice ? { disposition: choice } : {}),
+      };
 
       const res = await fetch(`/api/planned-expenses/${p.id}/realize`, {
         method: 'POST',
@@ -196,20 +224,31 @@ export default function ExpensesPage() {
         body: JSON.stringify(payload),
       });
 
+      const json = await res.json().catch(() => ({}));
       if (res.ok) {
         showToast(t('planned.realizedToast').replace('{title}', p.title));
+        setConfirmingRealizeId(null);
         await refreshWallet();
+        return true;
+      } else if (res.status === 409 && json?.error === 'Disposition required' && !choice) {
+        disposition.ask(json.bucketId, json.leftover, (c) => handleRealizePlanned(p, c));
+      } else if (res.status === 409 && json?.error === 'Disposition required') {
+        showToast(translateApiError(json?.error, res.status, t));
       } else if (res.status === 409) {
         showToast(t('planned.alreadyRealized'));
         await refreshWallet();
       } else if (res.status === 403) {
         showToast(t('planned.realizeForbidden'));
+      } else if (res.status === 400) {
+        showToast(translateApiError(json?.error, res.status, t));
       } else {
         showToast(t('planned.realizeFailed'));
       }
+      return false;
     } catch (err) {
       console.error('Failed to realize planned expense:', err);
       showToast(t('planned.realizeFailed'));
+      return false;
     } finally {
       setRealizingPlannedId(null);
     }
@@ -345,6 +384,9 @@ export default function ExpensesPage() {
         </div>
       </div>
 
+      {/* Savings contributions for this month (hidden when there are no buckets) */}
+      <MonthlySavingsCard />
+
       {/* Planned / Upcoming Section */}
       <div className="rounded-3xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/90 shadow-sm overflow-hidden">
         <div className="p-5 sm:p-6 border-b border-zinc-100 dark:border-zinc-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -425,6 +467,15 @@ export default function ExpensesPage() {
                             <span>{t('planned.uncategorised')}</span>
                           </span>
                         )}
+                        {p.savingsBucket && (
+                          <Link
+                            href="/savings"
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/40"
+                          >
+                            <PiggyBank className="w-3 h-3" />
+                            <span>{interpolate(t('savings.linkedChip'), { bucket: p.savingsBucket.name })}</span>
+                          </Link>
+                        )}
                       </div>
 
                       <div className="flex items-center gap-2 mt-1 text-xs text-zinc-400">
@@ -459,7 +510,11 @@ export default function ExpensesPage() {
                         <button
                           type="button"
                           disabled={realizingPlannedId === p.id || isDeletingPlanned}
-                          onClick={() => handleRealizePlanned(p)}
+                          onClick={() =>
+                            p.savingsBucketId
+                              ? setConfirmingRealizeId(confirmingRealizeId === p.id ? null : p.id)
+                              : handleRealizePlanned(p)
+                          }
                           className="p-1.5 text-zinc-400 hover:text-emerald-600 dark:hover:text-emerald-400 rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                           aria-label={t('planned.markSpent')}
                           title={t('planned.markSpentTitle')}
@@ -467,6 +522,20 @@ export default function ExpensesPage() {
                           <CheckCircle2 className="w-3.5 h-3.5" />
                         </button>
                       )}
+                      {!isViewer &&
+                        p.status === 'PENDING' &&
+                        !p.savingsBucketId &&
+                        canLinkToSavings(p.expectedDate) && (
+                          <button
+                            type="button"
+                            onClick={() => setLinkingPlanned(p)}
+                            className="p-1.5 text-zinc-400 hover:text-emerald-600 dark:hover:text-emerald-400 rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-colors cursor-pointer"
+                            aria-label={t('savings.saveForThis')}
+                            title={t('savings.saveForThis')}
+                          >
+                            <PiggyBank className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                       {!isViewer && p.status === 'PENDING' && (
                         <button
                           type="button"
@@ -493,6 +562,40 @@ export default function ExpensesPage() {
                       )}
                     </div>
                   </div>
+
+                  {confirmingRealizeId === p.id && p.savingsBucketId && (() => {
+                    const bucketBalance =
+                      (savings ?? staleSavings)?.buckets.find((b) => b.id === p.savingsBucketId)?.balance ?? 0;
+                    const fromSavings = Math.min(Math.max(0, bucketBalance), p.amount);
+                    return (
+                      <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200/80 dark:border-emerald-900/50 mt-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                        <p className="text-xs text-emerald-800 dark:text-emerald-200 font-medium tabular-nums">
+                          {interpolate(t('savings.realizeSplit'), {
+                            fromSavings: formatCurrency(fromSavings, currency),
+                            fromBudget: formatCurrency(p.amount - fromSavings, currency),
+                          })}
+                        </p>
+                        <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+                          <button
+                            type="button"
+                            disabled={realizingPlannedId === p.id}
+                            onClick={() => setConfirmingRealizeId(null)}
+                            className="px-2.5 py-1 rounded-lg text-xs font-semibold text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200/60 dark:hover:bg-zinc-800 cursor-pointer"
+                          >
+                            {t('common.cancel')}
+                          </button>
+                          <button
+                            type="button"
+                            disabled={realizingPlannedId === p.id}
+                            onClick={() => handleRealizePlanned(p)}
+                            className="px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs transition-all cursor-pointer disabled:opacity-50"
+                          >
+                            {realizingPlannedId === p.id ? t('common.processing') : t('planned.markSpent')}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })()}
 
                   {deletingPlannedId === p.id && (
                     <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200/80 dark:border-rose-900/50 mt-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
@@ -698,8 +801,11 @@ export default function ExpensesPage() {
                   </div>
 
                   <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-                    <span className="text-base font-black text-zinc-900 dark:text-white tabular-nums mr-1">
-                      -{formatCurrency(exp.amount, currency)}
+                    <span className="flex flex-col items-end mr-1">
+                      <span className="text-base font-black text-zinc-900 dark:text-white tabular-nums">
+                        -{formatCurrency(exp.amount, currency)}
+                      </span>
+                      <FromSavingsBadge amount={exp.savingsFundedAmount} currency={currency} />
                     </span>
                     {!isViewer && (
                       <button
@@ -729,6 +835,20 @@ export default function ExpensesPage() {
           </div>
         )}
       </div>
+
+      {linkingPlanned && (
+        <SaveForThisModal
+          planned={linkingPlanned}
+          buckets={(savings ?? staleSavings)?.buckets ?? []}
+          onClose={() => setLinkingPlanned(null)}
+          onLinked={async () => {
+            await refreshWallet();
+            await reloadSavings();
+          }}
+        />
+      )}
+
+      {disposition.element}
     </div>
   );
 }

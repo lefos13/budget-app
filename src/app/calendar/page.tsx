@@ -11,8 +11,6 @@ import {
   Download,
 } from 'lucide-react';
 import { MonthGrid } from '@/components/calendar/month-grid';
-import { UrgentRemindersBanner } from '@/components/urgent-reminders-banner';
-import { UnpaidBillsBanner } from '@/components/unpaid-bills-banner';
 import { SubscriptionsSection } from '@/components/calendar/subscriptions-section';
 import { BillsListView } from '@/components/calendar/bills-list-view';
 import { MonthSwitcher } from '@/components/month-switcher';
@@ -190,12 +188,6 @@ export default function CalendarPage() {
           </button>
         </div>
       </div>
-
-      {/* Urgent Reminders Alerts */}
-      <UrgentRemindersBanner />
-
-      {/* Unpaid Bills Banner for Selected Month */}
-      <UnpaidBillsBanner />
 
       {/* Subscriptions Section & Burn Rate Metric Card */}
       {/* Shown prominently when Subscriptions tab is clicked or as recurring overview */}

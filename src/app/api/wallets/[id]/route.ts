@@ -3,6 +3,8 @@ import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/session';
 import { isValidMonthKey, getCurrentMonthKey, getMonthBounds } from '@/lib/month';
 import { computeMonthProjection } from '@/lib/month-projection';
+import { computeSavingsMonth, round2 } from '@/lib/savings';
+import { loadSavingsInputs } from '@/lib/savings-server';
 
 export async function GET(
   req: NextRequest,
@@ -70,13 +72,17 @@ export async function GET(
       orderBy: { date: 'desc' },
     });
 
-    const totalSpentMonth = expenses.reduce((sum, exp) => sum + exp.amount, 0);
+    // Only the part of an expense NOT covered by savings counts against the month (savings-funded share
+    // was already budgeted through the monthly deposits).
+    const netAmount = (exp: { amount: number; savingsFundedAmount: number }) =>
+      Math.max(0, exp.amount - (exp.savingsFundedAmount ?? 0));
+    const totalSpentMonth = round2(expenses.reduce((sum, exp) => sum + netAmount(exp), 0));
 
     // Compute category spent
     const categorySpending = wallet.categories.map((cat) => {
       const spent = expenses
         .filter((e) => e.categoryId === cat.id)
-        .reduce((sum, e) => sum + e.amount, 0);
+        .reduce((sum, e) => sum + netAmount(e), 0);
       return {
         ...cat,
         spent,
@@ -127,6 +133,7 @@ export async function GET(
       },
       include: {
         category: true,
+        savingsBucket: { select: { id: true, name: true, color: true, status: true } },
       },
       orderBy: { expectedDate: 'asc' },
     });
@@ -160,10 +167,14 @@ export async function GET(
       linkedExpenseDate: earliestExpenseDateByInvoiceId.get(inv.id) ?? null,
     }));
 
+    const { inputs: savingsInputs } = await loadSavingsInputs(prisma, id);
+    const savingsMonth = computeSavingsMonth(savingsInputs, effectiveMonth, now);
+
     const plannedInputs = plannedExpenses.map((pe) => ({
       amount: pe.amount,
       expectedDate: pe.expectedDate,
       status: pe.status,
+      fundedAmount: savingsMonth.fundedByPlannedId[pe.id] ?? 0,
     }));
 
     const projection = computeMonthProjection({
@@ -172,6 +183,11 @@ export async function GET(
       spent: totalSpentMonth,
       bills: billInputs,
       planned: plannedInputs,
+      savings: {
+        deposited: savingsMonth.deposited,
+        savingsDue: savingsMonth.savingsDue,
+        boost: savingsMonth.boost,
+      },
     });
 
     return NextResponse.json({
@@ -184,7 +200,15 @@ export async function GET(
       metrics: {
         monthlyBudget: wallet.monthlyBudget,
         totalSpentMonth,
-        remainingBudget: Math.max(0, wallet.monthlyBudget - totalSpentMonth),
+        remainingBudget: Math.max(
+          0,
+          round2(wallet.monthlyBudget + savingsMonth.boost - totalSpentMonth - savingsMonth.deposited)
+        ),
+        savings: {
+          deposited: savingsMonth.deposited,
+          savingsDue: savingsMonth.savingsDue,
+          boost: savingsMonth.boost,
+        },
         pendingCount,
         overdueCount,
         paidCount,

@@ -45,15 +45,19 @@ The application supports two execution flows, toggleable in the sidebar / settin
   - Wallets have members with roles: `OWNER`, `MEMBER`, `VIEWER`.
   - Only `OWNER` can edit wallet budget targets or delete the wallet.
 - **Bills vs. Subscriptions vs. Expenses**:
-  - `Expense`: Variable daily spending logged against envelopes. Counts against the monthly budget gauge.
+  - `Expense`: Variable daily spending logged against envelopes. Counts against the monthly budget gauge — **only the part not paid from savings** (`amount − savingsFundedAmount`).
   - `InvoiceBill (type = 'BILL')`: One-off utility invoices and bills with due dates. When marked as paid, creates an expense record.
   - `InvoiceBill (type = 'SUBSCRIPTION')`: Recurring services (Netflix, Gym, etc.). Subscriptions live on the bills page (`/calendar`), but **MUST NEVER be counted as variable expenses** and **MUST NOT create `Expense` records** when paid.
+- **Savings buckets** (`SavingsBucket`, append-only ledger `SavingsTransaction`; math in `src/lib/savings.ts`, server rules in `src/lib/savings-server.ts`):
+  - Each wallet has one **General** bucket plus sub-buckets (`GOAL`). A sub-bucket **MUST** have ≥1 `PENDING` linked planned expense while `ACTIVE`; every route that can remove the last one (unlink, re-link, delete, realize, date moved into the current/past month) closes it and **MUST** receive a disposition (other active bucket or General) for any leftover (`409 Disposition required` otherwise). Only future-month planned expenses can be linked; bucket names come from the user, targets never do.
+  - Bucket balance = Σ ledger amounts; never store a balance column, never let it go negative. `DEPOSIT` counts against that month's budget; transfers, `EXPENSE_DRAW` and manual `ADJUSTMENT_IN/OUT` (General only) are budget-neutral; `BUDGET_BOOST` (General only, explicit user action) raises a month's budget. Sub-bucket money **MUST NEVER** go straight to the monthly budget.
+  - Deposits are **not** `Expense` records. Realizing a linked planned expense draws from its bucket first and stores the drawn part in `Expense.savingsFundedAmount`.
 - **User-Targeted Invitations**:
   - Wallet invites can target an email (`targetEmail`).
   - Only an authenticated user matching `targetEmail` can claim the invite.
   - Pending invitations targeting the user's email appear directly in the user's dashboard with 1-click acceptance.
 - **Export / Import**:
-  - Full wallet backup via JSON (`/api/wallets/[id]/export` and `/api/wallets/[id]/import`).
+  - Full wallet backup via JSON (`/api/wallets/[id]/export` and `/api/wallets/[id]/import`), format `2.1` (additive): includes savings buckets, ledger and links; import is atomic and re-enforces the savings invariants.
 
 ---
 

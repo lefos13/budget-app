@@ -23,11 +23,14 @@ import {
   X,
   UserCheck,
   CalendarClock,
+  Bell,
+  PiggyBank,
 } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { useTranslation } from '@/context/LanguageContext';
 import { interpolate } from '@/lib/i18n/translator';
 import { formatCurrency } from '@/lib/formatters';
+import { getAlertBadgeInfo } from '@/lib/bill-alerts';
 
 function subscribeSidebar(callback: () => void) {
   window.addEventListener('storage', callback);
@@ -59,6 +62,7 @@ export function Sidebar() {
     openAddExpense,
     openAddInvoice,
     setIsNewWalletOpen,
+    selectedMonth,
   } = useApp();
 
   const { language, setLanguage, t } = useTranslation();
@@ -109,13 +113,35 @@ export function Sidebar() {
   }
 
   const activeWallet = wallets.find((w) => w.id === activeWalletId);
-  const overdueCount = walletData?.metrics?.overdueCount ?? 0;
   const remainingBudget = walletData?.metrics?.remainingBudget ?? activeWallet?.monthlyBudget ?? 0;
+  const alertBadge = getAlertBadgeInfo(walletData?.invoices ?? [], selectedMonth);
 
-  const navLinks = [
+  interface NavLinkItem {
+    href: string;
+    label: string;
+    icon: React.ComponentType<{ className?: string }>;
+    badge?: number;
+    badgeLabel?: string;
+    hasOverdue?: boolean;
+    badgeAriaLabel?: string;
+  }
+
+  const navLinks: NavLinkItem[] = [
     { href: '/', label: t.nav.overview, icon: Layers },
-    { href: '/calendar', label: t.nav.calendar, icon: Calendar, badge: overdueCount },
+    {
+      href: '/alerts',
+      label: t.nav.alerts,
+      icon: Bell,
+      badge: alertBadge.count,
+      badgeLabel: alertBadge.countLabel,
+      hasOverdue: alertBadge.hasOverdue,
+      badgeAriaLabel: alertBadge.hasOverdue
+        ? interpolate(t('alerts.badgeAriaLabelOverdue'), { count: alertBadge.countLabel, overdue: alertBadge.overdueCount })
+        : interpolate(t('alerts.badgeAriaLabel'), { count: alertBadge.countLabel }),
+    },
+    { href: '/calendar', label: t.nav.calendar, icon: Calendar },
     { href: '/expenses', label: t.nav.expenses, icon: CreditCard },
+    { href: '/savings', label: t.nav.savings, icon: PiggyBank },
     { href: '/wallet', label: t.nav.walletTeam, icon: Users },
   ];
 
@@ -146,6 +172,25 @@ export function Sidebar() {
               <span className="truncate">{activeWallet.name}</span>
             </button>
           )}
+
+          <Link
+            href="/alerts"
+            aria-label={alertBadge.hasOverdue
+              ? interpolate(t('alerts.badgeAriaLabelOverdue'), { count: alertBadge.countLabel, overdue: alertBadge.overdueCount })
+              : interpolate(t('alerts.badgeAriaLabel'), { count: alertBadge.countLabel })}
+            className="relative p-2 rounded-xl text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
+          >
+            <Bell className="w-5 h-5" />
+            {alertBadge.isVisible && (
+              <span
+                className={`absolute top-1 right-1 min-w-[16px] h-4 px-1 rounded-full ${
+                  alertBadge.hasOverdue ? 'bg-rose-500 text-white' : 'bg-amber-500 text-white'
+                } text-[9px] font-extrabold flex items-center justify-center ring-2 ring-white dark:ring-zinc-950`}
+              >
+                {alertBadge.countLabel}
+              </span>
+            )}
+          </Link>
 
           <button
             type="button"
@@ -256,8 +301,13 @@ export function Sidebar() {
                         <span>{item.label}</span>
                       </div>
                       {item.badge && item.badge > 0 ? (
-                        <span className="px-1.5 py-0.5 text-[10px] font-extrabold rounded-full bg-rose-500 text-white">
-                          {item.badge}
+                        <span
+                          aria-label={item.badgeAriaLabel}
+                          className={`px-1.5 py-0.5 text-[10px] font-extrabold rounded-full ${
+                            item.hasOverdue ? 'bg-rose-500 text-white' : 'bg-amber-500 text-white'
+                          }`}
+                        >
+                          {item.badgeLabel ?? item.badge}
                         </span>
                       ) : null}
                     </Link>
@@ -689,14 +739,24 @@ export function Sidebar() {
                     <div className="flex items-center justify-between w-full">
                       <span className="truncate">{item.label}</span>
                       {item.badge && item.badge > 0 ? (
-                        <span className="px-1.5 py-0.5 text-[10px] font-black rounded-full bg-rose-500 text-white animate-pulse">
-                          {item.badge}
+                        <span
+                          aria-label={item.badgeAriaLabel}
+                          className={`px-1.5 py-0.5 text-[10px] font-black rounded-full ${
+                            item.hasOverdue ? 'bg-rose-500 text-white animate-pulse' : 'bg-amber-500 text-white'
+                          }`}
+                        >
+                          {item.badgeLabel ?? item.badge}
                         </span>
                       ) : null}
                     </div>
                   )}
                   {isCollapsed && item.badge && item.badge > 0 && (
-                    <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-rose-500 ring-2 ring-white dark:ring-zinc-950" />
+                    <span
+                      aria-label={item.badgeAriaLabel}
+                      className={`absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full ${
+                        item.hasOverdue ? 'bg-rose-500' : 'bg-amber-500'
+                      } ring-2 ring-white dark:ring-zinc-950`}
+                    />
                   )}
                 </Link>
               );
@@ -927,7 +987,7 @@ export function Sidebar() {
       <nav
         role="navigation"
         aria-label={t.nav.mobileNavigation}
-        className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-md border-t border-zinc-200/80 dark:border-zinc-800/80 px-2 pt-1.5 pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))] flex items-center justify-around shadow-lg"
+        className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-md border-t border-zinc-200/80 dark:border-zinc-800/80 px-1 pt-1.5 pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))] flex items-center justify-around gap-0.5 shadow-lg"
       >
         {navLinks.map((item) => {
           const Icon = item.icon;
@@ -936,7 +996,7 @@ export function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex flex-col items-center justify-center gap-1 text-[11px] font-semibold min-h-[48px] py-1 px-3 rounded-2xl transition-all relative ${
+              className={`flex-1 min-w-0 flex flex-col items-center justify-center gap-1 text-[11px] font-semibold min-h-[48px] py-1 px-0.5 rounded-2xl transition-all relative ${
                 isActive
                   ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50/80 dark:bg-indigo-950/50 shadow-2xs'
                   : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
@@ -945,12 +1005,17 @@ export function Sidebar() {
               <div className="relative">
                 <Icon className="w-5 h-5" />
                 {item.badge && item.badge > 0 ? (
-                  <span className="absolute -top-1 -right-1.5 min-w-[16px] h-4 px-1 rounded-full bg-rose-500 text-white text-[9px] font-extrabold flex items-center justify-center ring-2 ring-white dark:ring-zinc-950">
-                    {item.badge}
+                  <span
+                    aria-label={item.badgeAriaLabel}
+                    className={`absolute -top-1 -right-1.5 min-w-[16px] h-4 px-1 rounded-full ${
+                      item.hasOverdue ? 'bg-rose-500 text-white' : 'bg-amber-500 text-white'
+                    } text-[9px] font-extrabold flex items-center justify-center ring-2 ring-white dark:ring-zinc-950`}
+                  >
+                    {item.badgeLabel ?? item.badge}
                   </span>
                 ) : null}
               </div>
-              <span className="text-[10px] tracking-tight">{item.label.split(' ')[0]}</span>
+              <span className="text-[10px] tracking-tight max-w-full truncate">{item.label.split(' ')[0]}</span>
             </Link>
           );
         })}
