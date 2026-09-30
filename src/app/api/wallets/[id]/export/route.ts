@@ -138,6 +138,7 @@ export async function GET(
           status: p.status,
           realizedExpenseRef: p.realizedExpenseId || null,
           savingsBucketRef: p.savingsBucketId || null,
+          trackFromMonth: p.trackFromMonth ?? null,
           createdAt: p.createdAt.toISOString(),
           userName: author ? author.name : null,
           userEmail: author ? author.email : null,

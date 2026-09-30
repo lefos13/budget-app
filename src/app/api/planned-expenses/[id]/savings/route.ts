@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/session';
 import { canLinkToSavings } from '@/lib/savings';
+import { isValidMonthKey } from '@/lib/month';
 import {
   closeBucketIfEmpty,
   parseDisposition,
@@ -72,7 +73,17 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const disposition = parseDisposition(body.disposition);
     if (disposition === null) return NextResponse.json({ error: 'Invalid disposition' }, { status: 400 });
 
-    const { bucketId, newBucket } = body;
+    const { bucketId, newBucket, trackFromMonth } = body;
+    let finalTrackFromMonth: string | null | undefined;
+    if (trackFromMonth !== undefined) {
+      if (trackFromMonth === null || trackFromMonth === '') {
+        finalTrackFromMonth = null;
+      } else if (typeof trackFromMonth === 'string' && isValidMonthKey(trackFromMonth)) {
+        finalTrackFromMonth = trackFromMonth;
+      } else {
+        return NextResponse.json({ error: 'Invalid trackFromMonth' }, { status: 400 });
+      }
+    }
     let newBucketData: { name: string; color?: string; icon?: string } | null = null;
     if (newBucket !== undefined) {
       if (typeof newBucket !== 'object' || newBucket === null || Array.isArray(newBucket)) {
@@ -136,7 +147,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
       const updated = await tx.plannedExpense.update({
         where: { id: plannedExpense.id },
-        data: { savingsBucketId: bucket.id },
+        data: {
+          savingsBucketId: bucket.id,
+          ...(finalTrackFromMonth !== undefined ? { trackFromMonth: finalTrackFromMonth } : {}),
+        },
       });
       await tx.activityLog.create({
         data: {

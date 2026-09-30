@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/session';
+import { isValidMonthKey } from '@/lib/month';
 import { round2, SAVINGS_TX_TYPES } from '@/lib/savings';
 import {
   getBucketBalance,
@@ -391,6 +392,10 @@ export async function POST(
 
           const bucketCandidate = entry.savingsBucketRef ? bucketRefMap.get(String(entry.savingsBucketRef)) : undefined;
           const savingsBucketId = bucketCandidate && goalBucketIds.has(bucketCandidate) ? bucketCandidate : null;
+          const trackFromMonth =
+            typeof entry.trackFromMonth === 'string' && isValidMonthKey(entry.trackFromMonth)
+              ? entry.trackFromMonth
+              : null;
 
           const createdPlanned = await tx.plannedExpense.create({
             data: {
@@ -400,6 +405,7 @@ export async function POST(
               title: entry.title.trim(),
               amount: numAmount,
               expectedDate: parsedExpectedDate,
+              trackFromMonth,
               notes,
               status,
               realizedExpenseId,

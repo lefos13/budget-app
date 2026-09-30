@@ -99,12 +99,14 @@ export interface PlannedExpenseItem {
   title: string;
   amount: number;
   expectedDate: string;
+  trackFromMonth?: string | null;
   notes: string | null;
   status: 'PENDING' | 'REALIZED';
   realizedExpenseId: string | null;
   savingsBucketId?: string | null;
   savingsBucket?: { id: string; name: string; color: string; status: string } | null;
   category: { id: string; name: string; color: string; icon: string } | null;
+  createdAt?: string;
 }
 
 export interface WalletDetailData {

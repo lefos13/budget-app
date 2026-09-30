@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/session';
 import { canLinkToSavings } from '@/lib/savings';
+import { isValidMonthKey } from '@/lib/month';
 import { closeBucketIfEmpty, parseDisposition, savingsErrorResponse } from '@/lib/savings-server';
 
 export async function PATCH(
@@ -57,7 +58,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
     }
 
-    const { title, amount, expectedDate, categoryId, notes } = body;
+    const { title, amount, expectedDate, categoryId, notes, trackFromMonth } = body;
     const disposition = parseDisposition(body.disposition);
     if (disposition === null) {
       return NextResponse.json({ error: 'Invalid disposition' }, { status: 400 });
@@ -150,6 +151,18 @@ export async function PATCH(
       }
     }
 
+    // Validate trackFromMonth: valid MonthKey or null
+    let finalTrackFromMonth: string | null | undefined;
+    if (trackFromMonth !== undefined) {
+      if (trackFromMonth === null || trackFromMonth === '') {
+        finalTrackFromMonth = null;
+      } else if (typeof trackFromMonth === 'string' && isValidMonthKey(trackFromMonth)) {
+        finalTrackFromMonth = trackFromMonth;
+      } else {
+        return NextResponse.json({ error: 'Invalid trackFromMonth' }, { status: 400 });
+      }
+    }
+
     // A linked expense moved into the current or a past month stops being saved for (unlinked);
     // its bucket closes if that was its last pending expense (leftover needs a disposition).
     const unlinkBucketId =
@@ -166,10 +179,12 @@ export async function PATCH(
           ...(parsedExpectedDate !== undefined ? { expectedDate: parsedExpectedDate } : {}),
           ...(finalCategoryId !== undefined ? { categoryId: finalCategoryId } : {}),
           ...(finalNotes !== undefined ? { notes: finalNotes } : {}),
+          ...(finalTrackFromMonth !== undefined ? { trackFromMonth: finalTrackFromMonth } : {}),
           ...(unlinkBucketId ? { savingsBucketId: null } : {}),
         },
         include: {
           category: true,
+          savingsBucket: { select: { id: true, name: true, color: true, status: true } },
         },
       });
 

@@ -18,7 +18,7 @@ import { useDisposition, type DispositionChoice } from '@/components/savings/dis
 import { MoveMoneyModal } from '@/components/savings/move-money-modal';
 
 export default function SavingsPage() {
-  const { walletData, isLoading, currentUser, refreshWallet, showToast, selectedMonth, goToCurrentMonth } = useApp();
+  const { walletData, isLoading, currentUser, refreshWallet, showToast, selectedMonth, goToCurrentMonth, openEditPlannedExpense } = useApp();
   const { t, dateLocale } = useTranslation();
   const { data, staleData, error, reload } = useSavings();
   const [busyExpenseId, setBusyExpenseId] = useState<string | null>(null);
@@ -300,6 +300,25 @@ export default function SavingsPage() {
                   canDeposit={canDeposit}
                   busyExpenseId={busyExpenseId}
                   onUnlink={handleUnlink}
+                  onEditExpense={(expense) => {
+                    const pe = walletData.plannedExpenses.find((p) => p.id === expense.id) ?? {
+                      id: expense.id,
+                      walletId: walletData.wallet.id,
+                      userId: currentUser?.id || '',
+                      categoryId: expense.categoryId,
+                      title: expense.title,
+                      amount: expense.amount,
+                      expectedDate: expense.expectedDate,
+                      trackFromMonth: expense.trackFromMonth,
+                      notes: null,
+                      status: 'PENDING',
+                      realizedExpenseId: null,
+                      savingsBucketId: bucket.id,
+                      savingsBucket: { id: bucket.id, name: bucket.name, color: bucket.color, status: bucket.status },
+                      category: walletData.categories.find((c) => c.id === expense.categoryId) || null,
+                    };
+                    openEditPlannedExpense(pe);
+                  }}
                   onDeposit={() => setDepositTarget({ id: bucket.id, name: bucket.name, suggested: bucket.savingsDue })}
                   onMove={() => setMoveSource({ id: bucket.id, name: bucket.name, balance: bucket.balance, mode: 'MOVE' })}
                   onRename={(name) => handleRename(bucket.id, name)}

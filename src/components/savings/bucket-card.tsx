@@ -5,7 +5,7 @@ import { ArrowRightLeft, CalendarClock, Check, Pencil, PiggyBank, Plus, Unlink, 
 import { useTranslation } from '@/context/LanguageContext';
 import { interpolate } from '@/lib/i18n/translator';
 import { formatCurrency, formatDate } from '@/lib/formatters';
-import type { SavingsBucketView } from './use-savings';
+import type { SavingsBucketView, SavingsExpense } from './use-savings';
 
 interface BucketCardProps {
   bucket: SavingsBucketView;
@@ -15,6 +15,7 @@ interface BucketCardProps {
   canDeposit: boolean;
   busyExpenseId: string | null;
   onUnlink: (expense: { id: string; title: string }) => void;
+  onEditExpense?: (expense: SavingsExpense) => void;
   onDeposit: () => void;
   onMove: () => void;
   /** Resolves true when the rename was saved. */
@@ -28,6 +29,7 @@ export function BucketCard({
   canDeposit,
   busyExpenseId,
   onUnlink,
+  onEditExpense,
   onMove,
   onDeposit,
   onRename,
@@ -211,15 +213,19 @@ export function BucketCard({
                 <p className="text-xs text-zinc-500 mt-0.5">
                   {formatDate(e.expectedDate, 'MMM d, yyyy', dateLocale)}
                   {' · '}
-                  {e.monthsLeft >= 1
-                    ? `${interpolate(t('savings.contributionPerMonth'), {
-                        amount: formatCurrency(e.contribution, currency),
-                      })} · ${
-                        e.monthsLeft === 1
-                          ? t('savings.monthsLeftOne')
-                          : interpolate(t('savings.monthsLeft'), { count: e.monthsLeft })
-                      }`
-                    : t('savings.dueNow')}
+                  {e.isTrackingActive === false && e.trackFromMonth
+                    ? interpolate(t('savings.startsIn'), {
+                        month: formatDate(new Date(`${e.trackFromMonth}-01T12:00:00`), 'MMM yyyy', dateLocale),
+                      })
+                    : e.monthsLeft >= 1
+                      ? `${interpolate(t('savings.contributionPerMonth'), {
+                          amount: formatCurrency(e.contribution, currency),
+                        })} · ${
+                          e.monthsLeft === 1
+                            ? t('savings.monthsLeftOne')
+                            : interpolate(t('savings.monthsLeft'), { count: e.monthsLeft })
+                        }`
+                      : t('savings.dueNow')}
                 </p>
               </div>
               <div className="flex items-center gap-2 shrink-0">
@@ -227,16 +233,29 @@ export function BucketCard({
                   {formatCurrency(e.allocated, currency)} / {formatCurrency(e.amount, currency)}
                 </span>
                 {canEdit && (
-                  <button
-                    type="button"
-                    disabled={busyExpenseId === e.id}
-                    onClick={() => onUnlink({ id: e.id, title: e.title })}
-                    aria-label={t('savings.unlinkTitle')}
-                    title={t('savings.unlinkTitle')}
-                    className="p-1.5 text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer disabled:opacity-50"
-                  >
-                    <Unlink className="w-3.5 h-3.5" />
-                  </button>
+                  <>
+                    {onEditExpense && (
+                      <button
+                        type="button"
+                        onClick={() => onEditExpense(e)}
+                        aria-label={t('savings.editExpense')}
+                        title={t('savings.editExpense')}
+                        className="p-1.5 text-zinc-400 hover:text-amber-600 dark:hover:text-amber-400 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-950/40 transition-colors cursor-pointer"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      disabled={busyExpenseId === e.id}
+                      onClick={() => onUnlink({ id: e.id, title: e.title })}
+                      aria-label={t('savings.unlinkTitle')}
+                      title={t('savings.unlinkTitle')}
+                      className="p-1.5 text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer disabled:opacity-50"
+                    >
+                      <Unlink className="w-3.5 h-3.5" />
+                    </button>
+                  </>
                 )}
               </div>
             </li>

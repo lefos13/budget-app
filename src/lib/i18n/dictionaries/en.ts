@@ -568,6 +568,10 @@ export const en = {
     realizeForbidden: 'Viewers cannot mark planned expenses as spent.',
     realizeFailed: 'Failed to mark planned expense as spent. Please try again.',
     importedCount: '{count} planned expenses',
+    thisMonthSection: 'Planned for this month',
+    futureSavingsSection: 'Future Savings Goals',
+    futureSavingsSubtitle: 'Planned expenses linked to your savings buckets',
+    noFutureSavings: 'No future savings goals yet.',
   },
   savings: {
     pageTitle: 'Savings',
@@ -663,6 +667,10 @@ export const en = {
     dispositionOtherBucket: 'Another bucket',
     dispositionConfirm: 'Move and continue',
     dateUnlinkWarning: 'This date is in the current or a past month, so this expense will stop being saved for in "{bucket}".',
+    trackFromMonth: 'Start saving from',
+    trackFromMonthHelp: 'Contributions will only be tracked and required from this month onward.',
+    startsIn: 'Starts in {month}',
+    editExpense: 'Edit planned expense',
   },
   expenseEdit: {
     editTitle: 'Edit Expense',

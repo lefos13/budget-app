@@ -13,6 +13,8 @@ export interface SavingsExpense {
   remaining: number;
   monthsLeft: number;
   contribution: number;
+  trackFromMonth?: string | null;
+  isTrackingActive?: boolean;
 }
 
 export interface SavingsBucketView {

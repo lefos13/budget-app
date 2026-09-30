@@ -44,6 +44,7 @@ export interface SavingsPlannedInput {
   amount: number;
   expectedDate: Date | string;
   createdAt?: Date | string | null;
+  trackFromMonth?: string | null;
 }
 
 export interface SavingsBucketInput {
@@ -61,8 +62,10 @@ export interface ExpenseAllocation {
   monthsLeft: number;
   allocated: number;
   remaining: number;
-  /** Monthly contribution this expense needs in the evaluated month (0 when monthsLeft ≤ 0). */
+  /** Monthly contribution this expense needs in the evaluated month (0 when monthsLeft ≤ 0 or tracking not yet active). */
   contribution: number;
+  trackFromMonth?: string | null;
+  isTrackingActive: boolean;
 }
 
 export interface BucketMonth {
@@ -214,6 +217,7 @@ export function allocate(
     left = round2(left - allocated);
     const remaining = round2(p.amount - allocated);
     const ml = monthsLeft(monthKey, p.date);
+    const isTrackingActive = !p.trackFromMonth || compareMonthKeys(monthKey, p.trackFromMonth) >= 0;
     return {
       id: p.id,
       amount: round2(p.amount),
@@ -221,7 +225,9 @@ export function allocate(
       monthsLeft: ml,
       allocated,
       remaining,
-      contribution: ml >= 1 ? ceil2(remaining / ml) : 0,
+      contribution: isTrackingActive && ml >= 1 ? ceil2(remaining / ml) : 0,
+      trackFromMonth: p.trackFromMonth ?? null,
+      isTrackingActive,
     };
   });
 }

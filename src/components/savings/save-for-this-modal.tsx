@@ -1,12 +1,19 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { PiggyBank, X } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { useTranslation } from '@/context/LanguageContext';
 import { interpolate } from '@/lib/i18n/translator';
 import { translateApiError } from '@/lib/i18n/api-errors';
 import { formatCurrency, formatDate } from '@/lib/formatters';
+import {
+  getCurrentMonthKey,
+  getMonthKey,
+  parseMonthKey,
+  addMonthsToKey,
+  compareMonthKeys,
+} from '@/lib/month';
 import type { SavingsBucketView } from './use-savings';
 
 export const BUCKET_COLORS = ['#10b981', '#6366f1', '#f59e0b', '#ec4899', '#0ea5e9', '#8b5cf6'];
@@ -16,6 +23,7 @@ export interface LinkablePlanned {
   title: string;
   amount: number;
   expectedDate: string;
+  trackFromMonth?: string | null;
 }
 
 interface SaveForThisModalProps {
@@ -38,6 +46,30 @@ export function SaveForThisModal({ planned, buckets, onClose, onLinked }: SaveFo
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  const availableTrackMonths = useMemo(() => {
+    if (!planned.expectedDate) return [];
+    const expDate = new Date(planned.expectedDate);
+    if (isNaN(expDate.getTime())) return [];
+    const expMonth = getMonthKey(expDate);
+    const startKey = getCurrentMonthKey();
+    const months: Array<{ key: string; label: string }> = [];
+    let cur = startKey;
+    while (compareMonthKeys(cur, expMonth) <= 0) {
+      const parsed = parseMonthKey(cur);
+      if (parsed) {
+        const d = new Date(parsed.year, parsed.monthIndex, 1);
+        months.push({
+          key: cur,
+          label: formatDate(d, 'MMMM yyyy', dateLocale),
+        });
+      }
+      cur = addMonthsToKey(cur, 1);
+    }
+    return months;
+  }, [planned.expectedDate, dateLocale]);
+
+  const [trackFromMonth, setTrackFromMonth] = useState<string>(() => planned.trackFromMonth ?? '');
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && !isSubmitting) onClose();
@@ -49,8 +81,10 @@ export function SaveForThisModal({ planned, buckets, onClose, onLinked }: SaveFo
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
-    const payload =
-      mode === 'NEW' ? { newBucket: { name: name.trim(), color } } : { bucketId };
+    const payload = {
+      ...(mode === 'NEW' ? { newBucket: { name: name.trim(), color } } : { bucketId }),
+      trackFromMonth: trackFromMonth || null,
+    };
     setIsSubmitting(true);
     try {
       const res = await fetch(`/api/planned-expenses/${planned.id}/savings`, {
@@ -206,6 +240,32 @@ export function SaveForThisModal({ planned, buckets, onClose, onLinked }: SaveFo
                   ))}
                 </div>
               </div>
+            </div>
+          )}
+
+          {availableTrackMonths.length > 0 && (
+            <div className="p-3.5 rounded-2xl bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200/70 dark:border-emerald-900/40 space-y-1.5">
+              <label
+                htmlFor="save-for-this-track-from"
+                className="block text-xs font-bold text-emerald-900 dark:text-emerald-200"
+              >
+                {t('savings.trackFromMonth')}
+              </label>
+              <select
+                id="save-for-this-track-from"
+                value={trackFromMonth || availableTrackMonths[0]?.key || ''}
+                onChange={(e) => setTrackFromMonth(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 text-sm text-zinc-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
+              >
+                {availableTrackMonths.map((m) => (
+                  <option key={m.key} value={m.key}>
+                    {m.label}
+                  </option>
+                ))}
+              </select>
+              <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
+                {t('savings.trackFromMonthHelp')}
+              </p>
             </div>
           )}
 

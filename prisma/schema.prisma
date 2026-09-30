@@ -166,6 +166,7 @@ model PlannedExpense {
   title               String
   amount              Float
   expectedDate        DateTime
+  trackFromMonth      String?
   notes               String?
   status              String               @default("PENDING")
   savingsBucketId     String?

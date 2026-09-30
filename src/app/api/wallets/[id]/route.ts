@@ -126,10 +126,18 @@ export async function GET(
     const plannedExpenses = await prisma.plannedExpense.findMany({
       where: {
         walletId: id,
-        expectedDate: {
-          gte: startOfMonth,
-          lte: endOfMonth,
-        },
+        OR: [
+          {
+            expectedDate: {
+              gte: startOfMonth,
+              lte: endOfMonth,
+            },
+          },
+          {
+            savingsBucketId: { not: null },
+            status: 'PENDING',
+          },
+        ],
       },
       include: {
         category: true,

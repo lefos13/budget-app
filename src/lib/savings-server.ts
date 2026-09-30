@@ -228,6 +228,7 @@ export async function loadSavingsInputs(db: Db, walletId: string) {
           createdAt: true,
           categoryId: true,
           notes: true,
+          trackFromMonth: true,
         },
         orderBy: [{ expectedDate: 'asc' }, { createdAt: 'asc' }],
       },

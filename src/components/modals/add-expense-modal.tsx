@@ -1,12 +1,21 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { X, Receipt, CalendarClock } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { useTranslation } from '@/context/LanguageContext';
 import { interpolate } from '@/lib/i18n/translator';
 import { translateApiError } from '@/lib/i18n/api-errors';
-import { toDateKey, isCurrentMonthKey, parseMonthKey } from '@/lib/month';
+import { formatDate } from '@/lib/formatters';
+import {
+  toDateKey,
+  isCurrentMonthKey,
+  parseMonthKey,
+  getCurrentMonthKey,
+  getMonthKey,
+  addMonthsToKey,
+  compareMonthKeys,
+} from '@/lib/month';
 import { canLinkToSavings } from '@/lib/savings';
 import { useSavings } from '@/components/savings/use-savings';
 import { useDisposition, type DispositionChoice } from '@/components/savings/disposition-modal';
@@ -33,12 +42,16 @@ function AddExpenseModalDialog() {
     refreshWallet,
     showToast,
   } = useApp();
-  const { t } = useTranslation();
+  const { t, dateLocale } = useTranslation();
   const { data: savings, staleData: staleSavings } = useSavings();
   const disposition = useDisposition((savings ?? staleSavings)?.buckets ?? []);
   const [savingsChoice, setSavingsChoice] = useState('');
   // null = follow the expense title until the user types their own bucket name.
   const [newBucketName, setNewBucketName] = useState<string | null>(null);
+  const [trackFromMonth, setTrackFromMonth] = useState<string>(() => {
+    if (editingPlannedExpense?.trackFromMonth) return editingPlannedExpense.trackFromMonth;
+    return '';
+  });
 
   const isEditExpense = Boolean(editingExpense);
   const isEditPlanned = Boolean(editingPlannedExpense);
@@ -123,6 +136,38 @@ function AddExpenseModalDialog() {
     Boolean(date) &&
     !canLinkToSavings(new Date(`${date}T12:00:00`));
 
+  const isLinkedToSavings =
+    (kind === 'PLANNED' && !isEdit && showSavingsChoice && savingsChoice !== '') ||
+    (isEditPlanned && Boolean(editingPlannedExpense?.savingsBucketId) && !willUnlinkFromSavings);
+
+  const availableTrackMonths = useMemo(() => {
+    if (!isLinkedToSavings || !date) return [];
+    const expDate = new Date(`${date}T12:00:00`);
+    if (isNaN(expDate.getTime())) return [];
+    const expMonth = getMonthKey(expDate);
+    let startKey = getCurrentMonthKey();
+    if (editingPlannedExpense?.createdAt) {
+      const createdKey = getMonthKey(new Date(editingPlannedExpense.createdAt));
+      if (compareMonthKeys(createdKey, startKey) < 0) {
+        startKey = createdKey;
+      }
+    }
+    const months: Array<{ key: string; label: string }> = [];
+    let cur = startKey;
+    while (compareMonthKeys(cur, expMonth) <= 0) {
+      const parsed = parseMonthKey(cur);
+      if (parsed) {
+        const d = new Date(parsed.year, parsed.monthIndex, 1);
+        months.push({
+          key: cur,
+          label: formatDate(d, 'MMMM yyyy', dateLocale),
+        });
+      }
+      cur = addMonthsToKey(cur, 1);
+    }
+    return months;
+  }, [isLinkedToSavings, date, editingPlannedExpense, dateLocale]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !amount) return;
@@ -178,6 +223,7 @@ function AddExpenseModalDialog() {
               expectedDate: date,
               categoryId: categoryId || null,
               notes: notes.trim() || null,
+              trackFromMonth: trackFromMonth || null,
               ...(choice ? { disposition: choice } : {}),
             }),
           });
@@ -218,6 +264,7 @@ function AddExpenseModalDialog() {
             expectedDate: date,
             categoryId: categoryId || null,
             notes: notes.trim() || null,
+            trackFromMonth: trackFromMonth || null,
           }),
         });
 
@@ -233,11 +280,12 @@ function AddExpenseModalDialog() {
                   'Content-Type': 'application/json',
                   ...(currentUser ? { 'x-user-id': currentUser.id } : {}),
                 },
-                body: JSON.stringify(
-                  savingsChoice === NEW_BUCKET
+                body: JSON.stringify({
+                  ...(savingsChoice === NEW_BUCKET
                     ? { newBucket: { name: ((newBucketName ?? '').trim() || title.trim()).slice(0, 60) } }
-                    : { bucketId: savingsChoice }
-                ),
+                    : { bucketId: savingsChoice }),
+                  trackFromMonth: trackFromMonth || null,
+                }),
               });
               const linkJson = await linkRes.json().catch(() => ({}));
               showToast(
@@ -500,6 +548,32 @@ function AddExpenseModalDialog() {
                   />
                 </div>
               )}
+            </div>
+          )}
+
+          {isLinkedToSavings && availableTrackMonths.length > 0 && (
+            <div className="p-3.5 rounded-2xl bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200/70 dark:border-emerald-900/40 space-y-1.5">
+              <label
+                htmlFor="planned-track-from"
+                className="block text-xs font-bold text-emerald-900 dark:text-emerald-200"
+              >
+                {t('savings.trackFromMonth')}
+              </label>
+              <select
+                id="planned-track-from"
+                value={trackFromMonth || availableTrackMonths[0]?.key || ''}
+                onChange={(e) => setTrackFromMonth(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 text-sm text-zinc-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
+              >
+                {availableTrackMonths.map((m) => (
+                  <option key={m.key} value={m.key}>
+                    {m.label}
+                  </option>
+                ))}
+              </select>
+              <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
+                {t('savings.trackFromMonthHelp')}
+              </p>
             </div>
           )}
 

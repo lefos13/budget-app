@@ -254,19 +254,40 @@ export default function ExpensesPage() {
     }
   };
 
-  const isViewer = walletData?.userRole === 'VIEWER';
   const plannedExpenses = useMemo(
     () => walletData?.plannedExpenses || [],
     [walletData?.plannedExpenses]
   );
-  const pendingPlanned = useMemo(
-    () => plannedExpenses.filter((p) => p.status === 'PENDING'),
-    [plannedExpenses]
+
+  const { thisMonthPlanned, futureSavingsPlanned } = useMemo(() => {
+    const thisMonth: PlannedExpenseItem[] = [];
+    const futureSavings: PlannedExpenseItem[] = [];
+
+    for (const p of plannedExpenses) {
+      const expMonth = new Date(p.expectedDate).toISOString().slice(0, 7);
+      if (expMonth === selectedMonth) {
+        thisMonth.push(p);
+      } else if (p.savingsBucketId && p.status === 'PENDING') {
+        futureSavings.push(p);
+      }
+    }
+    return { thisMonthPlanned: thisMonth, futureSavingsPlanned: futureSavings };
+  }, [plannedExpenses, selectedMonth]);
+
+  const pendingMonthPlanned = useMemo(
+    () => thisMonthPlanned.filter((p) => p.status === 'PENDING'),
+    [thisMonthPlanned]
   );
   const totalPendingPlannedAmount = useMemo(
-    () => pendingPlanned.reduce((sum, p) => sum + p.amount, 0),
-    [pendingPlanned]
+    () => pendingMonthPlanned.reduce((sum, p) => sum + p.amount, 0),
+    [pendingMonthPlanned]
   );
+  const totalFutureSavingsAmount = useMemo(
+    () => futureSavingsPlanned.reduce((sum, p) => sum + p.amount, 0),
+    [futureSavingsPlanned]
+  );
+
+  const isViewer = walletData?.userRole === 'VIEWER';
 
   if (isLoading && !walletData) {
     return (
@@ -400,11 +421,21 @@ export default function ExpensesPage() {
                   {t('planned.sectionTitle')}
                 </h2>
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800/60">
-                  {pendingPlanned.length}
+                  {pendingMonthPlanned.length}
                 </span>
+                {futureSavingsPlanned.length > 0 && (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/60">
+                    +{futureSavingsPlanned.length} {t('planned.futureSavingsSection')}
+                  </span>
+                )}
               </div>
               <p className="text-xs text-zinc-500 mt-0.5">
                 {t('planned.totalLabel')}: <strong className="text-zinc-900 dark:text-white tabular-nums font-semibold">{formatCurrency(totalPendingPlannedAmount, currency)}</strong>
+                {futureSavingsPlanned.length > 0 && (
+                  <span className="ml-2 text-zinc-400">
+                    · {t('planned.futureSavingsSection')}: <strong className="text-emerald-600 dark:text-emerald-400 tabular-nums font-semibold">{formatCurrency(totalFutureSavingsAmount, currency)}</strong>
+                  </span>
+                )}
               </p>
             </div>
           </div>
@@ -421,7 +452,7 @@ export default function ExpensesPage() {
           )}
         </div>
 
-        {plannedExpenses.length === 0 ? (
+        {thisMonthPlanned.length === 0 && futureSavingsPlanned.length === 0 ? (
           <div className="text-center py-10 px-4">
             <CalendarClock className="w-10 h-10 text-zinc-300 dark:text-zinc-700 mx-auto mb-2" />
             <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
@@ -430,7 +461,12 @@ export default function ExpensesPage() {
           </div>
         ) : (
           <div className="divide-y divide-zinc-100 dark:divide-zinc-800/80">
-            {plannedExpenses.map((p) => {
+            {thisMonthPlanned.length > 0 && futureSavingsPlanned.length > 0 && (
+              <div className="px-5 sm:px-6 py-2 bg-zinc-50/80 dark:bg-zinc-800/40 text-[10px] font-bold uppercase tracking-wider text-zinc-400">
+                {t('planned.thisMonthSection')} ({thisMonthPlanned.length})
+              </div>
+            )}
+            {thisMonthPlanned.map((p) => {
               const isRealized = p.status === 'REALIZED';
               return (
                 <div
@@ -475,6 +511,13 @@ export default function ExpensesPage() {
                             <PiggyBank className="w-3 h-3" />
                             <span>{interpolate(t('savings.linkedChip'), { bucket: p.savingsBucket.name })}</span>
                           </Link>
+                        )}
+                        {p.trackFromMonth && compareMonthKeys(selectedMonth, p.trackFromMonth) < 0 && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800/60">
+                            {interpolate(t('savings.startsIn'), {
+                              month: formatDate(new Date(`${p.trackFromMonth}-01T12:00:00`), 'MMM yyyy', dateLocale),
+                            })}
+                          </span>
                         )}
                       </div>
 
@@ -625,6 +668,202 @@ export default function ExpensesPage() {
                 </div>
               );
             })}
+
+            {futureSavingsPlanned.length > 0 && (
+              <>
+                <div className="px-5 sm:px-6 py-2.5 bg-emerald-50/60 dark:bg-emerald-950/20 text-[10px] font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-300 flex items-center justify-between border-t border-zinc-100 dark:border-zinc-800">
+                  <span className="flex items-center gap-1.5">
+                    <PiggyBank className="w-3.5 h-3.5" />
+                    <span>{t('planned.futureSavingsSection')}</span>
+                  </span>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-200">
+                    {futureSavingsPlanned.length}
+                  </span>
+                </div>
+                {futureSavingsPlanned.map((p) => {
+                  const isRealized = p.status === 'REALIZED';
+                  return (
+                    <div
+                      key={p.id}
+                      className={`group px-5 sm:px-6 py-4 transition-colors ${
+                        isRealized
+                          ? 'opacity-60 dark:opacity-50'
+                          : 'hover:bg-zinc-50/80 dark:hover:bg-zinc-800/40'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-sm font-bold text-zinc-900 dark:text-white truncate">
+                              {p.title}
+                            </span>
+                            {p.category ? (
+                              <span
+                                className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold"
+                                style={{
+                                  backgroundColor: `${p.category.color}15`,
+                                  color: p.category.color,
+                                }}
+                              >
+                                <span
+                                  className="w-1.5 h-1.5 rounded-full"
+                                  style={{ backgroundColor: p.category.color }}
+                                />
+                                <span>{p.category.name}</span>
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold bg-zinc-100 dark:bg-zinc-800 text-zinc-500">
+                                <span className="w-1.5 h-1.5 rounded-full bg-zinc-400" />
+                                <span>{t('planned.uncategorised')}</span>
+                              </span>
+                            )}
+                            {p.savingsBucket && (
+                              <Link
+                                href="/savings"
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/60 hover:bg-emerald-100 dark:hover:bg-emerald-900/40"
+                              >
+                                <PiggyBank className="w-3 h-3" />
+                                <span>{interpolate(t('savings.linkedChip'), { bucket: p.savingsBucket.name })}</span>
+                              </Link>
+                            )}
+                            {p.trackFromMonth && compareMonthKeys(selectedMonth, p.trackFromMonth) < 0 && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800/60">
+                                {interpolate(t('savings.startsIn'), {
+                                  month: formatDate(new Date(`${p.trackFromMonth}-01T12:00:00`), 'MMM yyyy', dateLocale),
+                                })}
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-2 mt-1 text-xs text-zinc-400">
+                            <span>{formatDate(p.expectedDate, 'MMM d, yyyy', dateLocale)}</span>
+                            {p.notes && (
+                              <>
+                                <span>·</span>
+                                <span className="italic truncate max-w-xs text-zinc-500">
+                                  &quot;{p.notes}&quot;
+                                </span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-3 shrink-0">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/60">
+                            {t('planned.futureSavingsSection')}
+                          </span>
+
+                          <span className="text-sm sm:text-base font-black text-zinc-900 dark:text-white tabular-nums">
+                            {formatCurrency(p.amount, currency)}
+                          </span>
+
+                          {!isViewer && p.status === 'PENDING' && (
+                            <button
+                              type="button"
+                              disabled={realizingPlannedId === p.id || isDeletingPlanned}
+                              onClick={() =>
+                                p.savingsBucketId
+                                  ? setConfirmingRealizeId(confirmingRealizeId === p.id ? null : p.id)
+                                  : handleRealizePlanned(p)
+                              }
+                              className="p-1.5 text-zinc-400 hover:text-emerald-600 dark:hover:text-emerald-400 rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                              aria-label={t('planned.markSpent')}
+                              title={t('planned.markSpentTitle')}
+                            >
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                          {!isViewer && p.status === 'PENDING' && (
+                            <button
+                              type="button"
+                              onClick={() => openEditPlannedExpense(p)}
+                              className="p-1.5 text-zinc-400 hover:text-amber-600 dark:hover:text-amber-400 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-950/40 transition-colors cursor-pointer"
+                              aria-label={t('expenseEdit.edit')}
+                              title={t('expenseEdit.edit')}
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                          {!isViewer && (
+                            <button
+                              type="button"
+                              disabled={isDeletingPlanned}
+                              onClick={() =>
+                                setDeletingPlannedId(deletingPlannedId === p.id ? null : p.id)
+                              }
+                              className="p-1.5 text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
+                              title={t('planned.deleteButton')}
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      {confirmingRealizeId === p.id && p.savingsBucketId && (() => {
+                        const bucketBalance =
+                          (savings ?? staleSavings)?.buckets.find((b) => b.id === p.savingsBucketId)?.balance ?? 0;
+                        const fromSavings = Math.min(Math.max(0, bucketBalance), p.amount);
+                        return (
+                          <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200/80 dark:border-emerald-900/50 mt-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                            <p className="text-xs text-emerald-800 dark:text-emerald-200 font-medium tabular-nums">
+                              {interpolate(t('savings.realizeSplit'), {
+                                fromSavings: formatCurrency(fromSavings, currency),
+                                fromBudget: formatCurrency(p.amount - fromSavings, currency),
+                              })}
+                            </p>
+                            <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+                              <button
+                                type="button"
+                                disabled={realizingPlannedId === p.id}
+                                onClick={() => setConfirmingRealizeId(null)}
+                                className="px-2.5 py-1 rounded-lg text-xs font-semibold text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200/60 dark:hover:bg-zinc-800 cursor-pointer"
+                              >
+                                {t('common.cancel')}
+                              </button>
+                              <button
+                                type="button"
+                                disabled={realizingPlannedId === p.id}
+                                onClick={() => handleRealizePlanned(p)}
+                                className="px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs transition-all cursor-pointer disabled:opacity-50"
+                              >
+                                {realizingPlannedId === p.id ? t('common.processing') : t('planned.markSpent')}
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })()}
+
+                      {deletingPlannedId === p.id && (
+                        <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200/80 dark:border-rose-900/50 mt-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                          <p className="text-xs text-rose-800 dark:text-rose-200 font-medium">
+                            {t('planned.deleteConfirm')}
+                          </p>
+                          <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+                            <button
+                              type="button"
+                              disabled={isDeletingPlanned}
+                              onClick={() => setDeletingPlannedId(null)}
+                              className="px-2.5 py-1 rounded-lg text-xs font-semibold text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200/60 dark:hover:bg-zinc-800 cursor-pointer"
+                            >
+                              {t('common.cancel')}
+                            </button>
+                            <button
+                              type="button"
+                              disabled={isDeletingPlanned}
+                              onClick={() => handleDeletePlanned(p.id, p.title)}
+                              className="px-3 py-1 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-xs transition-all cursor-pointer disabled:opacity-50"
+                            >
+                              {isDeletingPlanned ? t('common.processing') : t('common.delete')}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </>
+            )}
           </div>
         )}
       </div>

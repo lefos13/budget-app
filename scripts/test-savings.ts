@@ -192,6 +192,30 @@ function run() {
   assert.equal(closedMonth.savingsDue, 0);
   console.log('✓ Test 11: closed buckets keep their deposits in the month and have nothing due');
 
+  // 12. trackFromMonth: an expense is not tracked until its start month
+  const delayedExpense: SavingsBucketInput = {
+    id: 'delayed',
+    kind: 'GOAL',
+    ledger: [],
+    pending: [
+      { id: 'trip', amount: 600, expectedDate: d(2026, 12, 15), trackFromMonth: '2026-10' },
+    ],
+  };
+  // In 2026-09 (before 2026-10): contribution is 0, savingsDue is 0
+  const mSep = computeBucketMonth(delayedExpense, '2026-09', now);
+  assert.equal(mSep.contributionDue, 0);
+  assert.equal(mSep.savingsDue, 0);
+  assert.equal(mSep.allocations[0].isTrackingActive, false);
+  assert.equal(mSep.allocations[0].contribution, 0);
+
+  // In 2026-10 (the start month): tracking is active, 2 months left (Oct, Nov) -> 600 / 2 = 300
+  const mOct = computeBucketMonth(delayedExpense, '2026-10', nowOct);
+  assert.equal(mOct.contributionDue, 300);
+  assert.equal(mOct.savingsDue, 300);
+  assert.equal(mOct.allocations[0].isTrackingActive, true);
+  assert.equal(mOct.allocations[0].contribution, 300);
+  console.log('✓ Test 12: trackFromMonth postpones savings contributions until the specified start month');
+
   console.log('\n✅ All savings math tests passed.');
 }
 

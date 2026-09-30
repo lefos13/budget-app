@@ -84,6 +84,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
             remaining: alloc?.remaining ?? p.amount,
             monthsLeft: schedule?.monthsLeft ?? 0,
             contribution: schedule?.contribution ?? 0,
+            trackFromMonth: p.trackFromMonth ?? null,
+            isTrackingActive: schedule?.isTrackingActive ?? true,
           };
         }),
       });

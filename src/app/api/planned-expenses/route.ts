@@ -47,6 +47,7 @@ export async function GET(req: NextRequest) {
       include: {
         category: true,
         user: true,
+        savingsBucket: { select: { id: true, name: true, color: true, status: true } },
       },
       orderBy: { expectedDate: 'asc' },
     });
@@ -72,7 +73,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
     }
 
-    const { walletId, title, amount, expectedDate, categoryId, notes } = body;
+    const { walletId, title, amount, expectedDate, categoryId, notes, trackFromMonth } = body;
 
     if (!walletId || typeof walletId !== 'string') {
       return NextResponse.json({ error: 'walletId is required' }, { status: 400 });
@@ -169,6 +170,15 @@ export async function POST(req: NextRequest) {
       finalNotes = notes.trim() || null;
     }
 
+    // Validate trackFromMonth: valid MonthKey or null
+    let finalTrackFromMonth: string | null = null;
+    if (trackFromMonth !== undefined && trackFromMonth !== null && trackFromMonth !== '') {
+      if (typeof trackFromMonth !== 'string' || !isValidMonthKey(trackFromMonth)) {
+        return NextResponse.json({ error: 'Invalid trackFromMonth' }, { status: 400 });
+      }
+      finalTrackFromMonth = trackFromMonth;
+    }
+
     const plannedExpense = await prisma.plannedExpense.create({
       data: {
         walletId,
@@ -177,11 +187,13 @@ export async function POST(req: NextRequest) {
         title: trimmedTitle,
         amount: numAmount,
         expectedDate: parsedExpectedDate,
+        trackFromMonth: finalTrackFromMonth,
         notes: finalNotes,
         status: 'PENDING',
       },
       include: {
         category: true,
+        savingsBucket: { select: { id: true, name: true, color: true, status: true } },
       },
     });
 
