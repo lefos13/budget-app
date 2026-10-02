@@ -8,6 +8,7 @@ import { AddExpenseModal } from '@/components/modals/add-expense-modal';
 import { AddInvoiceModal } from '@/components/modals/add-invoice-modal';
 import { InviteModal } from '@/components/modals/invite-modal';
 import { NewWalletModal } from '@/components/modals/new-wallet-modal';
+import { MonthContextBar } from '@/components/month-context-bar';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -40,6 +41,7 @@ export default function RootLayout({
             <div className="flex flex-col md:flex-row min-h-screen bg-zinc-50 dark:bg-zinc-950">
               <Sidebar />
               <div className="flex-1 min-w-0 flex flex-col">
+                <MonthContextBar />
                 <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 pb-[calc(6.5rem+env(safe-area-inset-bottom,0px))] md:pb-12">
                   {children}
                 </main>

@@ -8,7 +8,6 @@ import { useTranslation } from '@/context/LanguageContext';
 import { interpolate } from '@/lib/i18n/translator';
 import { translateApiError } from '@/lib/i18n/api-errors';
 import { formatCurrency, formatDate } from '@/lib/formatters';
-import { MonthSwitcher } from '@/components/month-switcher';
 import { BucketCard } from '@/components/savings/bucket-card';
 import { DepositModal } from '@/components/savings/deposit-modal';
 import { AdjustGeneralModal } from '@/components/savings/adjust-general-modal';
@@ -126,7 +125,7 @@ export default function SavingsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-5 sm:p-6 rounded-3xl border border-zinc-200/90 dark:border-zinc-800 bg-white/95 dark:bg-zinc-900/90 shadow-sm">
+      <div className="p-5 sm:p-6 rounded-3xl border border-zinc-200/90 dark:border-zinc-800 bg-white/95 dark:bg-zinc-900/90 shadow-sm">
         <div className="flex items-center gap-3.5">
           <div className="w-11 h-11 rounded-2xl flex items-center justify-center border shadow-xs shrink-0 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border-emerald-200/80 dark:border-emerald-800/60">
             <PiggyBank className="w-6 h-6" />
@@ -136,7 +135,6 @@ export default function SavingsPage() {
             <p className="text-xs text-zinc-500 mt-0.5">{t('savings.pageSubtitle')}</p>
           </div>
         </div>
-        <MonthSwitcher className="self-start md:self-auto" />
       </div>
 
       {!canEdit && (

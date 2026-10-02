@@ -27,6 +27,7 @@ export async function GET(
 
     const bills = wallet.invoices.map((inv) => ({
       id: inv.id,
+      seriesId: inv.seriesId,
       title: inv.title,
       amount: inv.amount,
       type: inv.type,

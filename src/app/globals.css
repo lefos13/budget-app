@@ -3,6 +3,7 @@
 :root {
   --background: #fafafa;
   --foreground: #09090b;
+  --app-header-h: 3.5rem;
 }
 
 @theme inline {

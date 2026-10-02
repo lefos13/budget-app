@@ -23,7 +23,6 @@ import { useApp, ExpenseItem, PlannedExpenseItem } from '@/context/AppContext';
 import { useTranslation } from '@/context/LanguageContext';
 import { interpolate } from '@/lib/i18n/translator';
 import { formatCurrency, formatDate } from '@/lib/formatters';
-import { MonthSwitcher } from '@/components/month-switcher';
 import { getCurrentMonthKey, compareMonthKeys } from '@/lib/month';
 import { canLinkToSavings } from '@/lib/savings';
 import { SaveForThisModal } from '@/components/savings/save-for-this-modal';
@@ -335,8 +334,7 @@ export default function ExpensesPage() {
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3 self-start sm:self-auto">
-          <MonthSwitcher />
+        <div className="flex items-center gap-3 self-start sm:self-auto">
           <button
             type="button"
             onClick={() => setIsAddExpenseOpen(true)}

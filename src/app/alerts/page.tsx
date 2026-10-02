@@ -13,7 +13,6 @@ import { useApp } from '@/context/AppContext';
 import { useTranslation } from '@/context/LanguageContext';
 import { UrgentRemindersBanner } from '@/components/urgent-reminders-banner';
 import { UnpaidBillsBanner } from '@/components/unpaid-bills-banner';
-import { MonthSwitcher } from '@/components/month-switcher';
 import { getAlertSummary } from '@/lib/bill-alerts';
 
 export default function AlertsPage() {
@@ -131,8 +130,7 @@ export default function AlertsPage() {
           <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 max-w-md mx-auto mt-2 leading-relaxed">
             {t.alerts.emptySubtitle}
           </p>
-          <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-            <MonthSwitcher />
+          <div className="mt-6 flex justify-center">
             <Link
               href="/calendar"
               className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-xs transition-all"

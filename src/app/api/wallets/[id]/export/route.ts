@@ -72,7 +72,7 @@ export async function GET(
     });
 
     const exportData = {
-      version: '2.2',
+      version: '2.3',
       exportedAt: new Date().toISOString(),
       wallet: {
         name: wallet.name,
@@ -109,6 +109,7 @@ export async function GET(
         const payer = i.paidByUserId ? userMap.get(i.paidByUserId) || i.paidByUser : null;
         return {
           ref: i.id,
+          seriesRef: i.seriesId,
           title: i.title,
           amount: i.amount,
           type: i.type,

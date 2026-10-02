@@ -12,7 +12,6 @@ import {
   formatMonthKey,
 } from '@/lib/month';
 import { getUnpaidForMonth, isInvoiceOverdue } from '@/lib/bill-alerts';
-import { MonthSwitcher } from '@/components/month-switcher';
 
 export function UnpaidBillsBanner({ alwaysRender = false }: { alwaysRender?: boolean }) {
   const { walletData, selectedMonth, setSelectedMonth, refreshWallet, showToast, currentUser } =
@@ -103,7 +102,7 @@ export function UnpaidBillsBanner({ alwaysRender = false }: { alwaysRender?: boo
 
   return (
     <div className="rounded-3xl border border-amber-200/90 dark:border-amber-900/60 bg-gradient-to-r from-amber-50/90 via-orange-50/60 to-amber-50/40 dark:from-amber-950/30 dark:via-orange-950/20 dark:to-zinc-900/60 p-5 sm:p-6 shadow-sm transition-all">
-      {/* Header: Title, Count Badge, MonthSwitcher, Total */}
+      {/* Header: Title, Count Badge, Total */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-amber-200/60 dark:border-amber-900/40 gap-3">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-2xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-xs shadow-amber-500/25">
@@ -119,8 +118,7 @@ export function UnpaidBillsBanner({ alwaysRender = false }: { alwaysRender?: boo
           </div>
         </div>
 
-        <div className="flex items-center gap-3 flex-wrap self-start sm:self-auto">
-          <MonthSwitcher />
+        <div className="flex items-center gap-3 self-start sm:self-auto">
           <div className="text-sm font-black text-amber-950 dark:text-amber-100 tabular-nums">
             <span className="text-xs font-semibold text-zinc-500 dark:text-zinc-400 mr-1.5">
               {t('unpaidBanner.total')}

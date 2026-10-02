@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import {
   Calendar as CalendarIcon,
   List,
@@ -11,9 +12,7 @@ import {
   Download,
 } from 'lucide-react';
 import { MonthGrid } from '@/components/calendar/month-grid';
-import { SubscriptionsSection } from '@/components/calendar/subscriptions-section';
 import { BillsListView } from '@/components/calendar/bills-list-view';
-import { MonthSwitcher } from '@/components/month-switcher';
 import { IcsExportModal } from '@/components/calendar/ics-export-modal';
 import { useApp } from '@/context/AppContext';
 import { useTranslation } from '@/context/LanguageContext';
@@ -104,10 +103,8 @@ export default function CalendarPage() {
         ))}
       </div>
 
-      {/* Right: Month Switcher & View Switcher */}
+      {/* Right: View Switcher */}
       <div className="flex flex-wrap items-center gap-2">
-        <MonthSwitcher />
-
         <div className="flex items-center gap-1 bg-white/70 dark:bg-zinc-950/60 p-1 rounded-xl border border-zinc-200/60 dark:border-zinc-800">
           <button
             type="button"
@@ -161,14 +158,12 @@ export default function CalendarPage() {
 
         {/* Action Buttons */}
         <div className="flex items-center gap-2 flex-wrap">
-          <button
-            type="button"
-            onClick={() => openAddInvoice(undefined, 'SUBSCRIPTION')}
-            className="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-md shadow-indigo-600/20 flex items-center gap-1.5 transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
+          <Link
+            href="/recurring"
+            className="px-3 py-2 rounded-xl border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-zinc-50 dark:hover:bg-zinc-800/60 text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs"
           >
-            <Repeat className="w-3.5 h-3.5" />
-            <span>{t('bills.addSubscription')}</span>
-          </button>
+            <span>{t('bills.goToRecurring')}</span>
+          </Link>
           <button
             type="button"
             onClick={() => openAddInvoice(undefined, 'BILL')}
@@ -188,10 +183,6 @@ export default function CalendarPage() {
           </button>
         </div>
       </div>
-
-      {/* Subscriptions Section & Burn Rate Metric Card */}
-      {/* Shown prominently when Subscriptions tab is clicked or as recurring overview */}
-      <SubscriptionsSection onAddSubscription={() => openAddInvoice(undefined, 'SUBSCRIPTION')} />
 
       {/* Main View: Calendar MonthGrid OR List View */}
       {viewMode === 'CALENDAR' ? (

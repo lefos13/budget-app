@@ -1,5 +1,6 @@
 export interface IcsBillItem {
   id: string;
+  seriesId: string;
   title: string;
   amount: number;
   currency: string;
@@ -61,13 +62,12 @@ export function generateIcsCalendar(
     );
     if (!isRecurring) continue;
 
-    const key = `${bill.title}____${bill.type || ''}____${bill.recurrenceInterval}____${bill.amount}`;
     const dueTime = new Date(bill.dueDate).getTime();
-    const currentMax = seriesLatestDueTime.get(key);
+    const currentMax = seriesLatestDueTime.get(bill.seriesId);
 
     if (currentMax === undefined || dueTime > currentMax) {
-      seriesLatestDueTime.set(key, dueTime);
-      seriesLatestBillId.set(key, bill.id);
+      seriesLatestDueTime.set(bill.seriesId, dueTime);
+      seriesLatestBillId.set(bill.seriesId, bill.id);
     }
   }
 
@@ -91,24 +91,14 @@ export function generateIcsCalendar(
     lines.push(`STATUS:${bill.status === 'PAID' ? 'CANCELLED' : 'CONFIRMED'}`);
 
     // If bill is recurring, add RRULE ONLY on the row with the latest dueDate in its series
-    const isRecurring = Boolean(
-      (bill.isRecurring || bill.type === 'SUBSCRIPTION') &&
-      bill.recurrenceInterval &&
-      bill.recurrenceInterval !== 'NONE'
-    );
-
-    if (isRecurring) {
-      const key = `${bill.title}____${bill.type || ''}____${bill.recurrenceInterval}____${bill.amount}`;
-      const isLatestInSeries = seriesLatestBillId.get(key) === bill.id;
-
-      if (isLatestInSeries) {
-        if (bill.recurrenceInterval === 'MONTHLY') {
-          lines.push('RRULE:FREQ=MONTHLY');
-        } else if (bill.recurrenceInterval === 'WEEKLY') {
-          lines.push('RRULE:FREQ=WEEKLY');
-        } else if (bill.recurrenceInterval === 'YEARLY') {
-          lines.push('RRULE:FREQ=YEARLY');
-        }
+    // (only recurring rows are registered in seriesLatestBillId)
+    if (seriesLatestBillId.get(bill.seriesId) === bill.id) {
+      if (bill.recurrenceInterval === 'MONTHLY') {
+        lines.push('RRULE:FREQ=MONTHLY');
+      } else if (bill.recurrenceInterval === 'WEEKLY') {
+        lines.push('RRULE:FREQ=WEEKLY');
+      } else if (bill.recurrenceInterval === 'YEARLY') {
+        lines.push('RRULE:FREQ=YEARLY');
       }
     }
 

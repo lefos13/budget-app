@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { addRecurrenceInterval } from '../src/lib/recurrence';
+import { addRecurrenceInterval, monthlyEquivalent, pickNextOccurrences, pickSeriesOccurrences } from '../src/lib/recurrence';
 import { generateIcsCalendar, IcsBillItem } from '../src/lib/ics-generator';
 
 function run() {
@@ -87,6 +87,7 @@ function run() {
     const bills: IcsBillItem[] = [
       {
         id: 'bill-aug',
+        seriesId: 'series-netflix',
         title: 'Netflix',
         amount: 17.99,
         currency: 'EUR',
@@ -98,6 +99,7 @@ function run() {
       },
       {
         id: 'bill-sep',
+        seriesId: 'series-netflix',
         title: 'Netflix',
         amount: 17.99,
         currency: 'EUR',
@@ -109,6 +111,7 @@ function run() {
       },
       {
         id: 'bill-oct',
+        seriesId: 'series-netflix',
         title: 'Netflix',
         amount: 17.99,
         currency: 'EUR',
@@ -142,6 +145,105 @@ function run() {
     assert.equal(octChunk.includes('RRULE:FREQ=MONTHLY'), true, 'Oct event MUST contain RRULE:FREQ=MONTHLY');
 
     console.log('✓ Test 11: ICS de-duplication: series of 3 occurrences emits RRULE only on the latest event (Oct)');
+
+    // 12. Series grouping by seriesId: paid Oct + rolled-forward (renamed) Nov -> one card, counted once;
+    //     two distinct series sharing a title stay separate
+    const occ = (seriesId: string, title: string, due: string, status: string, amount: number, recurrenceInterval = 'MONTHLY') => ({
+      seriesId,
+      title,
+      type: 'SUBSCRIPTION',
+      status,
+      amount,
+      recurrenceInterval,
+      dueDate: new Date(`${due}T00:00:00.000Z`),
+    });
+    const rows = [
+      occ('s-ai', 'AI', '2026-09-01', 'PAID', 40),
+      occ('s-ai', 'AI', '2026-10-01', 'PAID', 40),
+      occ('s-ai', 'AI Pro', '2026-11-01', 'PENDING', 40),
+      occ('s-water', 'Water', '2026-11-14', 'PENDING', 30, 'QUARTERLY'),
+      occ('s-gym-a', 'Gym', '2026-08-05', 'PAID', 25),
+      occ('s-gym-b', 'Gym', '2026-10-20', 'PENDING', 20),
+    ];
+    const oct = pickSeriesOccurrences(rows, new Date(2026, 9, 1), new Date(2026, 9, 31, 23, 59, 59, 999));
+    assert.deepEqual(
+      oct.map((r) => `${r.seriesId}@${r.dueDate.toISOString().slice(0, 10)}`),
+      ['s-gym-a@2026-08-05', 's-ai@2026-10-01', 's-gym-b@2026-10-20', 's-water@2026-11-14'],
+      'Oct view: paid Oct occurrence of AI, both Gym series, next unpaid Water'
+    );
+    const total = oct.reduce((s, r) => s + monthlyEquivalent(r.amount, r.recurrenceInterval), 0);
+    assert.equal(Math.round(total * 100) / 100, 95, 'Monthly cost counts each series once (40 + 30/3 + 25 + 20)');
+    const nov = pickSeriesOccurrences(rows, new Date(2026, 10, 1), new Date(2026, 10, 30, 23, 59, 59, 999));
+    const novAi = nov.filter((r) => r.seriesId === 's-ai');
+    assert.equal(novAi.length, 1, 'Renamed occurrence stays in its series');
+    assert.equal(novAi[0].title, 'AI Pro', 'Nov view shows the pending (renamed) Nov occurrence');
+    console.log('✓ Test 12: Recurring series collapse to one occurrence per month view; monthly cost is payment-independent');
+
+    // 13. pickNextOccurrences:
+    // (a) series with PAID Aug, PAID Sep, PENDING Oct -> Oct row
+    // (b) series with all rows PAID -> latest row
+    // (c) an OVERDUE row earlier than a PENDING row -> the OVERDUE one
+    // (d) two series with the same title but different seriesId stay separate
+    // (e) output ordered by dueDate
+    const t13Rows = [
+      // (a) Series Netflix (PAID Aug, PAID Sep, PENDING Oct) -> Oct row
+      occ('s-netflix', 'Netflix', '2026-08-15', 'PAID', 17.99),
+      occ('s-netflix', 'Netflix', '2026-09-15', 'PAID', 17.99),
+      occ('s-netflix', 'Netflix', '2026-10-15', 'PENDING', 17.99),
+      // (b) Series Spotify (all PAID) -> latest row (2026-06-01)
+      occ('s-spotify', 'Spotify', '2026-05-01', 'PAID', 10.99),
+      occ('s-spotify', 'Spotify', '2026-06-01', 'PAID', 10.99),
+      // (c) Series Electricity (OVERDUE Sep, PENDING Oct) -> OVERDUE Sep row
+      occ('s-elec', 'Electricity', '2026-10-10', 'PENDING', 80),
+      occ('s-elec', 'Electricity', '2026-09-10', 'OVERDUE', 75),
+      // (d) Two series with same title 'Gym' but different seriesId ('s-gym-1', 's-gym-2')
+      occ('s-gym-1', 'Gym', '2026-11-01', 'PENDING', 30),
+      occ('s-gym-2', 'Gym', '2026-11-15', 'PENDING', 25),
+    ];
+
+    const nextPicked = pickNextOccurrences(t13Rows);
+
+    // Verify (a): Oct row picked for Netflix
+    const netflixPicked = nextPicked.find((r) => r.seriesId === 's-netflix');
+    assert.ok(netflixPicked, 'Netflix series was picked');
+    assert.equal(netflixPicked.status, 'PENDING');
+    assert.equal(netflixPicked.dueDate.toISOString().slice(0, 10), '2026-10-15');
+
+    // Verify (b): latest row picked for Spotify (2026-06-01)
+    const spotifyPicked = nextPicked.find((r) => r.seriesId === 's-spotify');
+    assert.ok(spotifyPicked, 'Spotify series was picked');
+    assert.equal(spotifyPicked.status, 'PAID');
+    assert.equal(spotifyPicked.dueDate.toISOString().slice(0, 10), '2026-06-01');
+
+    // Verify (c): OVERDUE row picked for Electricity (earlier than PENDING)
+    const elecPicked = nextPicked.find((r) => r.seriesId === 's-elec');
+    assert.ok(elecPicked, 'Electricity series was picked');
+    assert.equal(elecPicked.status, 'OVERDUE');
+    assert.equal(elecPicked.dueDate.toISOString().slice(0, 10), '2026-09-10');
+
+    // Verify (d): both Gym series stay separate (both present)
+    const gymPicked = nextPicked.filter((r) => r.title === 'Gym');
+    assert.equal(gymPicked.length, 2, 'Two series with same title remain separate');
+    assert.deepEqual(
+      gymPicked.map((r) => r.seriesId).sort(),
+      ['s-gym-1', 's-gym-2']
+    );
+
+    // Verify (e): output ordered by dueDate ascending
+    assert.equal(nextPicked.length, 5, 'Total picked occurrences is 5');
+    assert.deepEqual(
+      nextPicked.map((r) => `${r.seriesId}@${r.dueDate.toISOString().slice(0, 10)}`),
+      [
+        's-spotify@2026-06-01',
+        's-elec@2026-09-10',
+        's-netflix@2026-10-15',
+        's-gym-1@2026-11-01',
+        's-gym-2@2026-11-15',
+      ],
+      'pickNextOccurrences returns items sorted strictly by dueDate ascending'
+    );
+
+    console.log('✓ Test 13: pickNextOccurrences selects earliest unpaid or latest paid per series, handles overdue, isolates seriesId, and orders by dueDate');
 
     console.log('\n🎉 All recurrence & ICS unit tests passed successfully!\n');
   } catch (err) {

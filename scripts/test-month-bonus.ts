@@ -145,7 +145,7 @@ async function main() {
     // Export / import round-trip
     const exp = await call('GET', `/api/wallets/${wallet.id}/export`, owner.id);
     assert.equal(exp.status, 200);
-    assert.equal(exp.data.version, '2.2');
+    assert.equal(exp.data.version, '2.3');
     assert.equal(exp.data.monthBonuses.length, 1);
     assert.equal(exp.data.monthBonuses[0].monthKey, '2026-09');
     assert.equal(exp.data.monthBonuses[0].amount, 50.5);
@@ -174,7 +174,7 @@ async function main() {
       ],
     });
     assert.equal(impBad.data.imported.monthBonuses, 1, 'invalid bonus entries are skipped');
-    console.log('✓ 5. export 2.2 round-trips bonuses; 2.1 files and invalid entries are handled');
+    console.log('✓ 5. export 2.3 round-trips bonuses; 2.1 files and invalid entries are handled');
 
     // Activity log
     const logs = await prisma.activityLog.findMany({ where: { walletId: wallet.id } });

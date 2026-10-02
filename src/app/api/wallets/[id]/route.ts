@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/session';
 import { isValidMonthKey, getCurrentMonthKey, getMonthBounds } from '@/lib/month';
+import { monthlyEquivalent, pickSeriesOccurrences } from '@/lib/recurrence';
 import { computeMonthProjection } from '@/lib/month-projection';
 import { computeSavingsMonth, round2 } from '@/lib/savings';
 import { loadSavingsInputs } from '@/lib/savings-server';
@@ -113,16 +114,18 @@ export async function GET(
     const overdueCount = updatedInvoices.filter((i) => i.status === 'OVERDUE').length;
     const paidCount = updatedInvoices.filter((i) => i.status === 'PAID').length;
 
-    // Subscriptions summary metrics
-    const subscriptions = updatedInvoices.filter((i) => i.type === 'SUBSCRIPTION');
+    // Subscriptions summary metrics: one occurrence per series (paying rolls a subscription forward into a new row)
+    const subscriptions = pickSeriesOccurrences(
+      updatedInvoices.filter((i) => i.type === 'SUBSCRIPTION'),
+      startOfMonth,
+      endOfMonth
+    );
     const bills = updatedInvoices.filter((i) => i.type !== 'SUBSCRIPTION');
 
-    const monthlySubscriptionsTotal = subscriptions.reduce((sum, s) => {
-      if (s.recurrenceInterval === 'YEARLY') return sum + s.amount / 12;
-      if (s.recurrenceInterval === 'QUARTERLY') return sum + s.amount / 3;
-      if (s.recurrenceInterval === 'WEEKLY') return sum + s.amount * 4.33;
-      return sum + s.amount;
-    }, 0);
+    const monthlySubscriptionsTotal = subscriptions.reduce(
+      (sum, s) => sum + monthlyEquivalent(s.amount, s.recurrenceInterval),
+      0
+    );
 
     const plannedExpenses = await prisma.plannedExpense.findMany({
       where: {

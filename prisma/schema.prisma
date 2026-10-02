@@ -141,12 +141,16 @@ model InvoiceBill {
   notes              String?
   paidAt             DateTime?
   paidByUserId       String?
+  /// Stable id shared by every occurrence of one recurring bill/subscription (roll-forward copies it).
+  seriesId           String    @default(cuid())
   wallet             Wallet    @relation(fields: [walletId], references: [id], onDelete: Cascade)
   category           Category? @relation(fields: [categoryId], references: [id])
   paidByUser         User?     @relation("PaidByUser", fields: [paidByUserId], references: [id])
   expenses           Expense[]
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
+
+  @@index([walletId, seriesId])
 }
 
 model ActivityLog {

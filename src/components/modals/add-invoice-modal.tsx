@@ -22,6 +22,7 @@ function AddInvoiceModalDialog({ initialDate }: { initialDate?: string }) {
     currentUser,
     modalInitialDate,
     modalInitialType,
+    modalInitialRecurring,
     editingInvoice,
     refreshWallet,
     showToast,
@@ -52,7 +53,7 @@ function AddInvoiceModalDialog({ initialDate }: { initialDate?: string }) {
     if (editingInvoice) {
       return editingInvoice.isRecurring;
     }
-    return (modalInitialType ?? 'BILL') === 'SUBSCRIPTION';
+    return modalInitialRecurring || (modalInitialType ?? 'BILL') === 'SUBSCRIPTION';
   });
   const [recurrenceInterval, setRecurrenceInterval] = useState(() => editingInvoice?.recurrenceInterval || 'MONTHLY');
   const [reminderDaysBefore, setReminderDaysBefore] = useState(() => (editingInvoice ? String(editingInvoice.reminderDaysBefore) : '3'));

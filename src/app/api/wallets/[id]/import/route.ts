@@ -115,6 +115,7 @@ export async function POST(
 
         // 2. Invoices / Bills / Subscriptions
         const invoiceRefMap = new Map<string, string>();
+        const seriesIdMap = new Map<string, string>();
         let importedInvoicesCount = 0;
 
         for (const inv of invoicesToImport) {
@@ -191,6 +192,19 @@ export async function POST(
                 ? 'MONTHLY'
                 : 'NONE';
 
+          // 2.3+ files carry seriesRef; older files group recurring rows by type + title (pre-seriesId identity).
+          const seriesKey =
+            typeof inv.seriesRef === 'string' && inv.seriesRef
+              ? `ref:${inv.seriesRef}`
+              : invType === 'SUBSCRIPTION' || (isRecurring && recurrenceInterval !== 'NONE')
+                ? `legacy:${invType}\u0000${inv.title.trim()}`
+                : null;
+          let seriesId: string | undefined;
+          if (seriesKey) {
+            seriesId = seriesIdMap.get(seriesKey) ?? randomUUID();
+            seriesIdMap.set(seriesKey, seriesId);
+          }
+
           const reminderDaysBefore =
             typeof inv.reminderDaysBefore === 'number' && !isNaN(inv.reminderDaysBefore)
               ? Math.max(0, Math.floor(inv.reminderDaysBefore))
@@ -223,6 +237,7 @@ export async function POST(
               notes: typeof inv.notes === 'string' && inv.notes.trim() ? inv.notes.trim() : null,
               paidAt,
               paidByUserId,
+              ...(seriesId ? { seriesId } : {}),
               ...(createdAt ? { createdAt } : {}),
             },
           });

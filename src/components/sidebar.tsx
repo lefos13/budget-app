@@ -5,9 +5,6 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   Wallet,
-  Calendar,
-  CreditCard,
-  Users,
   Plus,
   ChevronDown,
   PanelLeftClose,
@@ -15,7 +12,6 @@ import {
   Check,
   Receipt,
   FileText,
-  Layers,
   LogOut,
   Globe,
   Sparkles,
@@ -24,13 +20,14 @@ import {
   UserCheck,
   CalendarClock,
   Bell,
-  PiggyBank,
 } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { useTranslation } from '@/context/LanguageContext';
 import { interpolate } from '@/lib/i18n/translator';
 import { formatCurrency } from '@/lib/formatters';
 import { getAlertBadgeInfo } from '@/lib/bill-alerts';
+import { parseMonthKey } from '@/lib/month';
+import { NAV_GROUPS, type NavItem } from '@/lib/navigation';
 
 function subscribeSidebar(callback: () => void) {
   window.addEventListener('storage', callback);
@@ -44,6 +41,16 @@ function getSidebarSnapshot(): boolean {
 
 function getSidebarServerSnapshot(): boolean {
   return false;
+}
+
+function formatSelectedMonthShort(selectedMonth: string, language: string): string {
+  const parsed = parseMonthKey(selectedMonth);
+  if (!parsed) return selectedMonth;
+  const locale = language === 'el' ? 'el-GR' : 'en-US';
+  const str = new Intl.DateTimeFormat(locale, { month: 'short', year: 'numeric' }).format(
+    new Date(parsed.year, parsed.monthIndex, 1)
+  );
+  return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
 export function Sidebar() {
@@ -116,41 +123,28 @@ export function Sidebar() {
   const remainingBudget = walletData?.metrics?.remainingBudget ?? activeWallet?.monthlyBudget ?? 0;
   const alertBadge = getAlertBadgeInfo(walletData?.invoices ?? [], selectedMonth);
 
-  interface NavLinkItem {
-    href: string;
-    label: string;
-    icon: React.ComponentType<{ className?: string }>;
-    badge?: number;
-    badgeLabel?: string;
-    hasOverdue?: boolean;
-    badgeAriaLabel?: string;
-  }
+  const formattedMonth = formatSelectedMonthShort(selectedMonth, language);
 
-  const navLinks: NavLinkItem[] = [
-    { href: '/', label: t.nav.overview, icon: Layers },
-    {
-      href: '/alerts',
-      label: t.nav.alerts,
-      icon: Bell,
-      badge: alertBadge.count,
-      badgeLabel: alertBadge.countLabel,
-      hasOverdue: alertBadge.hasOverdue,
-      badgeAriaLabel: alertBadge.hasOverdue
-        ? interpolate(t('alerts.badgeAriaLabelOverdue'), { count: alertBadge.countLabel, overdue: alertBadge.overdueCount })
-        : interpolate(t('alerts.badgeAriaLabel'), { count: alertBadge.countLabel }),
-    },
-    { href: '/calendar', label: t.nav.calendar, icon: Calendar },
-    { href: '/expenses', label: t.nav.expenses, icon: CreditCard },
-    { href: '/savings', label: t.nav.savings, icon: PiggyBank },
-    { href: '/wallet', label: t.nav.walletTeam, icon: Users },
-  ];
+  const badgeFor = (item: NavItem) => {
+    if (item.href === '/alerts' && alertBadge.count > 0) {
+      return {
+        badge: alertBadge.count,
+        badgeLabel: alertBadge.countLabel,
+        hasOverdue: alertBadge.hasOverdue,
+        badgeAriaLabel: alertBadge.hasOverdue
+          ? interpolate(t('alerts.badgeAriaLabelOverdue'), { count: alertBadge.countLabel, overdue: alertBadge.overdueCount })
+          : interpolate(t('alerts.badgeAriaLabel'), { count: alertBadge.countLabel }),
+      };
+    }
+    return null;
+  };
 
   return (
     <>
       {/* ---------------------------------------------------- */}
       {/* 1. Mobile Topbar (Sticky on Small Screens)            */}
       {/* ---------------------------------------------------- */}
-      <header className="md:hidden sticky top-0 z-40 w-full border-b border-zinc-200/80 dark:border-zinc-800/80 bg-white/90 dark:bg-zinc-950/90 backdrop-blur-md px-4 py-2.5 flex items-center justify-between">
+      <header className="md:hidden sticky top-0 z-40 w-full h-[var(--app-header-h)] border-b border-zinc-200/80 dark:border-zinc-800/80 bg-white/90 dark:bg-zinc-950/90 backdrop-blur-md px-4 py-2.5 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2 font-bold text-zinc-900 dark:text-white">
           <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-600 to-sky-400 flex items-center justify-center text-white shadow-2xs">
             <Wallet className="w-4 h-4" />
@@ -278,39 +272,55 @@ export function Sidebar() {
               </div>
 
               {/* Navigation Links in Drawer */}
-              <nav className="mt-6 space-y-1">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 block mb-1.5">
-                  {t.nav.navigation}
-                </label>
-                {navLinks.map((item) => {
-                  const Icon = item.icon;
-                  const isActive = pathname === item.href;
+              <nav className="mt-6">
+                {NAV_GROUPS.map((group, groupIdx) => {
+                  const headingText =
+                    group.id === 'month'
+                      ? `${t.nav[group.labelKey]} · ${formattedMonth}`
+                      : t.nav[group.labelKey];
+
                   return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      onClick={() => setIsMobileDrawerOpen(false)}
-                      className={`flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
-                        isActive
-                          ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900'
-                          : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <Icon className="w-4 h-4" />
-                        <span>{item.label}</span>
+                    <div key={group.id} className={groupIdx > 0 ? 'mt-4' : ''}>
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 block px-1 mb-1.5">
+                        {headingText}
+                      </label>
+                      <div className="space-y-1">
+                        {group.items.map((item) => {
+                          const Icon = item.icon;
+                          const isActive = pathname === item.href;
+                          const badge = badgeFor(item);
+                          const label = t.nav[item.labelKey];
+
+                          return (
+                            <Link
+                              key={item.href}
+                              href={item.href}
+                              onClick={() => setIsMobileDrawerOpen(false)}
+                              className={`flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
+                                isActive
+                                  ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900'
+                                  : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2.5">
+                                <Icon className="w-4 h-4" />
+                                <span>{label}</span>
+                              </div>
+                              {badge && badge.badge > 0 ? (
+                                <span
+                                  aria-label={badge.badgeAriaLabel}
+                                  className={`px-1.5 py-0.5 text-[10px] font-extrabold rounded-full ${
+                                    badge.hasOverdue ? 'bg-rose-500 text-white' : 'bg-amber-500 text-white'
+                                  }`}
+                                >
+                                  {badge.badgeLabel ?? badge.badge}
+                                </span>
+                              ) : null}
+                            </Link>
+                          );
+                        })}
                       </div>
-                      {item.badge && item.badge > 0 ? (
-                        <span
-                          aria-label={item.badgeAriaLabel}
-                          className={`px-1.5 py-0.5 text-[10px] font-extrabold rounded-full ${
-                            item.hasOverdue ? 'bg-rose-500 text-white' : 'bg-amber-500 text-white'
-                          }`}
-                        >
-                          {item.badgeLabel ?? item.badge}
-                        </span>
-                      ) : null}
-                    </Link>
+                    </div>
                   );
                 })}
               </nav>
@@ -708,57 +718,77 @@ export function Sidebar() {
         {/* Scrollable Middle Container */}
         <div className="flex-1 overflow-y-auto px-3 py-4">
           {/* Navigation Links */}
-          <nav className="space-y-1">
-            {!isCollapsed && (
-              <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 block px-1 mb-1">
-                {t.nav.menu}
-              </label>
-            )}
-            {navLinks.map((item) => {
-              const Icon = item.icon;
-              const isActive = pathname === item.href;
+          <nav>
+            {NAV_GROUPS.map((group, groupIdx) => {
+              const headingText =
+                group.id === 'month'
+                  ? `${t.nav[group.labelKey]} · ${formattedMonth}`
+                  : t.nav[group.labelKey];
+
               return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  title={isCollapsed ? item.label : undefined}
-                  className={`flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition-all relative ${
-                    isCollapsed ? 'justify-center px-0' : ''
-                  } ${
-                    isActive
-                      ? 'bg-zinc-100 dark:bg-zinc-800/90 text-zinc-900 dark:text-white shadow-2xs font-bold'
-                      : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white hover:bg-zinc-50 dark:hover:bg-zinc-900/60'
-                  }`}
-                >
-                  <Icon
-                    className={`w-4 h-4 shrink-0 ${
-                      isActive ? 'text-indigo-600 dark:text-indigo-400' : 'text-zinc-400'
-                    }`}
-                  />
-                  {!isCollapsed && (
-                    <div className="flex items-center justify-between w-full">
-                      <span className="truncate">{item.label}</span>
-                      {item.badge && item.badge > 0 ? (
-                        <span
-                          aria-label={item.badgeAriaLabel}
-                          className={`px-1.5 py-0.5 text-[10px] font-black rounded-full ${
-                            item.hasOverdue ? 'bg-rose-500 text-white animate-pulse' : 'bg-amber-500 text-white'
+                <div key={group.id} className={groupIdx > 0 && !isCollapsed ? 'mt-4' : ''}>
+                  {isCollapsed ? (
+                    groupIdx > 0 && (
+                      <div className="my-2 mx-3 border-t border-zinc-200/80 dark:border-zinc-800/80" />
+                    )
+                  ) : (
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 block px-1 mb-1">
+                      {headingText}
+                    </label>
+                  )}
+                  <div className="space-y-1">
+                    {group.items.map((item) => {
+                      const Icon = item.icon;
+                      const isActive = pathname === item.href;
+                      const badge = badgeFor(item);
+                      const label = t.nav[item.labelKey];
+
+                      return (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          title={isCollapsed ? label : undefined}
+                          className={`flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition-all relative ${
+                            isCollapsed ? 'justify-center px-0' : ''
+                          } ${
+                            isActive
+                              ? 'bg-zinc-100 dark:bg-zinc-800/90 text-zinc-900 dark:text-white shadow-2xs font-bold'
+                              : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-white hover:bg-zinc-50 dark:hover:bg-zinc-900/60'
                           }`}
                         >
-                          {item.badgeLabel ?? item.badge}
-                        </span>
-                      ) : null}
-                    </div>
-                  )}
-                  {isCollapsed && item.badge && item.badge > 0 && (
-                    <span
-                      aria-label={item.badgeAriaLabel}
-                      className={`absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full ${
-                        item.hasOverdue ? 'bg-rose-500' : 'bg-amber-500'
-                      } ring-2 ring-white dark:ring-zinc-950`}
-                    />
-                  )}
-                </Link>
+                          <Icon
+                            className={`w-4 h-4 shrink-0 ${
+                              isActive ? 'text-indigo-600 dark:text-indigo-400' : 'text-zinc-400'
+                            }`}
+                          />
+                          {!isCollapsed && (
+                            <div className="flex items-center justify-between w-full">
+                              <span className="truncate">{label}</span>
+                              {badge && badge.badge > 0 ? (
+                                <span
+                                  aria-label={badge.badgeAriaLabel}
+                                  className={`px-1.5 py-0.5 text-[10px] font-black rounded-full ${
+                                    badge.hasOverdue ? 'bg-rose-500 text-white animate-pulse' : 'bg-amber-500 text-white'
+                                  }`}
+                                >
+                                  {badge.badgeLabel ?? badge.badge}
+                                </span>
+                              ) : null}
+                            </div>
+                          )}
+                          {isCollapsed && badge && badge.badge > 0 && (
+                            <span
+                              aria-label={badge.badgeAriaLabel}
+                              className={`absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full ${
+                                badge.hasOverdue ? 'bg-rose-500' : 'bg-amber-500'
+                              } ring-2 ring-white dark:ring-zinc-950`}
+                            />
+                          )}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </div>
               );
             })}
           </nav>
@@ -989,34 +1019,48 @@ export function Sidebar() {
         aria-label={t.nav.mobileNavigation}
         className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-md border-t border-zinc-200/80 dark:border-zinc-800/80 px-1 pt-1.5 pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))] flex items-center justify-around gap-0.5 shadow-lg"
       >
-        {navLinks.map((item) => {
-          const Icon = item.icon;
-          const isActive = pathname === item.href;
+        {NAV_GROUPS.filter((g) => g.items.some((i) => i.mobileBar)).map((group, groupIdx) => {
+          const mobileItems = group.items.filter((item) => item.mobileBar);
+
           return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`flex-1 min-w-0 flex flex-col items-center justify-center gap-1 text-[11px] font-semibold min-h-[48px] py-1 px-0.5 rounded-2xl transition-all relative ${
-                isActive
-                  ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50/80 dark:bg-indigo-950/50 shadow-2xs'
-                  : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
-              }`}
-            >
-              <div className="relative">
-                <Icon className="w-5 h-5" />
-                {item.badge && item.badge > 0 ? (
-                  <span
-                    aria-label={item.badgeAriaLabel}
-                    className={`absolute -top-1 -right-1.5 min-w-[16px] h-4 px-1 rounded-full ${
-                      item.hasOverdue ? 'bg-rose-500 text-white' : 'bg-amber-500 text-white'
-                    } text-[9px] font-extrabold flex items-center justify-center ring-2 ring-white dark:ring-zinc-950`}
+            <React.Fragment key={group.id}>
+              {groupIdx > 0 && (
+                <div className="self-stretch my-2 w-px bg-zinc-200 dark:bg-zinc-800 shrink-0" aria-hidden="true" />
+              )}
+              {mobileItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = pathname === item.href;
+                const badge = badgeFor(item);
+                const label = t.nav[item.labelKey];
+
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`flex-1 min-w-0 flex flex-col items-center justify-center gap-1 text-[11px] font-semibold min-h-[48px] py-1 px-0.5 rounded-2xl transition-all relative ${
+                      isActive
+                        ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50/80 dark:bg-indigo-950/50 shadow-2xs'
+                        : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
+                    }`}
                   >
-                    {item.badgeLabel ?? item.badge}
-                  </span>
-                ) : null}
-              </div>
-              <span className="text-[10px] tracking-tight max-w-full truncate">{item.label.split(' ')[0]}</span>
-            </Link>
+                    <div className="relative">
+                      <Icon className="w-5 h-5" />
+                      {badge && badge.badge > 0 ? (
+                        <span
+                          aria-label={badge.badgeAriaLabel}
+                          className={`absolute -top-1 -right-1.5 min-w-[16px] h-4 px-1 rounded-full ${
+                            badge.hasOverdue ? 'bg-rose-500 text-white' : 'bg-amber-500 text-white'
+                          } text-[9px] font-extrabold flex items-center justify-center ring-2 ring-white dark:ring-zinc-950`}
+                        >
+                          {badge.badgeLabel ?? badge.badge}
+                        </span>
+                      ) : null}
+                    </div>
+                    <span className="text-[10px] tracking-tight max-w-full truncate">{label.split(' ')[0]}</span>
+                  </Link>
+                );
+              })}
+            </React.Fragment>
           );
         })}
       </nav>

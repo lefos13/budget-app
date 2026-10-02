@@ -173,14 +173,24 @@ export async function POST(
           );
 
           if (nextDueDate) {
+            // Same series, or a manually created look-alike (same type + title) that then joins the series.
             const existingNext = await tx.invoiceBill.findFirst({
               where: {
                 walletId: updatedInvoice.walletId,
-                title: updatedInvoice.title,
-                type: updatedInvoice.type,
                 dueDate: nextDueDate,
+                OR: [
+                  { seriesId: updatedInvoice.seriesId },
+                  { title: updatedInvoice.title, type: updatedInvoice.type },
+                ],
               },
             });
+
+            if (existingNext && existingNext.seriesId !== updatedInvoice.seriesId) {
+              await tx.invoiceBill.update({
+                where: { id: existingNext.id },
+                data: { seriesId: updatedInvoice.seriesId },
+              });
+            }
 
             if (!existingNext) {
               const now = new Date();
@@ -204,6 +214,7 @@ export async function POST(
                   paidByUserId: null,
                   dueDate: nextDueDate,
                   status: nextStatus,
+                  seriesId: updatedInvoice.seriesId,
                 },
               });
             }

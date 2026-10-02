@@ -509,6 +509,7 @@ async function main() {
     assert.equal(rolledRow7.invoiceNumber, null);
     assert.equal(rolledRow7.paidAt, null);
     assert.equal(rolledRow7.paidByUserId, null);
+    assert.equal(rolledRow7.seriesId, invRollSub.seriesId, 'Rolled forward row must stay in the same series');
 
     const expCountAfter7 = await prisma.expense.count({ where: { walletId: wallet.id } });
     assert.equal(expCountAfter7, expCountBefore7, 'Subscription roll-forward must NOT create any Expense records');
@@ -581,6 +582,10 @@ async function main() {
       },
     });
     assert.equal(manualRows.length, 2, 'Must still be exactly 2 rows (Jan and Feb), no duplicate created');
+    assert.ok(
+      manualRows.every((r) => r.seriesId === invJanManual.seriesId),
+      'Pre-existing look-alike Feb row must be adopted into the Jan series'
+    );
     console.log('   ✓ Pre-existing Feb row prevented duplicate creation');
 
     // 10. Two parallel pays of a fresh subscription -> exactly ONE next row

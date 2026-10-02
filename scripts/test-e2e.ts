@@ -36,6 +36,7 @@ async function runTests() {
   // Test 5: Verify .ICS Calendar generation according to RFC 5545
   const icsBills = wallet.invoices.map((inv) => ({
     id: inv.id,
+    seriesId: inv.seriesId,
     title: inv.title,
     amount: inv.amount,
     currency: wallet.currency,

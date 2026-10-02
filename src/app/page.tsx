@@ -14,7 +14,6 @@ import { CategoryBreakdown } from '@/components/category-breakdown';
 import { UpcomingBillsCard } from '@/components/upcoming-bills-card';
 import { RecentExpensesCard } from '@/components/recent-expenses-card';
 import { PendingInvitesBanner } from '@/components/pending-invites-banner';
-import { MonthSwitcher } from '@/components/month-switcher';
 import { MonthProjectionCard } from '@/components/month-projection-card';
 import { MonthlySavingsCard } from '@/components/savings/monthly-savings-card';
 
@@ -76,8 +75,6 @@ export default function DashboardPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-5 sm:p-6 rounded-3xl border border-zinc-200/90 dark:border-zinc-800 bg-white/95 dark:bg-zinc-900/90 shadow-sm">
         <div className="space-y-1.5">
           <div className="flex items-center gap-2 flex-wrap">
-            <MonthSwitcher />
-            <span className="text-xs text-zinc-300 dark:text-zinc-700">|</span>
             <span className="text-xs font-semibold text-zinc-500">
               {t.dashboard.activeAs} <strong className="text-zinc-800 dark:text-zinc-200">{currentUser?.name}</strong> ({t.roles[walletData.userRole as keyof typeof t.roles] ?? walletData.userRole})
             </span>

@@ -77,6 +77,7 @@ export interface InvoiceItem {
   userId: string;
   categoryId: string | null;
   title: string;
+  seriesId: string;
   amount: number;
   type?: 'BILL' | 'SUBSCRIPTION' | string;
   dueDate: string;
@@ -180,8 +181,10 @@ interface AppContextType {
   modalInitialDate: string | null;
   modalInitialExpenseKind: 'ACTUAL' | 'PLANNED' | null;
   modalInitialType: 'BILL' | 'SUBSCRIPTION' | null;
+  /** Open the invoice modal with "recurring" pre-checked (used by the Recurring payments page). */
+  modalInitialRecurring: boolean;
   openAddExpense: (dateStr?: string, kind?: 'ACTUAL' | 'PLANNED') => void;
-  openAddInvoice: (dateStr?: string, type?: 'BILL' | 'SUBSCRIPTION') => void;
+  openAddInvoice: (dateStr?: string, type?: 'BILL' | 'SUBSCRIPTION', recurring?: boolean) => void;
   isInviteOpen: boolean;
   setIsInviteOpen: (open: boolean) => void;
   isNewWalletOpen: boolean;
@@ -291,6 +294,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [modalInitialDate, setModalInitialDate] = useState<string | null>(null);
   const [modalInitialExpenseKind, setModalInitialExpenseKind] = useState<'ACTUAL' | 'PLANNED' | null>(null);
   const [modalInitialType, setModalInitialType] = useState<'BILL' | 'SUBSCRIPTION' | null>(null);
+  const [modalInitialRecurring, setModalInitialRecurring] = useState(false);
   const [isInviteOpen, setIsInviteOpen] = useState(false);
   const [isNewWalletOpen, setIsNewWalletOpen] = useState(false);
 
@@ -309,6 +313,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (!open) {
       setModalInitialDate(null);
       setModalInitialType(null);
+      setModalInitialRecurring(false);
       setEditingInvoice(null);
     }
   }, []);
@@ -333,10 +338,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setIsAddExpenseOpenState(true);
   }, []);
 
-  const openAddInvoice = useCallback((dateStr?: string, type?: 'BILL' | 'SUBSCRIPTION') => {
+  const openAddInvoice = useCallback((dateStr?: string, type?: 'BILL' | 'SUBSCRIPTION', recurring = false) => {
     setEditingInvoice(null);
     if (dateStr) setModalInitialDate(dateStr);
     if (type) setModalInitialType(type);
+    setModalInitialRecurring(recurring);
     setIsAddInvoiceOpenState(true);
   }, []);
 
@@ -599,6 +605,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         modalInitialDate,
         modalInitialExpenseKind,
         modalInitialType,
+        modalInitialRecurring,
         openAddExpense,
         openAddInvoice,
         isInviteOpen,
