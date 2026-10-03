@@ -7,9 +7,13 @@ SQLite file, applies migrations, swaps the `current` symlink and reloads PM2.
 Layout under APP_ROOT (default /root/budget-app):
   releases/<id>/           one directory per deploy, newest KEEP_RELEASES kept
   current -> releases/<id>  what PM2 runs
-  shared/.env.production    runtime config (AUTH_SECRET, DATABASE_URL, PORT, HOSTNAME, PUBLIC_BASE_URL, EMAIL_*, WEBAUTHN_*)
+  shared/.env.production    app runtime config (AUTH_SECRET, DATABASE_URL, PORT, HOSTNAME, PUBLIC_BASE_URL, WEBAUTHN_*, overrides)
   shared/data/              SQLite database (outside releases, survives deploys)
   shared/backups/           pre-migration DB copies, newest KEEP_BACKUPS kept
+
+SHARED_ENV_FILE (default /root/shared/.env.production) holds droplet-wide mail settings
+(EMAIL_PROVIDER, GMAIL_*, EMAIL_FROM, EMAIL_REPLY_TO). It is loaded first and the app file
+overrides it, the same order deploy/ecosystem.config.cjs uses at runtime.
 
 Usage: deploy-release.sh <release-dir>
 COMMENT
@@ -18,15 +22,19 @@ set -euo pipefail
 RELEASE_DIR="$(cd "$1" && pwd)"
 APP_ROOT="${APP_ROOT:-/root/budget-app}"
 ENV_FILE="$APP_ROOT/shared/.env.production"
+SHARED_ENV_FILE="${SHARED_ENV_FILE:-/root/shared/.env.production}"
 KEEP_RELEASES="${KEEP_RELEASES:-3}"
 KEEP_BACKUPS="${KEEP_BACKUPS:-10}"
-export APP_ROOT
+export APP_ROOT SHARED_ENV_FILE
 
 if [[ ! -f "$ENV_FILE" ]]; then
   echo "Missing $ENV_FILE" >&2
   exit 1
 fi
 set -a
+if [[ -f "$SHARED_ENV_FILE" ]]; then
+  . "$SHARED_ENV_FILE"
+fi
 . "$ENV_FILE"
 set +a
 

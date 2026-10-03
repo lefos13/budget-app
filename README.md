@@ -60,7 +60,10 @@ Droplet layout (`/root/budget-app`):
 | `shared/data/budget.db` | Production SQLite database |
 | `shared/backups/` | Pre-migration DB copies (last 10) |
 
-Production environment variables (`shared/.env.production`):
+Production environment variables come from two files. Both `deploy/deploy-release.sh` and the PM2 ecosystem load them in this order, so the later file wins:
+
+1. `/root/shared/.env.production`: droplet-wide mail settings shared by all apps (`EMAIL_PROVIDER=gmail`, `GMAIL_USER`, `GMAIL_APP_PASSWORD`, `EMAIL_FROM`, `EMAIL_REPLY_TO`). The path can be overridden with `SHARED_ENV_FILE`.
+2. `/root/budget-app/shared/.env.production`: this app's values. It overrides `EMAIL_FROM` with `Aura Budget <softaware.studios@gmail.com>`.
 
 | Variable | Required / Default | Example / Description |
 |---|---|---|
