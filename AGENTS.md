@@ -37,6 +37,8 @@ The application supports two execution flows, toggleable in the sidebar / settin
    - Salted password hashing with Node.js `crypto.scryptSync`.
    - Secure HTTP-only session cookies (`aura_session`) validated in `src/lib/auth.ts` and `src/lib/session.ts`.
    - Authenticated users access only wallets they own or have joined.
+   - **Public landing page**: a logged-out visitor on `/` sees the marketing landing page (`src/components/landing/`) instead of being redirected; every other private route still redirects to `/login`. Logout goes to `/`. Mock mode always has a user, so to view the landing page in dev, switch to Normal mode and log out. Landing mockups are pure presentational components with fake data (`landing/mockups/fixture.ts`, labels in the `landingMock` dictionary block) and **MUST NOT** use `useApp()` or real data.
+   - **Support links** (GitHub Sponsors / Buy Me a Coffee): URLs live only in `src/lib/support-links.ts`; every surface renders them through `SupportLinkButtons` (`src/components/support/support-link-buttons.tsx`, no `useApp()`). Surfaces: landing `#support` section (+ footer anchor), dashboard `SupportStrip` (last item, subtle, not dismissible), profile `ProfileSupportCard`. Copy lives in `landing.support` (informal Greek, like the rest of the landing) and `support` (formal Greek, like the app); support is voluntary and unlocks nothing.
 
 ---
 
@@ -75,8 +77,8 @@ The application supports two execution flows, toggleable in the sidebar / settin
 ## 6. Layout & Navigation
 - Desktop layout uses an expandable/collapsible left sidebar (`src/components/sidebar.tsx`), width transitioning between `w-64` (expanded) and `w-20` (collapsed).
 - Mobile layout uses a responsive top header (height `--app-header-h` in `globals.css`), a drawer, and a bottom bar.
-- **Navigation registry**: `src/lib/navigation.ts` (`NAV_GROUPS`, `isMonthScopedPath`) is the single source of menu items, their groups (Monthly view / Recurring / Manage), bottom-bar membership (`mobileBar`) and which routes depend on the selected month (`monthScoped`). Add new pages there; never hard-code nav lists or month-scoped route checks elsewhere.
-- **Month selection**: the global `MonthContextBar` (`src/components/month-context-bar.tsx`, rendered once in `layout.tsx`) is the only month picker; it shows on month-scoped routes only. Pages read `selectedMonth` from `useApp()` and **MUST NOT** render their own `MonthSwitcher`.
+- **Navigation registry**: `src/lib/navigation.ts` (`NAV_GROUPS`, `isMonthScopedPath`) is the single source of menu items, their groups (Monthly view / Recurring / Manage), bottom-bar membership (`mobileBar`) and which routes depend on the selected month (`monthScoped`). Add new pages there; never hard-code nav lists or month-scoped route checks elsewhere. The same file owns public-route rules (`isAuthPath`, `isPublicPath`, `isLandingView`, `isSplashView`); `AppShell` (`src/components/app-shell.tsx`, rendered by `layout.tsx`) is the only place that decides whether the app chrome (sidebar, month bar, padded `<main>`) is shown.
+- **Month selection**: the global `MonthContextBar` (`src/components/month-context-bar.tsx`, rendered once by `AppShell`) is the only month picker; it shows on month-scoped routes only. Pages read `selectedMonth` from `useApp()` and **MUST NOT** render their own `MonthSwitcher`.
 
 ---
 

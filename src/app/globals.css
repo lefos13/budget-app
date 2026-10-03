@@ -63,3 +63,35 @@ body {
     scrollbar-color: rgba(160, 160, 160, 0.25) transparent;
   }
 }
+
+/* Landing hero mockup: gentle float, off for reduced motion */
+@keyframes mock-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+.mock-float {
+  animation: mock-float 7s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .mock-float {
+    animation: none;
+  }
+}
+
+/* Landing scroll reveal: fade up once visible, static for reduced motion */
+.landing-reveal {
+  opacity: 0;
+  transform: translateY(16px);
+  transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+}
+.landing-reveal[data-visible="true"] {
+  opacity: 1;
+  transform: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .landing-reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}

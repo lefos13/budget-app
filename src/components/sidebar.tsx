@@ -27,7 +27,7 @@ import { interpolate } from '@/lib/i18n/translator';
 import { formatCurrency } from '@/lib/formatters';
 import { getAlertBadgeInfo } from '@/lib/bill-alerts';
 import { parseMonthKey } from '@/lib/month';
-import { NAV_GROUPS, type NavItem } from '@/lib/navigation';
+import { NAV_GROUPS, isAuthPath, type NavItem } from '@/lib/navigation';
 
 function subscribeSidebar(callback: () => void) {
   window.addEventListener('storage', callback);
@@ -113,9 +113,8 @@ export function Sidebar() {
     setIsAddMenuOpen(false);
   };
 
-  // Hide sidebar on authentication pages
-  const isAuthPage = pathname === '/login' || pathname === '/register';
-  if (isAuthPage) {
+  // Hide sidebar on authentication pages (landing/splash views never mount it: see AppShell)
+  if (isAuthPath(pathname)) {
     return null;
   }
 

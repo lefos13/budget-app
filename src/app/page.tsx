@@ -7,6 +7,9 @@ import {
   UserPlus,
   Layers,
 } from 'lucide-react';
+import { usePathname } from 'next/navigation';
+import { LandingPage } from '@/components/landing/landing-page';
+import { isLandingView } from '@/lib/navigation';
 import { useApp } from '@/context/AppContext';
 import { useTranslation } from '@/context/LanguageContext';
 import { BudgetOverviewCard } from '@/components/budget-overview-card';
@@ -16,8 +19,9 @@ import { RecentExpensesCard } from '@/components/recent-expenses-card';
 import { PendingInvitesBanner } from '@/components/pending-invites-banner';
 import { MonthProjectionCard } from '@/components/month-projection-card';
 import { MonthlySavingsCard } from '@/components/savings/monthly-savings-card';
+import { SupportStrip } from '@/components/support-strip';
 
-export default function DashboardPage() {
+function Dashboard() {
   const {
     currentUser,
     walletData,
@@ -159,6 +163,17 @@ export default function DashboardPage() {
 
       {/* Category Limits & Envelopes Breakdown */}
       <CategoryBreakdown />
+
+      <SupportStrip />
     </div>
   );
+}
+
+export default function HomePage() {
+  const pathname = usePathname();
+  const { authMode, isAuthLoading, currentUser } = useApp();
+  if (isLandingView({ pathname, authMode, isAuthLoading, hasUser: !!currentUser })) {
+    return <LandingPage />;
+  }
+  return <Dashboard />;
 }

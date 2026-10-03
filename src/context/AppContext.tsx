@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { isValidMonthKey, getCurrentMonthKey, addMonthsToKey } from '@/lib/month';
 import { MonthProjection } from '@/lib/month-projection';
 import { useTranslation } from '@/context/LanguageContext';
+import { isAuthPath, isPublicPath, isLandingView } from '@/lib/navigation';
 
 export interface User {
   id: string;
@@ -147,6 +148,7 @@ export type AuthMode = 'mock' | 'normal';
 
 interface AppContextType {
   currentUser: User | null;
+  isAuthLoading: boolean;
   users: User[];
   setCurrentUser: (user: User) => void;
   updateCurrentUser: (user: User) => void;
@@ -415,13 +417,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // Route protection in Normal mode
   useEffect(() => {
     if (isAuthLoading) return;
-    const isAuthPage = pathname === '/login' || pathname === '/register';
-    const isPublicPage = isAuthPage || pathname?.startsWith('/invite');
-
     if (authMode === 'normal') {
-      if (!currentUser && !isPublicPage) {
+      const landing = isLandingView({ pathname, authMode, isAuthLoading, hasUser: !!currentUser });
+      if (!currentUser && !landing && !isPublicPath(pathname)) {
         router.push('/login');
-      } else if (currentUser && isAuthPage) {
+      } else if (currentUser && isAuthPath(pathname)) {
         router.push('/');
       }
     }
@@ -455,7 +455,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         localStorage.removeItem('aura_active_wallet_id');
       }
       showToast(t('auth.loggedOutSuccess'));
-      router.push('/login');
+      router.push(authMode === 'normal' ? '/' : '/login');
     }
   };
 
@@ -573,6 +573,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   return (
     <AppContext.Provider
       value={{
+        isAuthLoading,
         currentUser,
         users,
         setCurrentUser,

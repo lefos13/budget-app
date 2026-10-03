@@ -1,86 +1,106 @@
-# Implementation Plan: Global month bar + separate Recurring Payments page
+# Implementation Plan: "Support the project" links (GitHub Sponsors + Buy Me a Coffee)
 
-Status: **DRAFT v2 — awaiting human review.** v2 adds a correction: the Calendar follows the global month. The section that doesn't depend on the month is "Recurring Payments", and it moves to its own page.
-Previous plan (monthly bonus, all done) archived at `tasks/archive/2026-monthly-bonus-{plan,todo}.md`. No SPEC.md exists; the request + `AGENTS.md` are the spec.
+Status: **DONE** (2026-10-03). Implemented by Gemini subagents (Paseo profile "AGY - subagent", `antigravity-cli` / `gemini-3.8-flash`), orchestrated and reviewed by the planner. Verification gap: dark mode follows `prefers-color-scheme` and couldn't be emulated in the automation browser, so the `dark:` styles were checked only by reading the code (they copy the existing cards), not visually.
+The previous plan (public landing page, all 44 items done) is archived at `tasks/archive/2026-landing-page-{plan,todo}.md`. There is no SPEC.md; the spec is this request, `AGENTS.md`, and the reference section at https://omnissh-web.vercel.app/#sponsor.
 
 ## Overview
 
-1. Today the month picker (`MonthSwitcher`) is placed by hand on 6 spots, each in a different position. Replace them with **one fixed month bar** at the top of the content area, on every page that depends on the chosen month, **Calendar included**.
-2. The **Recurring Payments** section (`SubscriptionsSection`, now at the top of `/calendar`) is a list of the recurring series you have: subscriptions and fixed bills, with their monthly cost. It is not a view of one month. It moves to **its own page `/recurring`**, outside the month group in the menu, and no longer pretends to depend on the month.
+Add a way to support the developer, modelled on the OmniSSH "Support OmniSSH Development" section:
+- **Landing page (`/`, logged out):** a full section with two cards, **GitHub Sponsors** (`https://github.com/sponsors/lefos13`, monthly or one-time) and **Buy Me a Coffee** (`https://buymeacoffee.com/lefterisev2`, one-off tip), a short "free, no paid plans" pledge, and a subtle footer link that jumps to it.
+- **Dashboard (`/`, logged in):** a small, low-contrast strip at the very bottom of the page with the same two links. Not dismissible. It must not compete with budget content.
+- **Profile page (`/profile`):** a standard profile card "Support Aura Budget" below the profile form, with the same two links.
 
-## Findings (current code)
+No schema, API, or server changes. This is purely presentational.
 
-- `MonthSwitcher` is rendered in: `src/app/page.tsx:79`, `src/app/expenses/page.tsx:339`, `src/app/savings/page.tsx:139`, `src/app/alerts/page.tsx:135` (empty state), `src/components/unpaid-bills-banner.tsx:123`, `src/app/calendar/page.tsx:109`. They all use the global `selectedMonth` (`AppContext`, `localStorage.aura_selected_month`).
-- The Calendar (`month-grid.tsx`, `bills-list-view.tsx`, `day-agenda-drawer.tsx`) follows the global month properly: bills filtered by `getMonthBounds(selectedMonth)`, expenses from `walletData.monthExpenses`. **No change to its data.**
-- **Why "Recurring Payments" looks unaffected by the month** (`src/components/calendar/subscriptions-section.tsx`):
-  - `pickSeriesOccurrences` (`src/lib/recurrence.ts:85-107`) always returns **one card per series, in every month**. If the series has no occurrence in that month, it falls back to "earliest unpaid occurrence overall". In a future month (e.g. December), only the next pending row exists (rows are created when you pay), so you see the **same card** ("Next: Oct 5", Pending) as in October.
-  - The totals use `monthlyEquivalent` (yearly ÷ 12, weekly × 52/12), so they are **the same in every month**.
-  - Only past months show something different (the row paid that month).
-  - The subtitle says "…for the selected month" (`bills.recurringPaymentsSubtitle`), which is misleading.
-- So the section is a **list of series with their monthly cost**, not a month view. Its meaning doesn't fit inside the month-scoped Calendar.
-- Navigation: flat `navLinks` in `src/components/sidebar.tsx:129-146`, drawn 3 times (mobile drawer `:285`, desktop aside `:717`, bottom bar `:992`). The mobile header is `sticky top-0 z-40` with an Alerts bell.
-- Links to `/calendar` from `alerts/page.tsx`, `upcoming-bills-card.tsx`, `urgent-reminders-banner.tsx` are about bills / due dates, so they stay as they are.
-- `AGENTS.md` §4: "Subscriptions live on the bills page (`/calendar`)". This must be updated.
+## Reference section (what we're copying)
 
-## Architecture decisions
+OmniSSH `#sponsor`: eyebrow "Community Supported", H2 "Support … Development", one intro paragraph, then two cards side by side:
+1. GitHub Sponsors: subtitle "Monthly or one-time sponsor tiers", description, `github.com/sponsors/lefos13`, "View on GitHub" button.
+2. Buy Me a Coffee: subtitle "Quick tip & one-off support", description, "Buy me a coffee" button, `buymeacoffee.com/lefterisev2`.
+Then a one-line open-source pledge.
 
-1. **One route registry**: new `src/lib/navigation.ts` exports `NAV_GROUPS` (groups → `{ href, labelKey, icon, monthScoped, mobileBar }`) and `isMonthScopedPath(pathname)`. The sidebar, the bottom bar and the month bar all read from here.
-2. **`MonthContextBar`** (new `src/components/month-context-bar.tsx`), rendered once in `layout.tsx` above `<main>`, with the same `max-w-7xl` + padding as the content. Sticky: `top-0` on desktop; on mobile just below the header via the `--app-header-h` CSS variable (`globals.css`). Contents: label "Viewing month", the existing `MonthSwitcher` (prev / picker / next / Today), and a current / past / future month chip. Shown on `/`, `/expenses`, `/savings`, `/alerts`, `/calendar`. Hidden on `/recurring`, `/wallet`, `/profile`, `/invite/*`, auth pages, and when there is no `walletData`. `z-30` < header `z-40` < modals `z-50`.
-3. **New page `/recurring`** ("Recurring Payments") with `RecurringPaymentsSection`: the current section moved out of the Calendar and renamed. One card per series, showing **the next unpaid occurrence** (if all are paid: the latest). Not tied to any month window. Monthly-equivalent cost stays as is (that's what it is for). Actions: add subscription / recurring bill, edit, delete, "Mark as paid". Paying acts on the next occurrence and rolls the series forward, exactly as today. The pay logic doesn't change; only which occurrence is selected.
-4. **Selection helper**: new `pickNextOccurrences(invoices)` in `src/lib/recurrence.ts`, taken from the existing fallback branch of `pickSeriesOccurrences` (same code, no duplicate). `pickSeriesOccurrences` stays for the places that need a month (AGENTS §4: collapse a series per period).
-5. **Calendar**: loses the section. Keeps "Add bill/invoice" and ICS export. Header copy updated (no more "recurring subscriptions, burn rate"). Recurring items for the month still show in the grid/list as before.
-6. **Menu grouping**:
-   - **Μηνιαία εικόνα · {Οκτ 2026}** / *Monthly view*: Overview, Alerts, Expenses, Savings, Calendar.
-   - **Πάγια** / *Recurring*: Recurring Payments.
-   - **Διαχείριση** / *Manage*: Wallet & Team.
-   - Desktop expanded: group headings. Collapsed: dividers. Mobile drawer: headings.
-   - **Bottom bar**: 7 links don't fit at 360px. It shows 5: Overview, Expenses, Calendar, Savings, Recurring. Alerts is already the bell in the mobile header; Wallet & Team is in the drawer. A divider separates the month group from Recurring.
-7. **No API/schema changes**; `prisma/dev.db` is not touched.
+We copy the structure and links, not the OmniSSH copy: the text is rewritten for Aura Budget and translated (en + el). We **do not** embed GitHub's `sponsors/<user>/button` / `card` iframes. They are third-party frames that don't follow our theme or language and add an external dependency. Plain links styled as our own buttons do the same job.
 
-## Dependency graph
+## Architecture Decisions
+
+- **One source for the URLs:** `src/lib/support-links.ts` exports `GITHUB_SPONSORS_URL` and `BUY_ME_A_COFFEE_URL` (plus display labels such as `github.com/sponsors/lefos13`). Both surfaces import from here, so nothing is hard-coded twice.
+- **One shared link component:** `src/components/support/support-link-buttons.tsx` renders the two external links with a `variant: 'prominent' | 'subtle'`. All links use `target="_blank" rel="noopener noreferrer"` and an sr-only "(opens in a new tab)" label. It does not use `useApp()`, so the landing page can use it too (AGENTS.md says landing components MUST NOT use real data).
+- **GitHub icon:** lucide-react 1.48 has no `Github` brand icon (checked `node_modules`), so the shared component includes a small inline SVG GitHub mark with `aria-hidden`. Coffee uses lucide `Coffee`, and the section eyebrow uses `HeartHandshake`.
+- **Landing placement:** new `src/components/landing/sections/support.tsx` (`id="support"`, wrapped in `<Reveal>`), placed **between `Faq` and `FinalCta`** so the sign-up CTA stays the last thing on the page. The footer gets a small "Support the project" anchor link to `#support`. The sticky header stays unchanged, because the reference puts "Sponsor" in the header but here it would compete with "Get started".
+- **Dashboard placement:** new `src/components/support-strip.tsx`, rendered after `<CategoryBreakdown />` in `Dashboard` (`src/app/page.tsx`). It is one muted line ("Aura Budget is free. If it helps you, you can support its development.") with the two `subtle` links: zinc text, thin border, no colour fill, no shadow. It is not shown in the empty "no wallet yet" state or the loading state, only in the real dashboard.
+- **Profile placement:** new `src/components/support/profile-support-card.tsx`, rendered in `src/app/profile/page.tsx` **after the closing `</form>`** (outside the form, so the links never interact with form submit). Same card shell as the other profile cards (`rounded-3xl`, zinc border, `HeartHandshake` icon in the header like `Lock` in the password card), with the `subtle` link buttons. Shown in both auth modes.
+- **i18n:** a new top-level `support` dictionary block holding **every key the dashboard strip and profile card need** (shared button labels, new-tab hint, strip text, profile card title/subtitle), plus `landing.support` (section eyebrow, title, intro, card titles/subtitles/descriptions, CTAs, pledge) and `landing.footer.supportLink`, in both `en.ts` and `el.ts`. All of it is added in Task 1, so later tasks never edit the dictionaries. URLs/handles are not translated. `scripts/check-i18n.ts` enforces matching keys and no hard-coded strings.
+- **Copy must stay consistent** with FAQ `a1` ("There are no paid plans"). Support is voluntary and unlocks nothing.
+
+## Dependency Graph
 
 ```
-src/lib/navigation.ts (NAV_GROUPS, isMonthScopedPath)
-   ├── MonthContextBar + layout.tsx ──► remove the 6 per-page MonthSwitchers
-   └── Sidebar grouping (desktop / drawer / bottom bar)
-recurrence.ts pickNextOccurrences (+ test)
-   └── /recurring page + RecurringPaymentsSection ──► Calendar without the section
-                                                  └── nav entry (needs NAV_GROUPS)
-i18n en/el ── bar, groups, /recurring, copy fixes
-AGENTS.md §4/§6 ── at the end
+src/lib/support-links.ts (URLs)
+        │
+        ├── i18n `support` block (en + el)
+        │         │
+        └─────────┴── support-link-buttons.tsx (shared, prominent|subtle)
+                              │
+              ┌───────────────┼────────────────────────────┐
+   landing/sections/support.tsx   components/support-strip.tsx   support/profile-support-card.tsx
+   + landing-page.tsx (between     + app/page.tsx Dashboard       + app/profile/page.tsx
+     Faq and FinalCta)               (bottom)                       (after </form>)
+   + landing.support i18n
+   + landing-footer.tsx #support link
 ```
 
-## Task list (vertical slices)
+The foundation (URLs, shared buttons, `support` i18n block) is small, so it goes into the first vertical slice instead of being its own horizontal task.
 
-### Phase 1 — Global month bar (riskiest: layout, sticky)
-- **T1** Route registry + `MonthContextBar` in the layout (5 month-scoped pages, including Calendar).
-- **T2** Remove the 6 per-page `MonthSwitcher` instances; clean up headers and the Calendar toolbar.
+## Task List
 
-### Checkpoint A — one month control at the same position on every month-scoped page
+### Phase 1: Landing page support section
+- [x] Task 1: Visitor can support the project from the landing page (foundation + section + i18n)
+- [x] Task 2: Footer link jumps to the support section
 
-### Phase 2 — Recurring Payments page + menu
-- **T3** `/recurring` page: `pickNextOccurrences` + test, section moved / renamed, copy fixed, removed from the Calendar.
-- **T4** Grouped menu from `NAV_GROUPS` (desktop, drawer, bottom bar of 5), with the chosen month in the group heading.
+### Checkpoint: Landing
+- [x] `pnpm run lint`, `npx tsx scripts/check-i18n.ts`, `npx tsx scripts/test-i18n-check.ts` pass
+- [x] Landing verified in browser (Normal mode, logged out): en/el, light/dark, mobile 375px + desktop
+- [x] Planner review (lint, i18n, browser check) before wave 2. Human approval of the plan already given, so no stop here.
 
-### Checkpoint B — full browser check (desktop expanded/collapsed, mobile 360/390, en + el)
+### Phase 2: Logged-in surfaces (parallel)
+- [x] Task 3: Logged-in user sees a subtle support strip at the bottom of the dashboard
+- [x] Task 4: Logged-in user sees a support card on the profile page
 
-### Phase 3 — Close-out
-- **T5** `AGENTS.md` §4 (subscriptions on `/recurring`) + §6 (global bar, route registry); i18n checks; full verification.
+### Checkpoint: Logged-in surfaces
+- [x] Strip visible in Mock mode on a wallet with data, absent in empty/loading states
+- [x] Profile card visible in Mock and Normal mode, outside the form
+- [x] Mobile: neither is covered by the bottom bar
 
-## Risks and mitigations
+### Phase 3: Docs + full verification
+- [x] Task 5: Document support links in AGENTS.md and run the full verification suite
+
+### Checkpoint: Complete
+- [x] `npx prisma validate`, `npx tsx scripts/test-e2e.ts`, `pnpm test`, `pnpm run build` pass
+- [x] All acceptance criteria met, ready for review
+
+Full task details (acceptance criteria, verification, files) are in `tasks/todo.md`.
+
+## Parallelization
+
+Execution uses Gemini subagents (Paseo profile "AGY - subagent").
+- **Wave 1:** one agent does Tasks 1 and 2. It owns every dictionary edit and the shared component.
+- **Wave 2 (parallel):** one agent does Task 3 (`support-strip.tsx` + `app/page.tsx`) and another does Task 4 (`profile-support-card.tsx` + `profile/page.tsx`). They touch disjoint files and only read the `support.*` keys from wave 1, so they can't overwrite each other.
+- **Task 5:** the planner does it after reviewing wave 2.
+
+## Risks and Mitigations
 
 | Risk | Impact | Mitigation |
-|---|---|---|
-| Sticky bar overlaps the mobile header / month picker popover gets clipped | High | Shared `--app-header-h` variable, `z-30` < `z-40`, no `overflow-hidden` on the bar; check at 390px and 1280px with the popover open |
-| Wrong occurrence selected on `/recurring` (e.g. a paid one while an unpaid one exists) → wrong "Mark as paid" | High | `pickNextOccurrences` covered in `scripts/test-recurrence.ts`: unpaid before paid, all paid → latest, several series, separation by `seriesId` |
-| Users look for subscriptions in the Calendar out of habit | Med | Calendar header shows a link "Recurring payments →"; `/recurring` is in the menu and in the drawer |
-| Bottom bar loses Alerts / Wallet | Med | Alerts stays as the bell with badge in the mobile header; Wallet in the drawer; check at 360px |
-| A future month in the Calendar shows only the next occurrence of each series (rows are created on payment) | Med (existing) | Out of scope. Possible follow-up: virtual future occurrences in the grid (see Q3) |
-| `GET /api/expenses` without an auth/membership check (existing) | Med (security) | Out of scope; flagged for a separate fix |
+|------|--------|------------|
+| Dashboard strip feels like an ad or nags users | Med | Bottom of page only, muted styling, one line, no modal/toast/badge, not dismissible (user decision) |
+| Copy contradicts "free, no paid plans" | Med | Pledge line says support is voluntary and unlocks nothing; review in Checkpoint: Landing |
+| `check-i18n` flags brand strings ("GitHub Sponsors", URLs) as hard-coded | Low | Put titles in dictionaries; keep URLs/handles in `support-links.ts` constants (constants aren't JSX text) |
+| Mobile bottom bar overlaps the strip | Low | `<main>` already pads for the bottom bar; verify at 375px |
+| External link security | Low | `rel="noopener noreferrer"` on every `target="_blank"` |
+| Landing component accidentally uses `useApp()` | Low | Shared button component takes no app state; grep check in Task 1 verification |
 
-## Open questions (defaults chosen)
+## Decisions (resolved 2026-10-03)
 
-- **Q1** Page / group name: default "Πάγιες Πληρωμές" under the "Πάγια" group (EN "Recurring payments" / "Recurring"). Alternative: "Συνδρομές & Πάγια".
-- **Q2** Bottom bar: default 5 links (without Alerts and Wallet, which are in the bell and the drawer). Alternative: keep all of them, with smaller labels.
-- **Q3** Should the Calendar show projected future occurrences of recurring items (e.g. Netflix in December, before October is paid)? Default: **no, separate task later**. It would need virtual occurrences in the grid and list.
-- **Q4** What goes in the month bar: default switcher + chip. Alternative: also the remaining budget.
+1. Dashboard strip is **not dismissible**.
+2. Landing gets a **footer link only**; the header is unchanged.
+3. **No sidebar link**; add a **profile page card** instead.
+4. Links confirmed: `https://github.com/sponsors/lefos13`, `https://buymeacoffee.com/lefterisev2`.

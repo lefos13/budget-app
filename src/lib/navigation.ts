@@ -64,3 +64,31 @@ export function isMonthScopedPath(pathname: string): boolean {
   if (!pathname) return false;
   return MONTH_SCOPED_HREFS.has(pathname);
 }
+
+export type AuthModeId = 'mock' | 'normal';
+
+export function isAuthPath(pathname: string | null | undefined): boolean {
+  return pathname === '/login' || pathname === '/register';
+}
+
+export function isPublicPath(pathname: string | null | undefined): boolean {
+  if (!pathname) return false;
+  return isAuthPath(pathname) || pathname === '/invite' || pathname.startsWith('/invite/');
+}
+
+interface LandingState {
+  pathname: string | null | undefined;
+  authMode: AuthModeId;
+  isAuthLoading: boolean;
+  hasUser: boolean;
+}
+
+/** Logged-out visitor on `/` in normal mode: public landing page, no app chrome. */
+export function isLandingView({ pathname, authMode, isAuthLoading, hasUser }: LandingState): boolean {
+  return pathname === '/' && authMode === 'normal' && !isAuthLoading && !hasUser;
+}
+
+/** Normal mode on `/` while auth is still resolving: neutral splash, no chrome. */
+export function isSplashView({ pathname, authMode, isAuthLoading }: Omit<LandingState, 'hasUser'>): boolean {
+  return pathname === '/' && authMode === 'normal' && isAuthLoading;
+}
