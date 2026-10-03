@@ -1,6 +1,9 @@
 import crypto from 'node:crypto';
 import { getPublicBaseUrl } from './email';
 import { safeNextPath } from './navigation';
+import { en } from './i18n/dictionaries/en';
+import { el } from './i18n/dictionaries/el';
+import { interpolate } from './i18n/translator';
 
 export const RESET_TOKEN_TTL_MS = 30 * 60 * 1000; // 30 minutes
 export const RESET_EMAIL_PER_HOUR = 3;
@@ -105,59 +108,35 @@ export function buildResetEmail(
   link: string,
   name: string
 ): ResetEmailContent {
+  const dict = language === 'el' ? el : en;
+  const copy = dict.email.passwordReset;
   const safeName = escapeHtml(name || '');
 
-  if (language === 'el') {
-    // i18n-ignore: email copy, moved to dictionaries in a follow-up
-    const subject = 'Επαναφορά κωδικού πρόσβασης Aura Budget';
-    // i18n-ignore: email copy, moved to dictionaries in a follow-up
-    const text = `Γεια σας ${name},\n\nΛάβαμε ένα αίτημα για επαναφορά του κωδικού πρόσβασης για τον λογαριασμό σας στο Aura Budget.\n\nΜπορείτε να ορίσετε νέο κωδικό πατώντας στον παρακάτω σύνδεσμο:\n${link}\n\nΟ σύνδεσμος ισχύει για 30 λεπτά.\n\nΑν δεν ζητήσατε εσείς την επαναφορά κωδικού, μπορείτε να αγνοήσετε αυτό το μήνυμα. Ο τρέχων κωδικός σας παραμένει ασφαλής.\n`;
-    // i18n-ignore: email copy, moved to dictionaries in a follow-up
-    const html = `<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"></head>
-<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.5; color: #1e293b; background-color: #f8fafc; padding: 24px;">
-  <div style="max-width: 560px; margin: 0 auto; background: #ffffff; padding: 32px; border-radius: 8px; border: 1px solid #e2e8f0;">
-    <h2 style="margin-top: 0; color: #0f172a; font-size: 20px;">Επαναφορά κωδικού πρόσβασης</h2>
-    <p>Γεια σας ${safeName},</p>
-    <p>Λάβαμε ένα αίτημα για επαναφορά του κωδικού πρόσβασης για τον λογαριασμό σας στο Aura Budget.</p>
-    <div style="margin: 28px 0;">
-      <a href="${link}" style="background-color: #4f46e5; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: 600; display: inline-block;">Επαναφορά κωδικού</a>
-    </div>
-    <p style="font-size: 14px; color: #64748b;">Ο σύνδεσμος ισχύει για 30 λεπτά. Αν το κουμπί δεν λειτουργεί, αντιγράψτε και επικολλήστε τον παρακάτω σύνδεσμο στον browser σας:</p>
-    <p style="font-size: 13px; word-break: break-all; color: #4f46e5;"><a href="${link}" style="color: #4f46e5;">${link}</a></p>
-    <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 24px 0;" />
-    <p style="font-size: 13px; color: #94a3b8; margin-bottom: 0;">Αν δεν ζητήσατε εσείς την επαναφορά κωδικού, μπορείτε να αγνοήσετε αυτό το μήνυμα. Ο τρέχων κωδικός σας παραμένει ασφαλής.</p>
-  </div>
-</body>
-</html>`;
+  const greetingText = interpolate(copy.greeting, { name: name || '' });
+  const greetingHtml = interpolate(copy.greeting, { name: safeName });
 
-    return { subject, text, html };
-  }
+  const text = `${greetingText}\n\n${copy.intro}\n\n${link}\n\n${copy.expiry}\n\n${copy.ignore}\n\n${copy.signoff}\n`;
 
-  // i18n-ignore: email copy, moved to dictionaries in a follow-up
-  const subject = 'Reset your Aura Budget password';
-  // i18n-ignore: email copy, moved to dictionaries in a follow-up
-  const text = `Hello ${name},\n\nWe received a request to reset your password for your Aura Budget account.\n\nYou can reset your password using the link below:\n${link}\n\nThis link is valid for 30 minutes.\n\nIf you did not request a password reset, you can safely ignore this email. Your password will remain unchanged.\n`;
-  // i18n-ignore: email copy, moved to dictionaries in a follow-up
+  // i18n-ignore: HTML email template markup
   const html = `<!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"></head>
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.5; color: #1e293b; background-color: #f8fafc; padding: 24px;">
   <div style="max-width: 560px; margin: 0 auto; background: #ffffff; padding: 32px; border-radius: 8px; border: 1px solid #e2e8f0;">
-    <h2 style="margin-top: 0; color: #0f172a; font-size: 20px;">Reset your password</h2>
-    <p>Hello ${safeName},</p>
-    <p>We received a request to reset your password for your Aura Budget account.</p>
+    <h2 style="margin-top: 0; color: #0f172a; font-size: 20px;">${copy.subject}</h2>
+    <p>${greetingHtml}</p>
+    <p>${copy.intro}</p>
     <div style="margin: 28px 0;">
-      <a href="${link}" style="background-color: #4f46e5; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: 600; display: inline-block;">Reset Password</a>
+      <a href="${link}" style="background-color: #4f46e5; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: 600; display: inline-block;">${copy.cta}</a>
     </div>
-    <p style="font-size: 14px; color: #64748b;">This link is valid for 30 minutes. If the button above does not work, copy and paste this link into your browser:</p>
+    <p style="font-size: 14px; color: #64748b;">${copy.expiry} ${copy.fallback}</p>
     <p style="font-size: 13px; word-break: break-all; color: #4f46e5;"><a href="${link}" style="color: #4f46e5;">${link}</a></p>
     <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 24px 0;" />
-    <p style="font-size: 13px; color: #94a3b8; margin-bottom: 0;">If you did not request a password reset, you can safely ignore this email. Your password will remain unchanged.</p>
+    <p style="font-size: 13px; color: #94a3b8; margin-bottom: 0;">${copy.ignore}</p>
+    <p style="font-size: 13px; color: #94a3b8; margin-top: 16px;">${copy.signoff}</p>
   </div>
 </body>
 </html>`;
 
-  return { subject, text, html };
+  return { subject: copy.subject, text, html };
 }

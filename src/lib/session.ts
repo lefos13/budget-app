@@ -52,12 +52,16 @@ export async function getCurrentUser(
         where: { id: payload.userId },
       });
       if (user) {
-        return {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          avatarUrl: user.avatarUrl,
-        };
+        if (user.passwordChangedAt && (payload.iat ?? 0) < user.passwordChangedAt.getTime()) {
+          // Token was issued before password change; treat as no session (fall through like invalid token)
+        } else {
+          return {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            avatarUrl: user.avatarUrl,
+          };
+        }
       }
     }
   }

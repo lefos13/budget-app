@@ -78,12 +78,13 @@ export function verifyPassword(password: string, storedHash: string): boolean {
  * Creates an HMAC-signed session token for a given user ID or payload.
  */
 export function createSessionToken(
-  userOrId: string | { userId: string; email?: string },
+  userOrId: string | { userId: string; email?: string; iat?: number },
   maxAgeSeconds?: number
 ): string {
   const userId = typeof userOrId === 'string' ? userOrId : userOrId.userId;
   const email = typeof userOrId === 'object' ? userOrId.email : undefined;
-  const payload = JSON.stringify({ userId, email, iat: Date.now(), maxAgeSeconds });
+  const iat = typeof userOrId === 'object' && typeof userOrId.iat === 'number' ? userOrId.iat : Date.now();
+  const payload = JSON.stringify({ userId, email, iat, maxAgeSeconds });
   const payloadBase64 = Buffer.from(payload).toString('base64url');
   const signature = crypto
     .createHmac('sha256', getSessionSecret())
@@ -95,7 +96,7 @@ export function createSessionToken(
 /**
  * Validates a session token and extracts the userId and email if signature is valid.
  */
-export function verifySessionToken(token: string): { userId: string; email?: string } | null {
+export function verifySessionToken(token: string): { userId: string; email?: string; iat?: number } | null {
   try {
     const [payloadBase64, signature] = token.split('.');
     if (!payloadBase64 || !signature) return null;
@@ -115,7 +116,11 @@ export function verifySessionToken(token: string): { userId: string; email?: str
     const payload = JSON.parse(Buffer.from(payloadBase64, 'base64url').toString('utf8'));
     if (!payload.userId) return null;
 
-    return { userId: payload.userId, email: payload.email };
+    return {
+      userId: payload.userId,
+      email: payload.email,
+      iat: typeof payload.iat === 'number' ? payload.iat : undefined,
+    };
   } catch {
     return null;
   }
@@ -140,10 +145,22 @@ export async function getSessionUser() {
         name: true,
         email: true,
         avatarUrl: true,
+        passwordChangedAt: true,
       },
     });
 
-    return user;
+    if (!user) return null;
+
+    if (user.passwordChangedAt && (payload.iat ?? 0) < user.passwordChangedAt.getTime()) {
+      return null;
+    }
+
+    return {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      avatarUrl: user.avatarUrl,
+    };
   } catch (err) {
     console.error('Error retrieving session user:', err);
     return null;

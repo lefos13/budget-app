@@ -63,8 +63,8 @@ See `tasks/invite-flow-todo.md` for full acceptance criteria.
 
 ### Phase 4: Forgot password (email)
 - [x] Task 8: Email service (ported from softaware-apis) + env config
-- [ ] Task 9: Request a reset link (`/forgot-password` + email)
-- [ ] Task 10: Set a new password from the link (`/reset-password`) + sign out old sessions
+- [x] Task 9: Request a reset link (`/forgot-password` + email)
+- [x] Task 10: Set a new password from the link (`/reset-password`) + sign out old sessions
 - [ ] Task 11: Production email config, docs and real-inbox verification
 
 ### Checkpoint 4: password recovery works in production

@@ -149,6 +149,12 @@ function LoginForm() {
                 >
                   {t.auth.password}
                 </label>
+                <Link
+                  href={authHref('forgot-password', next, { email: email.trim() || null })}
+                  className="text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:underline"
+                >
+                  {t('auth.forgotPasswordLink')}
+                </Link>
               </div>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-zinc-400">

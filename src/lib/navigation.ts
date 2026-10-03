@@ -68,7 +68,20 @@ export function isMonthScopedPath(pathname: string): boolean {
 export type AuthModeId = 'mock' | 'normal';
 
 export function isAuthPath(pathname: string | null | undefined): boolean {
-  return pathname === '/login' || pathname === '/register';
+  return (
+    pathname === '/login' ||
+    pathname === '/register' ||
+    pathname === '/forgot-password' ||
+    pathname === '/reset-password'
+  );
+}
+
+export function shouldRedirectAuthedAwayFrom(pathname: string | null | undefined): boolean {
+  return (
+    pathname === '/login' ||
+    pathname === '/register' ||
+    pathname === '/forgot-password'
+  );
 }
 
 export function isPublicPath(pathname: string | null | undefined): boolean {

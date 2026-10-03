@@ -187,13 +187,13 @@ Add `POST /api/auth/password/forgot` with body `{ email, language, next? }`. It 
 Add a `/forgot-password` page with an email field that confirms "If an account exists, we've sent a link", and a **Forgot password?** link on `/login` that keeps `next`. Add `/forgot-password` and `/reset-password` to `isAuthPath`. Email subject/body go in a new `email.passwordReset` dictionary block, and page copy in `auth` (en + formal el).
 
 **Acceptance criteria:**
-- [ ] Known and unknown emails get identical responses. A token row exists only for the known one, with no raw token stored.
-- [ ] The 4th request for the same email within an hour sends nothing and still returns 200.
-- [ ] In dev, the server console shows the email with a working `http://localhost:3000/reset-password?token=…` link.
+- [x] Known and unknown emails get identical responses. A token row exists only for the known one, with no raw token stored.
+- [x] The 4th request for the same email within an hour sends nothing and still returns 200.
+- [x] In dev, the server console shows the email with a working `http://localhost:3000/reset-password?token=…` link.
 
 **Verification:**
-- [ ] New `scripts/test-password-reset.ts` (HTTP + Prisma): the cases above. Added to `test:api`. `scripts/test-navigation.ts`: the new auth paths.
-- [ ] `npx prisma validate`, `npx tsx scripts/check-i18n.ts`, `pnpm run lint`
+- [x] New `scripts/test-password-reset.ts` (HTTP + Prisma): the cases above. Added to `test:api`. `scripts/test-navigation.ts`: the new auth paths.
+- [x] `npx prisma validate`, `npx tsx scripts/check-i18n.ts`, `pnpm run lint`
 
 **Dependencies:** Tasks 2, 8
 **Files:** `prisma/schema.prisma`, `prisma/migrations/<ts>_add_password_reset/`, `src/app/api/auth/password/forgot/route.ts`, `src/app/forgot-password/page.tsx`, `src/app/login/page.tsx`, `src/lib/navigation.ts`, `src/lib/i18n/dictionaries/{en,el}.ts`, `scripts/test-password-reset.ts`
@@ -209,15 +209,15 @@ Session check: `verifySessionToken` callers (`getCurrentUser`, `getSessionUser`)
 Add a `/reset-password` page with new password + confirm. On success: `setAuthMode('normal')`, `setCurrentUser`, `refreshWallets`, toast, then `router.push(safeNextPath(next))`. An invalid link shows a "request a new link" CTA. The AppContext auth-path redirect must not fire on `/reset-password`.
 
 **Acceptance criteria:**
-- [ ] A valid link sets the new password and signs the user in. The old password fails and the new one works at `/login`.
-- [ ] Using the same link again → 400. An expired link → 400.
-- [ ] A session cookie issued before the reset (e.g. another browser) → that session is now treated as logged out.
-- [ ] **Invite flow:** private window → invite → Sign in & join → Forgot password → email link → new password → auto-joined on the dashboard.
-- [ ] A password-less user (created by the old upsert) can set a password this way and log in.
+- [x] A valid link sets the new password and signs the user in. The old password fails and the new one works at `/login`.
+- [x] Using the same link again → 400. An expired link → 400.
+- [x] A session cookie issued before the reset (e.g. another browser) → that session is now treated as logged out.
+- [x] **Invite flow:** private window → invite → Sign in & join → Forgot password → email link → new password → auto-joined on the dashboard.
+- [x] A password-less user (created by the old upsert) can set a password this way and log in.
 
 **Verification:**
-- [ ] Extend `scripts/test-password-reset.ts`. Create tokens directly through Prisma with the exported `hashResetToken` helper, then cover valid / reused / expired / short password / old session rejected.
-- [ ] `pnpm test`, `pnpm run build`, manual browser check of the invite case
+- [x] Extend `scripts/test-password-reset.ts`. Create tokens directly through Prisma with the exported `hashResetToken` helper, then cover valid / reused / expired / short password / old session rejected.
+- [x] `pnpm test`, `pnpm run build`, manual browser check of the invite case
 
 **Dependencies:** Tasks 3, 5, 9
 **Files:** `src/app/api/auth/password/reset/route.ts`, `src/app/reset-password/page.tsx`, `src/lib/auth.ts`, `src/lib/session.ts`, `src/context/AppContext.tsx`, `src/lib/i18n/dictionaries/{en,el}.ts`

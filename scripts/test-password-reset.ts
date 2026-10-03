@@ -9,6 +9,7 @@ import {
   buildResetEmail,
 } from '../src/lib/password-reset';
 import { getPublicBaseUrl } from '../src/lib/email';
+import { hashPassword, verifyPassword, createSessionToken } from '../src/lib/auth';
 
 const BASE_URL = process.env.BASE_URL ?? 'http://localhost:3000';
 
@@ -35,7 +36,7 @@ async function call(
   } catch {
     data = { rawText: text };
   }
-  return { status: res.status, data };
+  return { status: res.status, data, headers: res.headers };
 }
 
 function runPureTests(): void {
@@ -300,9 +301,232 @@ async function runHttpTests(): Promise<void> {
   }
 }
 
+async function runResetPasswordHttpTests(): Promise<void> {
+  console.log(`\n🔑 Running password reset HTTP tests against ${BASE_URL}...`);
+
+  try {
+    const probe = await fetch(`${BASE_URL}/api/users`, { signal: AbortSignal.timeout(3000) });
+    if (!probe.ok && probe.status !== 401) {
+      throw new Error(`status ${probe.status}`);
+    }
+  } catch {
+    console.error(`Dev server at ${BASE_URL} is unreachable. Skipping reset password HTTP tests.`);
+    return;
+  }
+
+  const suffix = `${Date.now()}_${Math.floor(Math.random() * 10000)}`;
+  const oldPassword = 'oldPassword123';
+  const newPassword = 'newPassword456';
+  let fixtureUserId: string | null = null;
+
+  try {
+    // Fixture user with known password
+    const fixtureUser = await prisma.user.create({
+      data: {
+        name: `Reset Flow User ${suffix}`,
+        email: `reset-flow-${suffix}@example.com`,
+        passwordHash: hashPassword(oldPassword),
+      },
+    });
+    fixtureUserId = fixtureUser.id;
+
+    // Create tokens directly via prisma using generateResetToken()/hashResetToken
+    const validReset = generateResetToken();
+    const validTokenRow = await prisma.passwordResetToken.create({
+      data: {
+        userId: fixtureUser.id,
+        tokenHash: validReset.tokenHash,
+        expiresAt: new Date(Date.now() + 30 * 60 * 1000),
+      },
+    });
+
+    // Create extra tokens for the user to verify other tokens get deleted in step 2
+    const extraReset1 = generateResetToken();
+    await prisma.passwordResetToken.create({
+      data: {
+        userId: fixtureUser.id,
+        tokenHash: extraReset1.tokenHash,
+        expiresAt: new Date(Date.now() + 30 * 60 * 1000),
+      },
+    });
+    const extraReset2 = generateResetToken();
+    await prisma.passwordResetToken.create({
+      data: {
+        userId: fixtureUser.id,
+        tokenHash: extraReset2.tokenHash,
+        expiresAt: new Date(Date.now() + 30 * 60 * 1000),
+      },
+    });
+
+    const initialOtherCount = await prisma.passwordResetToken.count({
+      where: { userId: fixtureUser.id, id: { not: validTokenRow.id } },
+    });
+    assert.equal(initialOtherCount, 2, 'Fixture user should initially have 2 other tokens');
+
+    // 1. short password → 400 with that message; token still unused
+    const shortRes = await call('POST', '/api/auth/password/reset', {}, {
+      token: validReset.token,
+      password: '123',
+    });
+    assert.equal(shortRes.status, 400, `Short password should return 400, got ${shortRes.status}`);
+    assert.equal(
+      shortRes.data.error,
+      'Password must be at least 6 characters long',
+      'Error message must match register error for short password'
+    );
+    const tokenAfterShort = await prisma.passwordResetToken.findUnique({
+      where: { id: validTokenRow.id },
+    });
+    assert.equal(tokenAfterShort?.usedAt, null, 'Token must still be unused after failed short password attempt');
+    console.log('  ✓ 1. short password → 400 with passwordTooShort message; token still unused');
+
+    // 5 (prep). Before the reset, create a session token with createSessionToken(user.id) (iat earlier),
+    // call GET /api/auth/me with Cookie aura_session=<old> → 200 before;
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    const oldSessionToken = createSessionToken(fixtureUser.id);
+    const meBefore = await call('GET', '/api/auth/me', {
+      Cookie: `aura_session=${oldSessionToken}`,
+    });
+    assert.equal(meBefore.status, 200, `GET /api/auth/me before reset should return 200, got ${meBefore.status}`);
+    assert.equal(meBefore.data.user?.id, fixtureUser.id, 'Session should authenticate as fixture user before reset');
+    console.log('  ✓ 5 (before). old session authenticated successfully on GET /api/auth/me before reset');
+
+    // Wait 50ms before reset so passwordChangedAt will be strictly greater than oldSessionToken iat
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    // 2. valid token + new password → 200, response has user, set-cookie contains aura_session;
+    // DB: passwordHash changed, passwordChangedAt set, token usedAt set, other tokens of the user deleted.
+    const resetRes = await call('POST', '/api/auth/password/reset', {}, {
+      token: validReset.token,
+      password: newPassword,
+    });
+    assert.equal(resetRes.status, 200, `Valid reset should return 200, got ${resetRes.status}`);
+    assert.ok(resetRes.data.user, 'Response must have user object');
+    assert.equal(resetRes.data.user.id, fixtureUser.id);
+    assert.equal(resetRes.data.user.email, fixtureUser.email);
+    assert.equal(resetRes.data.user.name, fixtureUser.name);
+
+    const setCookieHeader =
+      resetRes.headers?.get('set-cookie') ||
+      (resetRes.headers?.getSetCookie ? resetRes.headers.getSetCookie().join('; ') : '') ||
+      '';
+    assert.match(setCookieHeader, /aura_session=/, 'set-cookie must contain aura_session');
+    const cookieMatch = setCookieHeader.match(/aura_session=([^;]+)/);
+    assert.ok(cookieMatch, 'Must be able to extract aura_session token from set-cookie');
+    const newSessionToken = cookieMatch[1];
+
+    // DB state verifications
+    const userAfter = await prisma.user.findUnique({
+      where: { id: fixtureUser.id },
+    });
+    assert.ok(userAfter?.passwordHash, 'User must have a passwordHash');
+    assert.notEqual(
+      userAfter.passwordHash,
+      fixtureUser.passwordHash,
+      'DB passwordHash must have changed'
+    );
+    assert.ok(
+      verifyPassword(newPassword, userAfter.passwordHash),
+      'New password must successfully verify against updated passwordHash'
+    );
+    assert.ok(userAfter.passwordChangedAt, 'DB passwordChangedAt must be set');
+
+    const tokenAfterValid = await prisma.passwordResetToken.findUnique({
+      where: { id: validTokenRow.id },
+    });
+    assert.ok(tokenAfterValid?.usedAt, 'Used token must have usedAt timestamp set');
+
+    const remainingOtherTokens = await prisma.passwordResetToken.count({
+      where: { userId: fixtureUser.id, id: { not: validTokenRow.id } },
+    });
+    assert.equal(remainingOtherTokens, 0, 'Other tokens of the user must be deleted from DB');
+    console.log(
+      '  ✓ 2. valid token + new password → 200, user in response, aura_session cookie set, DB updated (hash, passwordChangedAt, usedAt, other tokens deleted)'
+    );
+
+    // 3. same token again → 400 invalid
+    const reusedRes = await call('POST', '/api/auth/password/reset', {}, {
+      token: validReset.token,
+      password: newPassword,
+    });
+    assert.equal(reusedRes.status, 400, `Reused token should return 400, got ${reusedRes.status}`);
+    assert.equal(
+      reusedRes.data.error,
+      'This reset link is invalid or has expired',
+      'Reused token must return invalid/expired error'
+    );
+    console.log('  ✓ 3. same token again → 400 invalid / expired');
+
+    // 4. expired token (expiresAt in the past) → 400 invalid
+    const expiredReset = generateResetToken();
+    await prisma.passwordResetToken.create({
+      data: {
+        userId: fixtureUser.id,
+        tokenHash: expiredReset.tokenHash,
+        expiresAt: new Date(Date.now() - 60 * 1000), // 1 minute in past
+      },
+    });
+    const expiredRes = await call('POST', '/api/auth/password/reset', {}, {
+      token: expiredReset.token,
+      password: newPassword,
+    });
+    assert.equal(expiredRes.status, 400, `Expired token should return 400, got ${expiredRes.status}`);
+    assert.equal(
+      expiredRes.data.error,
+      'This reset link is invalid or has expired',
+      'Expired token must return invalid/expired error'
+    );
+    console.log('  ✓ 4. expired token (expiresAt in past) → 400 invalid / expired');
+
+    // 5 (after). old session invalidated: after the reset → 401. The new cookie from step 2 → 200.
+    const meAfterOld = await call('GET', '/api/auth/me', {
+      Cookie: `aura_session=${oldSessionToken}`,
+    });
+    assert.equal(
+      meAfterOld.status,
+      401,
+      `Old session after reset should return 401, got ${meAfterOld.status}`
+    );
+
+    const meAfterNew = await call('GET', '/api/auth/me', {
+      Cookie: `aura_session=${newSessionToken}`,
+    });
+    assert.equal(
+      meAfterNew.status,
+      200,
+      `New session cookie from step 2 should return 200, got ${meAfterNew.status}`
+    );
+    assert.equal(meAfterNew.data.user?.id, fixtureUser.id, 'New session must authenticate fixture user');
+    console.log('  ✓ 5. old session invalidated (401 on GET /api/auth/me), new session authenticated (200)');
+
+    // 6. POST /api/auth/login with the old password → fails; with the new password → 200.
+    const loginOld = await call('POST', '/api/auth/login', {}, {
+      email: fixtureUser.email,
+      password: oldPassword,
+    });
+    assert.equal(loginOld.status, 401, `Login with old password should fail (401), got ${loginOld.status}`);
+
+    const loginNew = await call('POST', '/api/auth/login', {}, {
+      email: fixtureUser.email,
+      password: newPassword,
+    });
+    assert.equal(loginNew.status, 200, `Login with new password should succeed (200), got ${loginNew.status}`);
+    assert.equal(loginNew.data.user?.id, fixtureUser.id, 'Logged in user ID should match fixture user');
+    console.log('  ✓ 6. POST /api/auth/login with old password fails (401); with new password succeeds (200)');
+
+    console.log('\n✅ All reset password backend tests passed.');
+  } finally {
+    if (fixtureUserId) {
+      await prisma.passwordResetToken.deleteMany({ where: { userId: fixtureUserId } });
+      await prisma.user.deleteMany({ where: { id: fixtureUserId } });
+    }
+  }
+}
+
 async function main() {
   runPureTests();
   await runHttpTests();
+  await runResetPasswordHttpTests();
   await prisma.$disconnect();
 }
 
@@ -311,3 +535,4 @@ main().catch(async (err) => {
   await prisma.$disconnect();
   process.exit(1);
 });
+

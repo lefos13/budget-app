@@ -15,6 +15,7 @@ export const API_ERROR_MAP: Record<string, string> = {
   'User does not have a password set': 'errors.noPasswordSet',
   'Current password is incorrect': 'errors.wrongCurrentPassword',
   'Password must be at least 6 characters long': 'errors.passwordTooShort',
+  'This reset link is invalid or has expired': 'errors.resetLinkInvalidOrExpired',
   'Failed to update profile': 'errors.failedToUpdateProfile',
   'A valid email address is required': 'errors.emailRequired',
   'User with this email already exists': 'errors.emailAlreadyExists',

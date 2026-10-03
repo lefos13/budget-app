@@ -7,6 +7,7 @@ import {
   isPublicChromeView,
   safeNextPath,
   authHref,
+  shouldRedirectAuthedAwayFrom,
 } from '../src/lib/navigation';
 
 type Mode = 'mock' | 'normal';
@@ -22,14 +23,30 @@ function run() {
 
   assert.equal(isAuthPath('/login'), true);
   assert.equal(isAuthPath('/register'), true);
+  assert.equal(isAuthPath('/forgot-password'), true);
+  assert.equal(isAuthPath('/reset-password'), true);
   assert.equal(isAuthPath('/'), false);
   assert.equal(isAuthPath('/invite/x'), false);
   assert.equal(isPublicPath('/invite/x'), true);
   assert.equal(isPublicPath('/login'), true);
+  assert.equal(isPublicPath('/register'), true);
+  assert.equal(isPublicPath('/forgot-password'), true);
+  assert.equal(isPublicPath('/reset-password'), true);
   assert.equal(isPublicPath('/expenses'), false);
   assert.equal(isPublicPath('/invitefoo'), false);
   assert.equal(isPublicPath(null), false);
   console.log('✓ Test 1: isAuthPath / isPublicPath');
+
+  assert.equal(shouldRedirectAuthedAwayFrom('/login'), true);
+  assert.equal(shouldRedirectAuthedAwayFrom('/register'), true);
+  assert.equal(shouldRedirectAuthedAwayFrom('/forgot-password'), true);
+  assert.equal(shouldRedirectAuthedAwayFrom('/reset-password'), false);
+  assert.equal(shouldRedirectAuthedAwayFrom('/'), false);
+  assert.equal(shouldRedirectAuthedAwayFrom('/expenses'), false);
+  assert.equal(shouldRedirectAuthedAwayFrom('/invite/x'), false);
+  assert.equal(shouldRedirectAuthedAwayFrom(null), false);
+  assert.equal(shouldRedirectAuthedAwayFrom(undefined), false);
+  console.log('✓ Test 1b: shouldRedirectAuthedAwayFrom');
 
   // normal mode, `/`
   assert.equal(view('/', 'normal', false, false), 'landing');
@@ -47,7 +64,7 @@ function run() {
   console.log('✓ Test 3: mock mode "/" is always the app');
 
   // private and auth paths never landing/splash/public-chrome
-  for (const path of ['/expenses', '/login']) {
+  for (const path of ['/expenses', '/login', '/forgot-password', '/reset-password']) {
     for (const loading of [true, false]) {
       for (const user of [true, false]) {
         assert.equal(view(path, 'normal', loading, user), 'app', `${path} ${loading} ${user}`);
@@ -68,6 +85,8 @@ function run() {
   assert.equal(isPublicChromeView({ pathname: '/invite/x', authMode: 'normal', isAuthLoading: true, hasUser: false }), false);
   assert.equal(isPublicChromeView({ pathname: '/invite/x', authMode: 'mock', isAuthLoading: false, hasUser: false }), false);
   assert.equal(isPublicChromeView({ pathname: '/login', authMode: 'normal', isAuthLoading: false, hasUser: false }), false);
+  assert.equal(isPublicChromeView({ pathname: '/forgot-password', authMode: 'normal', isAuthLoading: false, hasUser: false }), false);
+  assert.equal(isPublicChromeView({ pathname: '/reset-password', authMode: 'normal', isAuthLoading: false, hasUser: false }), false);
   assert.equal(isPublicChromeView({ pathname: '/expenses', authMode: 'normal', isAuthLoading: false, hasUser: false }), false);
   assert.equal(isPublicChromeView({ pathname: '/', authMode: 'normal', isAuthLoading: false, hasUser: false }), false);
 
