@@ -57,7 +57,7 @@ See `tasks/invite-flow-todo.md` for full acceptance criteria.
 
 ### Phase 3: Chrome + docs
 - [x] Task 6: Public chrome for logged-out visitors on `/invite/*` (no sidebar / wallet selector)
-- [ ] Task 7: AGENTS.md update + full browser verification
+- [x] Task 7: AGENTS.md update + full browser verification
 
 ### Checkpoint 3: invite flow complete
 

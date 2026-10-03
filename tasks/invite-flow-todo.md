@@ -133,20 +133,20 @@ Check that the AppContext `activeWalletId` effect doesn't reset the active walle
 **Description:** Document the invite flow in AGENTS.md §3/§4: the `next` param plus `safeNextPath`, auto-accept with `?join=1`, joins requiring a session, and public chrome on `/invite/*` decided in AppShell. Run the full verification suite and the browser scenarios one last time.
 
 **Acceptance criteria:**
-- [ ] AGENTS.md describes the flow and the rules (never redirect to an unvalidated `next`, chrome is decided only in AppShell).
-- [ ] All §7 checks pass.
+- [x] AGENTS.md describes the flow and the rules (never redirect to an unvalidated `next`, chrome is decided only in AppShell).
+- [x] All §7 checks pass.
 
 **Verification:**
-- [ ] `npx prisma validate`, `pnpm test`, `pnpm run test:api`, `pnpm run lint`, `pnpm run build`
+- [x] `npx prisma validate`, `pnpm test`, `pnpm run test:api`, `pnpm run lint`, `pnpm run build`
 
 **Dependencies:** Tasks 1–6
 **Files:** `AGENTS.md`
 **Scope:** XS
 
 ## Checkpoint 3: invite flow complete
-- [ ] All acceptance criteria of Tasks 1–7 met
-- [ ] Invite-flow open questions resolved or deferred explicitly
-- [ ] Shippable on its own (Phases 4 and 5 can follow as separate deploys)
+- [x] All acceptance criteria of Tasks 1–7 met
+- [x] Invite-flow open questions resolved or deferred explicitly
+- [x] Shippable on its own (Phases 4 and 5 can follow as separate deploys)
 
 ---
 
@@ -229,10 +229,10 @@ Add a `/reset-password` page with new password + confirm. On success: `setAuthMo
 **Acceptance criteria:**
 - [ ] On budget.lnf.gr, a forgot-password request to the user's real inbox arrives within a minute, the link opens `https://budget.lnf.gr/reset-password…`, and the reset works.
 - [ ] Email arrives in both EN and EL depending on the UI language.
-- [ ] The deploy script refuses a release with incomplete email config.
+- [x] The deploy script refuses a release with incomplete email config.
 
 **Verification:**
-- [ ] All AGENTS.md §7 checks: `npx prisma validate`, `pnpm test`, `pnpm run test:api`, `pnpm run lint`, `pnpm run build`
+- [x] All AGENTS.md §7 checks: `npx prisma validate`, `pnpm test`, `pnpm run test:api`, `pnpm run lint`, `pnpm run build`
 - [ ] Manual production check (user confirms receipt)
 
 **Dependencies:** Tasks 8–10
