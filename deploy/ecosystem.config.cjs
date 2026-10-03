@@ -6,6 +6,8 @@ Runtime config is never read from the release. It comes from two files, the late
      (EMAIL_PROVIDER, GMAIL_*, EMAIL_FROM, EMAIL_REPLY_TO) shared by every app. Optional.
   2. APP_ROOT/shared/.env.production: this app's own values (AUTH_SECRET, DATABASE_URL, ...).
 deploy-release.sh layers and validates the same two files before reloading.
+The root PM2 daemon runs the app as the unprivileged `apps` user; it only needs to read the
+release and write shared/data. The env files stay root-only because PM2 passes their values in.
 */
 const fs = require("node:fs");
 const path = require("node:path");
@@ -34,7 +36,9 @@ module.exports = {
       instances: 1,
       node_args: "--max-old-space-size=256",
       max_memory_restart: "350M",
-      env: { ...env, NODE_ENV: "production" },
+      uid: "apps",
+      gid: "apps",
+      env: { ...env, NODE_ENV: "production", HOME: "/home/apps" },
     },
   ],
 };

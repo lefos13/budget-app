@@ -120,6 +120,9 @@ fi
 
 # Schema migrations are strictly additive; applied before swapping symlink and reloading PM2.
 nice -n 10 "$RELEASE_DIR/migrator/node_modules/.bin/prisma" migrate deploy --schema "$RELEASE_DIR/prisma/schema.prisma"
+# The app runs as `apps` (see ecosystem.config.cjs); keep the database it writes owned by that user,
+# including a file migrate just created on a first deploy.
+chown -R apps:apps "$(dirname "$DB_FILE")"
 
 # Atomic swap: rename a fresh symlink over the old one.
 ln -sfn "$RELEASE_DIR" "$APP_ROOT/current.next"
