@@ -1,0 +1,174 @@
+name: Deploy Production
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      skip_checks:
+        description: Skip lint/typecheck/tests and deploy immediately
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+# Never cancel a deploy halfway through a migration or reload; queue the next one instead.
+concurrency:
+  group: deploy-production-budget-app
+  cancel-in-progress: false
+
+env:
+  NODE_VERSION: '25.8.1'
+  PRISMA_VERSION: '6.19.3'
+  ARTIFACT: budget-app-release.tar.zst
+
+jobs:
+  deploy:
+    # Pinned to the droplet's Ubuntu release so Prisma engines (debian-openssl-3.0.x) match the host.
+    runs-on: ubuntu-24.04
+    environment: production
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        env:
+          DATABASE_URL: file:${{ runner.temp }}/ci.db
+        run: pnpm exec prisma generate
+
+      - name: Lint and typecheck
+        if: ${{ github.event_name != 'workflow_dispatch' || !inputs.skip_checks }}
+        run: |
+          pnpm lint
+          pnpm exec tsc --noEmit
+
+      - name: Test
+        if: ${{ github.event_name != 'workflow_dispatch' || !inputs.skip_checks }}
+        # Tests run against a throwaway SQLite file built only from committed migrations + seed,
+        # which also catches schema changes that were never turned into a migration.
+        env:
+          DATABASE_URL: file:${{ runner.temp }}/ci.db
+        run: |
+          pnpm exec prisma migrate deploy
+          pnpm exec tsx prisma/seed.ts
+          pnpm test
+
+      - name: Build
+        env:
+          NEXT_PUBLIC_AUTH_MODE: normal
+          # Only so Prisma can load the schema; no route queries the DB at build time.
+          DATABASE_URL: file:${{ runner.temp }}/ci.db
+        run: pnpm build
+
+      - name: Assemble release
+        run: |
+          set -euo pipefail
+          REL="$RUNNER_TEMP/release"
+          rm -rf "$REL"
+          cp -a .next/standalone "$REL"
+          cp -a .next/static "$REL/.next/static"
+          cp -a public "$REL/public"
+          mkdir -p "$REL/prisma"
+          cp -a prisma/schema.prisma prisma/migrations "$REL/prisma/"
+          cp -a deploy "$REL/deploy"
+          printf '%s\n' "$GITHUB_SHA" > "$REL/REVISION"
+
+          # Pinned Prisma CLI so the droplet can run migrate deploy without installing anything.
+          mkdir -p "$REL/migrator"
+          (cd "$REL/migrator" && npm init -y >/dev/null && npm install --no-audit --no-fund "prisma@$PRISMA_VERSION")
+
+          tar -C "$REL" -I 'zstd -T0 -10' -cf "$RUNNER_TEMP/$ARTIFACT" .
+          du -sh "$REL" "$RUNNER_TEMP/$ARTIFACT"
+
+      - name: Smoke test release
+        # Boot the exact artifact with production settings on a fresh DB before it leaves the runner.
+        run: |
+          set -euo pipefail
+          REL="$RUNNER_TEMP/release"
+          export DATABASE_URL="file:$RUNNER_TEMP/smoke.db" NODE_ENV=production PORT=3299 HOSTNAME=127.0.0.1
+          export AUTH_SECRET="$(openssl rand -hex 32)"
+          "$REL/migrator/node_modules/.bin/prisma" migrate deploy --schema "$REL/prisma/schema.prisma"
+          (cd "$REL" && node server.js > "$RUNNER_TEMP/smoke.log" 2>&1 &)
+          for i in $(seq 1 30); do curl -fsS -o /dev/null http://127.0.0.1:3299/login && break; sleep 1; done
+          B=http://127.0.0.1:3299
+          code() { curl -s -o /dev/null -w '%{http_code}' "$@"; }
+          test "$(code $B/login)" = 200
+          test "$(code -X POST -H 'content-type: application/json' \
+            -d '{"name":"Smoke","email":"smoke@example.com","password":"Sm0ke-pass-123"}' \
+            -c "$RUNNER_TEMP/ck" $B/api/auth/register)" = 201
+          test "$(code -b "$RUNNER_TEMP/ck" $B/api/wallets)" = 200
+          # Mock auth must be unreachable in production builds.
+          test "$(code $B/api/wallets)" = 401
+          test "$(code -H 'x-user-id: anything' $B/api/wallets)" = 401
+          test "$(code $B/api/users)" = 404
+          echo "Smoke test passed"
+          pkill -f "node server.js" || true
+
+      - name: Configure SSH
+        env:
+          DROPLET_SSH_KEY: ${{ secrets.DROPLET_SSH_KEY }}
+          DROPLET_HOST_KEY: ${{ secrets.DROPLET_HOST_KEY }}
+        run: |
+          set -euo pipefail
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$DROPLET_SSH_KEY" | tr -d '\r' > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          printf '%s\n' "$DROPLET_HOST_KEY" > ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+
+      - name: Deploy on Droplet
+        env:
+          DROPLET_HOST: ${{ secrets.DROPLET_HOST }}
+          DROPLET_USER: ${{ secrets.DROPLET_USER }}
+          DROPLET_PORT: ${{ secrets.DROPLET_PORT || '22' }}
+          APP_ROOT: ${{ secrets.DEPLOY_PATH }}
+        run: |
+          set -euo pipefail
+          SSH_OPTS=(-i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=yes -o BatchMode=yes)
+          RELEASE_ID="$(date -u +%Y%m%dT%H%M%SZ)-${GITHUB_SHA::7}"
+          REMOTE_ARTIFACT="/tmp/budget-app-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}.tar.zst"
+          scp -P "$DROPLET_PORT" "${SSH_OPTS[@]}" "$RUNNER_TEMP/$ARTIFACT" "$DROPLET_USER@$DROPLET_HOST:$REMOTE_ARTIFACT"
+
+          ssh -p "$DROPLET_PORT" "${SSH_OPTS[@]}" -o ServerAliveInterval=30 \
+            "$DROPLET_USER@$DROPLET_HOST" \
+            "APP_ROOT='$APP_ROOT' RELEASE_ID='$RELEASE_ID' REMOTE_ARTIFACT='$REMOTE_ARTIFACT' NODE_VERSION='$NODE_VERSION' bash -se" <<'REMOTE'
+          set -euo pipefail
+          trap 'rm -f "$REMOTE_ARTIFACT"' EXIT
+
+          # Non-interactive SSH shells do not load nvm; node/pm2 live there.
+          export NVM_DIR="$HOME/.nvm"
+          . "$NVM_DIR/nvm.sh"
+          nvm use "$NODE_VERSION" >/dev/null
+
+          RELEASE_DIR="$APP_ROOT/releases/$RELEASE_ID"
+          mkdir -p "$RELEASE_DIR"
+          # Lowest CPU/IO priority so unpacking never competes with the live apps.
+          nice -n 19 ionice -c 3 tar --zstd -xf "$REMOTE_ARTIFACT" -C "$RELEASE_DIR"
+          rm -f "$REMOTE_ARTIFACT"
+
+          APP_ROOT="$APP_ROOT" bash "$RELEASE_DIR/deploy/deploy-release.sh" "$RELEASE_DIR"
+          REMOTE
+
+      - name: Verify public URL
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 10); do
+            if [ "$(curl -s -o /dev/null -w '%{http_code}' https://budget.lnf.gr/login)" = 200 ]; then
+              echo "https://budget.lnf.gr is up"; exit 0
+            fi
+            sleep 3
+          done
+          echo "https://budget.lnf.gr/login did not return 200" >&2
+          exit 1

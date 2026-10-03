@@ -203,17 +203,23 @@ function subscribeAuthMode(callback: () => void) {
   return () => window.removeEventListener('storage', callback);
 }
 
-function getAuthModeSnapshot(): AuthMode {
-  if (typeof window === 'undefined') {
-    return process.env.NEXT_PUBLIC_AUTH_MODE === 'normal' ? 'normal' : 'mock';
-  }
-  const savedMode = localStorage.getItem('aura_auth_mode') as AuthMode | null;
-  if (savedMode === 'mock' || savedMode === 'normal') return savedMode;
+// Production servers reject mock auth (see src/lib/session.ts), so the client never offers it there.
+function getDefaultAuthMode(): AuthMode {
+  if (process.env.NODE_ENV === 'production') return 'normal';
   return process.env.NEXT_PUBLIC_AUTH_MODE === 'normal' ? 'normal' : 'mock';
 }
 
+function getAuthModeSnapshot(): AuthMode {
+  if (typeof window === 'undefined' || process.env.NODE_ENV === 'production') {
+    return getDefaultAuthMode();
+  }
+  const savedMode = localStorage.getItem('aura_auth_mode') as AuthMode | null;
+  if (savedMode === 'mock' || savedMode === 'normal') return savedMode;
+  return getDefaultAuthMode();
+}
+
 function getAuthModeServerSnapshot(): AuthMode {
-  return process.env.NEXT_PUBLIC_AUTH_MODE === 'normal' ? 'normal' : 'mock';
+  return getDefaultAuthMode();
 }
 
 function subscribeMonth(callback: () => void) {

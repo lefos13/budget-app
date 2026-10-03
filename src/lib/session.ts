@@ -10,6 +10,12 @@ export interface CurrentUser {
 }
 
 /**
+ * Mock auth (the `x-user-id` header and the default-user fallback) lets any caller act as any
+ * user. It exists only for the dev user switcher and MUST stay off in production builds.
+ */
+const MOCK_AUTH_ENABLED = process.env.NODE_ENV !== 'production';
+
+/**
  * Retrieves the current user based on:
  * 1. Valid `aura_session` HTTP-only cookie (JWT session token).
  * 2. `x-user-id` header (used in Mock Dev mode or switcher).
@@ -56,8 +62,8 @@ export async function getCurrentUser(
     }
   }
 
-  // 2. If x-user-id header is provided (Mock mode or user switching)
-  if (userIdHeader) {
+  // 2. If x-user-id header is provided (Mock mode or user switching; dev only)
+  if (userIdHeader && MOCK_AUTH_ENABLED) {
     const user = await prisma.user.findUnique({
       where: { id: userIdHeader },
     });
@@ -71,8 +77,8 @@ export async function getCurrentUser(
     }
   }
 
-  // If in strict normal mode and not authenticated, do not fallback to mock user
-  if (authMode === 'normal' || !allowMockFallback) {
+  // If in strict normal mode, in production, or not authenticated, do not fallback to mock user
+  if (authMode === 'normal' || !allowMockFallback || !MOCK_AUTH_ENABLED) {
     return null;
   }
 

@@ -221,7 +221,8 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* Dev Mode Simulator Bypass Shortcut */}
+        {/* Dev Mode Simulator Bypass Shortcut (mock auth is disabled in production) */}
+        {process.env.NODE_ENV !== 'production' && (
         <div className="mt-6 text-center">
           <div className="inline-flex items-center gap-2 p-1.5 pr-3 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400 text-xs">
             <div className="px-2 py-0.5 rounded-full bg-amber-500 text-zinc-950 font-black text-[10px] uppercase tracking-wider flex items-center gap-1">
@@ -238,6 +239,7 @@ export default function LoginPage() {
             </button>
           </div>
         </div>
+        )}
       </div>
     </div>
   );

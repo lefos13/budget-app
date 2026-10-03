@@ -29,6 +29,9 @@ import { getAlertBadgeInfo } from '@/lib/bill-alerts';
 import { parseMonthKey } from '@/lib/month';
 import { NAV_GROUPS, isAuthPath, type NavItem } from '@/lib/navigation';
 
+// Mock auth is disabled server-side in production (src/lib/session.ts), so its switchers are dev-only.
+const SHOW_DEV_MODE = process.env.NODE_ENV !== 'production';
+
 function subscribeSidebar(callback: () => void) {
   window.addEventListener('storage', callback);
   return () => window.removeEventListener('storage', callback);
@@ -399,6 +402,7 @@ export function Sidebar() {
               </div>
 
               {/* Dev Mode Switcher */}
+              {SHOW_DEV_MODE && (
               <div className="flex items-center justify-between text-xs">
                 <span className="text-zinc-500 flex items-center gap-1.5">
                   <Sparkles className="w-3.5 h-3.5 text-amber-500" />
@@ -412,6 +416,7 @@ export function Sidebar() {
                   {t.devMode.toggle}
                 </button>
               </div>
+              )}
 
               {/* Profile Card & Logout */}
               {currentUser && (
@@ -796,7 +801,7 @@ export function Sidebar() {
         {/* Bottom Section: Dev Mode Indicator & Toggle, Language Switcher, Profile */}
         <div className="p-3 border-t border-zinc-200/70 dark:border-zinc-800/70 shrink-0 space-y-2">
           {/* Dev Mode Switcher */}
-          {!isCollapsed ? (
+          {SHOW_DEV_MODE && (!isCollapsed ? (
             <div className="p-2 rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800">
               <div className="flex items-center justify-between mb-1.5">
                 <div className="flex items-center gap-1.5">
@@ -879,7 +884,7 @@ export function Sidebar() {
                 <Sparkles className="w-4 h-4 text-amber-500" />
               </button>
             </div>
-          )}
+          ))}
 
           {/* Language Switcher */}
           {!isCollapsed ? (

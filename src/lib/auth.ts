@@ -6,7 +6,20 @@ import { NextResponse } from 'next/server';
 
 export const SESSION_COOKIE_NAME = 'aura_session';
 export const AUTH_COOKIE_NAME = SESSION_COOKIE_NAME;
-const SESSION_SECRET = process.env.AUTH_SECRET || process.env.SESSION_SECRET || 'aura-budget-secret-key-2026';
+const DEV_SESSION_SECRET = 'aura-budget-secret-key-2026';
+
+/**
+ * Resolved on first use, not at import, so `next build` can load this module without secrets.
+ * Production refuses the public dev default: anyone could forge session tokens with it.
+ */
+function getSessionSecret(): string {
+  const secret = process.env.AUTH_SECRET || process.env.SESSION_SECRET;
+  if (secret) return secret;
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('AUTH_SECRET must be set in production');
+  }
+  return DEV_SESSION_SECRET;
+}
 
 export const COOKIE_OPTIONS = {
   httpOnly: true,
@@ -73,7 +86,7 @@ export function createSessionToken(
   const payload = JSON.stringify({ userId, email, iat: Date.now(), maxAgeSeconds });
   const payloadBase64 = Buffer.from(payload).toString('base64url');
   const signature = crypto
-    .createHmac('sha256', SESSION_SECRET)
+    .createHmac('sha256', getSessionSecret())
     .update(payloadBase64)
     .digest('base64url');
   return `${payloadBase64}.${signature}`;
@@ -88,7 +101,7 @@ export function verifySessionToken(token: string): { userId: string; email?: str
     if (!payloadBase64 || !signature) return null;
 
     const expectedSignature = crypto
-      .createHmac('sha256', SESSION_SECRET)
+      .createHmac('sha256', getSessionSecret())
       .update(payloadBase64)
       .digest('base64url');
 

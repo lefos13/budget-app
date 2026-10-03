@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
+// Dev user-switcher endpoint: lists every user and upserts users by email without auth.
+// Mock auth is off in production (src/lib/session.ts), so the endpoint is too.
+const MOCK_USERS_ENABLED = process.env.NODE_ENV !== 'production';
+
 export async function GET() {
+  if (!MOCK_USERS_ENABLED) return NextResponse.json({ error: 'Not found' }, { status: 404 });
   try {
     const users = await prisma.user.findMany({
       select: {
@@ -21,6 +26,7 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  if (!MOCK_USERS_ENABLED) return NextResponse.json({ error: 'Not found' }, { status: 404 });
   try {
     const body = await req.json();
     const { name, email } = body;
