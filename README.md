@@ -27,7 +27,35 @@ pnpm test:api    # HTTP API tests; needs `pnpm dev` running (creates and removes
 npx prisma validate
 ```
 
-Database changes are additive migrations only (`prisma migrate deploy`); never reset `prisma/dev.db`.
+Database changes are additive migrations only (`prisma migrate deploy`); never reset `prisma/dev.db`. Every schema change needs a committed migration. CI builds its test database from migrations alone, so a `db push`-only change fails the deploy.
+
+Local dev needs a `.env` file (gitignored) containing `DATABASE_URL="file:./dev.db"`.
+
+## Production (budget.lnf.gr)
+
+Pushing to `main` runs `.github/workflows/deploy-production.yml`. All of it happens on the GitHub runner except the final step:
+
+1. Lint, typecheck, then `pnpm test` against a fresh SQLite file built from migrations + `prisma/seed.ts`.
+2. `next build` with `output: "standalone"` and `NEXT_PUBLIC_AUTH_MODE=normal`.
+3. Assemble the release: standalone server, `.next/static`, `public`, `prisma/` and `deploy/`, plus a pinned Prisma CLI in `migrator/`.
+4. Smoke test: boot the release in production mode and check that register/session work, and that `/api/users` and `x-user-id` access are rejected.
+5. Ship it to the droplet. `deploy/deploy-release.sh` backs up the database, runs `prisma migrate deploy`, swaps the `current` symlink, reloads PM2 (`budget-app`), and checks the health URL.
+
+Production runs with mock auth disabled. When `NODE_ENV=production`, the server ignores `x-user-id`, never falls back to a default user, returns 404 for `/api/users`, and refuses to sign sessions without `AUTH_SECRET`.
+
+Droplet layout (`/root/budget-app`):
+
+| Path | Purpose |
+|---|---|
+| `current` | Symlink to the live release, which PM2 runs |
+| `releases/<time>-<sha>` | Last 3 releases. Roll back with `ln -sfn` to an older one, then `pm2 reload budget-app` |
+| `shared/.env.production` | `NODE_ENV`, `PORT=3200`, `HOSTNAME=127.0.0.1`, `DATABASE_URL=file:/root/budget-app/shared/data/budget.db`, `AUTH_SECRET` |
+| `shared/data/budget.db` | Production SQLite database |
+| `shared/backups/` | Pre-migration DB copies (last 10) |
+
+nginx (`deploy/nginx/`, live copy in `/etc/nginx/conf.d/budget.lnf.gr.conf`) terminates TLS (Let's Encrypt, renewed by certbot via webroot) and rate-limits `/api/auth/login|register` to 10 requests/min per IP.
+
+GitHub secrets: `DROPLET_HOST`, `DROPLET_USER`, `DROPLET_SSH_KEY`, `DROPLET_HOST_KEY`, `DEPLOY_PATH` (`/root/budget-app`), and optionally `DROPLET_PORT`.
 
 ---
 
@@ -62,8 +90,3 @@ To learn more about Next.js, take a look at the following resources:
 
 You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
