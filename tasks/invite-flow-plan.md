@@ -49,14 +49,14 @@ See `tasks/invite-flow-todo.md` for full acceptance criteria.
 ### Checkpoint 1
 
 ### Phase 2: The flow
-- [ ] Task 3: Login & register honour `?next=` (and `?email=` prefill)
-- [ ] Task 4: Invite page logged-out state: "Create account & join" / "Sign in & join"
-- [ ] Task 5: Auto-accept on return + wrong-account path → dashboard as member
+- [x] Task 3: Login & register honour `?next=` (and `?email=` prefill)
+- [x] Task 4: Invite page logged-out state: "Create account & join" / "Sign in & join"
+- [x] Task 5: Auto-accept on return + wrong-account path → dashboard as member
 
 ### Checkpoint 2: end-to-end flow works locally
 
 ### Phase 3: Chrome + docs
-- [ ] Task 6: Public chrome for logged-out visitors on `/invite/*` (no sidebar / wallet selector)
+- [x] Task 6: Public chrome for logged-out visitors on `/invite/*` (no sidebar / wallet selector)
 - [ ] Task 7: AGENTS.md update + full browser verification
 
 ### Checkpoint 3: invite flow complete

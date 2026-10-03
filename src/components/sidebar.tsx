@@ -450,7 +450,7 @@ export function Sidebar() {
                   </Link>
                   <button
                     type="button"
-                    onClick={logout}
+                    onClick={() => logout()}
                     aria-label={t.actions.logout}
                     className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 cursor-pointer shrink-0 ml-1"
                   >
@@ -969,7 +969,7 @@ export function Sidebar() {
 
                 <button
                   type="button"
-                  onClick={logout}
+                  onClick={() => logout()}
                   title={t.actions.logout}
                   aria-label={t.actions.logout}
                   className="p-1.5 rounded-lg text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer shrink-0 ml-1"
@@ -1003,7 +1003,7 @@ export function Sidebar() {
               </Link>
               <button
                 type="button"
-                onClick={logout}
+                onClick={() => logout()}
                 title={t.actions.logout}
                 aria-label={t.actions.logout}
                 className="w-9 h-7 rounded-lg flex items-center justify-center text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"

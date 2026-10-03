@@ -1,19 +1,22 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import React, { useEffect, useState, useRef, useCallback, Suspense } from 'react';
+import Link from 'next/link';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import {
   Wallet,
   Sparkles,
   ArrowRight,
   AlertCircle,
   Lock,
+  Mail,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useApp } from '@/context/AppContext';
 import { useTranslation } from '@/context/LanguageContext';
 import { translateApiError } from '@/lib/i18n/api-errors';
 import { interpolate } from '@/lib/i18n/translator';
+import { authHref } from '@/lib/navigation';
 
 interface InviteMember {
   name: string;
@@ -39,18 +42,31 @@ interface InviteDetails {
   };
 }
 
-export default function InviteJoinPage() {
+function InviteJoinContent() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const code = params.code as string;
+  const isAutoJoin = searchParams.get('join') === '1';
 
-  const { currentUser, setCurrentUser, refreshWallets, setActiveWalletId, showToast } = useApp();
+  const {
+    authMode,
+    isAuthLoading,
+    currentUser,
+    setCurrentUser,
+    refreshWallets,
+    setActiveWalletId,
+    showToast,
+    logout,
+  } = useApp();
   const { t } = useTranslation();
 
   const [inviteData, setInviteData] = useState<InviteDetails | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isJoining, setIsJoining] = useState(false);
+
+  const hasAutoAcceptedRef = useRef(false);
 
   useEffect(() => {
     async function loadInvite() {
@@ -75,7 +91,7 @@ export default function InviteJoinPage() {
     }
   }, [code, t]);
 
-  const handleJoin = async () => {
+  const executeJoin = useCallback(async () => {
     try {
       setIsJoining(true);
       setError(null);
@@ -86,39 +102,67 @@ export default function InviteJoinPage() {
           'Content-Type': 'application/json',
           ...(currentUser ? { 'x-user-id': currentUser.id } : {}),
         },
+        credentials: 'include',
       });
 
       const data = await res.json();
       if (!res.ok) {
         setError(translateApiError(data.error, res.status, t));
-      } else {
+        setIsJoining(false);
+        return;
+      }
+
+      if (data.success) {
         confetti({
           particleCount: 80,
           spread: 80,
           origin: { y: 0.6 },
         });
-
-        if (data.user) {
-          setCurrentUser(data.user);
-        }
-
-        await refreshWallets();
-        if (data.walletId) {
-          setActiveWalletId(data.walletId);
-        }
-
-        showToast(t('invites.joinedWalletSuccess'));
-        router.push('/');
       }
+
+      if (data.user) {
+        setCurrentUser(data.user);
+      }
+
+      await refreshWallets();
+      if (data.walletId) {
+        setActiveWalletId(data.walletId);
+      }
+
+      showToast(t('invites.joinedWalletSuccess'));
+      router.replace('/');
     } catch (err) {
       console.error('Error joining wallet:', err);
       setError(t('invites.unexpectedError'));
-    } finally {
       setIsJoining(false);
     }
-  };
+  }, [code, currentUser, refreshWallets, router, setActiveWalletId, setCurrentUser, showToast, t]);
 
-  if (isLoading) {
+  const isTargeted = Boolean(inviteData?.invite.targetEmail);
+  const activeEmail = currentUser?.email?.toLowerCase().trim() || '';
+  const targetEmailLower = (inviteData?.invite.targetEmail || '').toLowerCase().trim();
+  const isEmailMatching = !isTargeted || (Boolean(activeEmail) && activeEmail === targetEmailLower);
+  const isLoggedOut = authMode === 'normal' && !isAuthLoading && !currentUser;
+  const isWrongAccount = !isLoggedOut && isTargeted && !isEmailMatching;
+
+  useEffect(() => {
+    if (
+      !isAutoJoin ||
+      isLoading ||
+      isAuthLoading ||
+      !currentUser ||
+      !inviteData ||
+      !isEmailMatching ||
+      hasAutoAcceptedRef.current
+    ) {
+      return;
+    }
+
+    hasAutoAcceptedRef.current = true;
+    void executeJoin();
+  }, [isAutoJoin, isLoading, isAuthLoading, currentUser, inviteData, isEmailMatching, executeJoin]);
+
+  if (isLoading || isAuthLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
         <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
@@ -151,10 +195,10 @@ export default function InviteJoinPage() {
   if (!inviteData) return null;
 
   const { wallet, invite } = inviteData;
-  const isTargeted = Boolean(invite.targetEmail);
-  const activeEmail = currentUser?.email?.toLowerCase() || '';
-  const targetEmailLower = (invite.targetEmail || '').toLowerCase();
-  const isEmailMatching = !isTargeted || activeEmail === targetEmailLower;
+
+  const handleJoin = () => {
+    void executeJoin();
+  };
 
   return (
     <div className="max-w-md mx-auto my-12 p-6 sm:p-8 rounded-3xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-2xl animate-in zoom-in-95">
@@ -180,19 +224,29 @@ export default function InviteJoinPage() {
         </p>
       </div>
 
-      {/* Target Email Restriction Banner */}
-      {isTargeted && !isEmailMatching && (
-        <div className="my-5 p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/80 text-amber-900 dark:text-amber-200 flex items-start gap-3 text-xs leading-relaxed animate-in fade-in">
-          <Lock className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-          <div>
-            <strong className="font-bold block text-amber-950 dark:text-amber-100">
-              {t('invites.lockedWarningTitle')}
-            </strong>
-            <p className="mt-0.5">
-              {interpolate(t('invites.lockedWarningMessage'), { email: invite.targetEmail || '' })}
-            </p>
+      {/* Target Email Notice (Logged Out) or Restriction Banner (Signed-in Mismatch) */}
+      {isTargeted && (
+        isLoggedOut ? (
+          <div className="my-5 p-3.5 rounded-2xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-300 flex items-center gap-2.5 text-xs">
+            <Mail className="w-4 h-4 text-zinc-400 shrink-0" />
+            <span>{interpolate(t('invites.targetedInviteNotice'), { email: invite.targetEmail || '' })}</span>
           </div>
-        </div>
+        ) : isWrongAccount ? (
+          <div className="my-5 p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/80 text-amber-900 dark:text-amber-200 flex items-start gap-3 text-xs leading-relaxed animate-in fade-in">
+            <Lock className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <strong className="font-bold block text-amber-950 dark:text-amber-100">
+                {t('invites.lockedWarningTitle')}
+              </strong>
+              <p className="mt-0.5">
+                {interpolate(t('invites.lockedWarningMessage'), { email: invite.targetEmail || '' })}
+              </p>
+              <p className="text-amber-800 dark:text-amber-300 font-medium">
+                {interpolate(t('invites.signedInAs'), { email: currentUser?.email || '' })}
+              </p>
+            </div>
+          </div>
+        ) : null
       )}
 
       {error && (
@@ -238,22 +292,66 @@ export default function InviteJoinPage() {
         </div>
       </div>
 
-      {/* Accept & Join Button */}
-      <button
-        type="button"
-        disabled={isJoining || !isEmailMatching}
-        onClick={handleJoin}
-        className="w-full py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm shadow-lg shadow-indigo-600/25 flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-      >
-        <span>
-          {isJoining
-            ? t('invites.joiningWallet')
-            : !isEmailMatching
-            ? interpolate(t('invites.lockedToEmail'), { email: invite.targetEmail || '' })
-            : `${t('invites.joinAs')} ${currentUser?.name || t('roles.MEMBER')}`}
-        </span>
-        <ArrowRight className="w-4 h-4" />
-      </button>
+      {/* Action area */}
+      {isJoining ? (
+        <div className="w-full py-3.5 px-4 rounded-2xl bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-200/80 dark:border-indigo-800/80 text-indigo-700 dark:text-indigo-300 font-semibold text-sm flex items-center justify-center gap-3">
+          <div className="w-4 h-4 border-2 border-indigo-600 dark:border-indigo-400 border-t-transparent rounded-full animate-spin shrink-0" />
+          <span>{interpolate(t('invites.joiningWalletName'), { name: wallet.name })}</span>
+        </div>
+      ) : isLoggedOut ? (
+        <div className="space-y-3">
+          <Link
+            href={authHref('register', `/invite/${code}?join=1`, { email: invite.targetEmail })}
+            className="w-full py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm shadow-lg shadow-indigo-600/25 flex items-center justify-center gap-2 transition-all cursor-pointer"
+          >
+            <span>{t('invites.createAccountAndJoin')}</span>
+            <ArrowRight className="w-4 h-4" />
+          </Link>
+          <Link
+            href={authHref('login', `/invite/${code}?join=1`)}
+            className="w-full py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 text-zinc-700 dark:text-zinc-300 font-semibold text-xs flex items-center justify-center transition-all text-center cursor-pointer"
+          >
+            {t('invites.alreadyHaveAccountSignIn')}
+          </Link>
+          <p className="text-[11px] text-center text-zinc-400 dark:text-zinc-500">
+            {interpolate(t('invites.autoJoinHint'), { name: wallet.name })}
+          </p>
+        </div>
+      ) : isWrongAccount ? (
+        <button
+          type="button"
+          onClick={() => logout({ next: `/invite/${code}?join=1` })}
+          className="w-full py-3 rounded-2xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-sm shadow-lg shadow-amber-600/25 flex items-center justify-center gap-2 transition-all cursor-pointer"
+        >
+          <span>{t('invites.useDifferentAccount')}</span>
+          <ArrowRight className="w-4 h-4" />
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={handleJoin}
+          className="w-full py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm shadow-lg shadow-indigo-600/25 flex items-center justify-center gap-2 transition-all cursor-pointer"
+        >
+          <span>
+            {`${t('invites.joinAs')} ${currentUser?.name || t('roles.MEMBER')}`}
+          </span>
+          <ArrowRight className="w-4 h-4" />
+        </button>
+      )}
     </div>
+  );
+}
+
+export default function InviteJoinPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
+          <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+        </div>
+      }
+    >
+      <InviteJoinContent />
+    </Suspense>
   );
 }

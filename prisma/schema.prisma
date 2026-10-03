@@ -41,6 +41,8 @@ model User {
   activityLogs        ActivityLog[]
   savingsTransactions SavingsTransaction[]
   monthBonuses        MonthBonus[]
+  passwordResetTokens PasswordResetToken[]
+  passwordChangedAt   DateTime?
   createdAt           DateTime             @default(now())
 }
 
@@ -249,4 +251,16 @@ model MonthBonus {
   createdAt DateTime @default(now())
 
   @@index([walletId, monthKey])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, createdAt])
 }

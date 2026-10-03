@@ -168,7 +168,7 @@ interface AppContextType {
   // Auth & Dual Mode
   authMode: AuthMode;
   setAuthMode: (mode: AuthMode) => void;
-  logout: () => Promise<void>;
+  logout: (options?: { next?: string }) => Promise<void>;
   // Modals
   isAddExpenseOpen: boolean;
   setIsAddExpenseOpen: (open: boolean) => void;
@@ -290,6 +290,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [users, setUsers] = useState<User[]>([]);
   const [wallets, setWallets] = useState<WalletSummary[]>([]);
   const [activeWalletId, setActiveWalletIdState] = useState<string | null>(null);
+  const activeWalletIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    activeWalletIdRef.current = activeWalletId;
+  }, [activeWalletId]);
   const [walletData, setWalletData] = useState<WalletDetailData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
@@ -446,7 +451,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     );
   };
 
-  const logout = async () => {
+  const logout = async (options?: { next?: string }) => {
+    const nextPath = options?.next;
     try {
       await fetch('/api/auth/logout', { method: 'POST' });
     } catch (err) {
@@ -456,12 +462,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setWalletData(null);
       setWallets([]);
       setActiveWalletIdState(null);
+      activeWalletIdRef.current = null;
       if (typeof window !== 'undefined') {
         localStorage.removeItem('aura_active_user_id');
         localStorage.removeItem('aura_active_wallet_id');
       }
       showToast(t('auth.loggedOutSuccess'));
-      router.push(authMode === 'normal' ? '/' : '/login');
+      if (authMode === 'normal' && nextPath) {
+        router.push(authHref('login', nextPath));
+      } else {
+        router.push(authMode === 'normal' ? '/' : '/login');
+      }
     }
   };
 
@@ -479,6 +490,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const setActiveWalletId = (id: string) => {
     setActiveWalletIdState(id);
+    activeWalletIdRef.current = id;
     if (typeof window !== 'undefined') {
       localStorage.setItem('aura_active_wallet_id', id);
     }
@@ -494,17 +506,29 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       });
       if (res.ok) {
         const data = await res.json();
-        setWallets(data.wallets || []);
+        const walletList: WalletSummary[] = data.wallets || [];
+        setWallets(walletList);
 
         const savedWalletId = typeof window !== 'undefined' ? localStorage.getItem('aura_active_wallet_id') : null;
-        const exists = data.wallets.some((w: WalletSummary) => w.id === savedWalletId);
+        const currentValidId =
+          activeWalletIdRef.current && walletList.some((w: WalletSummary) => w.id === activeWalletIdRef.current)
+            ? activeWalletIdRef.current
+            : null;
+        const savedValidId =
+          savedWalletId && walletList.some((w: WalletSummary) => w.id === savedWalletId)
+            ? savedWalletId
+            : null;
 
-        if (savedWalletId && exists) {
-          setActiveWalletIdState(savedWalletId);
-        } else if (data.wallets.length > 0) {
-          setActiveWalletIdState(data.wallets[0].id);
-        } else {
-          setActiveWalletIdState(null);
+        const targetId = currentValidId || savedValidId || (walletList.length > 0 ? walletList[0].id : null);
+
+        setActiveWalletIdState(targetId);
+        activeWalletIdRef.current = targetId;
+        if (typeof window !== 'undefined') {
+          if (targetId) {
+            localStorage.setItem('aura_active_wallet_id', targetId);
+          } else {
+            localStorage.removeItem('aura_active_wallet_id');
+          }
         }
       }
     } catch (err) {

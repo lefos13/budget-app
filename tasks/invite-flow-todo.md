@@ -49,13 +49,13 @@ Plan: `tasks/invite-flow-plan.md`. Verification commands (AGENTS.md §7): `npx p
 **Description:** Read `next` (and `email` on register) from search params. On success, `router.push(safeNextPath(next))` instead of `/`. The "Register" and "Sign in" cross-links keep `next`. The AppContext guard (logged-in user on an auth path) also redirects to `safeNextPath(next)`, not `/`. Read the Next 16 docs in `node_modules/next/dist/docs/` on `useSearchParams` / Suspense first.
 
 **Acceptance criteria:**
-- [ ] `/login?next=%2Fexpenses` → after login, lands on `/expenses`. Without `next` → `/` (unchanged).
-- [ ] `/register?next=…&email=a@b.c` pre-fills email. The link to login keeps `next`, and the link back does too.
-- [ ] `/login?next=https%3A%2F%2Fevil.com` → lands on `/`.
+- [x] `/login?next=%2Fexpenses` → after login, lands on `/expenses`. Without `next` → `/` (unchanged).
+- [x] `/register?next=…&email=a@b.c` pre-fills email. The link to login keeps `next`, and the link back does too.
+- [x] `/login?next=https%3A%2F%2Fevil.com` → lands on `/`.
 
 **Verification:**
-- [ ] `pnpm run build` (catches missing Suspense boundary), `pnpm run lint`
-- [ ] Manual in browser (normal mode): each case above
+- [x] `pnpm run build` (catches missing Suspense boundary), `pnpm run lint`
+- [x] Manual in browser (normal mode): each case above
 
 **Dependencies:** Task 2
 **Files:** `src/app/login/page.tsx`, `src/app/register/page.tsx`, `src/context/AppContext.tsx`
@@ -69,13 +69,13 @@ Plan: `tasks/invite-flow-plan.md`. Verification commands (AGENTS.md §7): `npx p
 Add a short hint ("You'll be added to <wallet> right after"). Don't show the "Authentication required" error or the locked-email banner while logged out. Instead show "This invite is for <email>". All copy goes in the `invites` dictionary block (en + formal el).
 
 **Acceptance criteria:**
-- [ ] Logged out: no POST happens and no error box shows. Both CTAs are visible and link to the right `next`.
-- [ ] Targeted invite: the register link pre-fills the target email, and a note shows which email to use.
-- [ ] Invalid/expired code still shows the existing "unavailable" card.
+- [x] Logged out: no POST happens and no error box shows. Both CTAs are visible and link to the right `next`.
+- [x] Targeted invite: the register link pre-fills the target email, and a note shows which email to use.
+- [x] Invalid/expired code still shows the existing "unavailable" card.
 
 **Verification:**
-- [ ] `npx tsx scripts/check-i18n.ts`, `pnpm run lint`
-- [ ] Manual: private window → `/invite/<code>`
+- [x] `npx tsx scripts/check-i18n.ts`, `pnpm run lint`
+- [x] Manual: private window → `/invite/<code>`
 
 **Dependencies:** Tasks 1, 2
 **Files:** `src/app/invite/[code]/page.tsx`, `src/lib/i18n/dictionaries/{en,el}.ts`
@@ -89,24 +89,24 @@ If the email doesn't match, don't POST. Show the locked banner with "Signed in a
 Check that the AppContext `activeWalletId` effect doesn't reset the active wallet to the first wallet after refresh.
 
 **Acceptance criteria:**
-- [ ] Fresh private window → invite → Create account → lands on `/` with the invited wallet active and the user as MEMBER (Wallet & Team page lists them).
-- [ ] Same with Sign in for an existing account that isn't a member.
-- [ ] Reloading `/invite/<code>?join=1` as an existing member → straight to the dashboard with that wallet active. No duplicate membership or activity log.
-- [ ] Targeted invite + wrong account → no POST. "Use a different account" → login → after login, the user is auto-joined.
+- [x] Fresh private window → invite → Create account → lands on `/` with the invited wallet active and the user as MEMBER (Wallet & Team page lists them).
+- [x] Same with Sign in for an existing account that isn't a member.
+- [x] Reloading `/invite/<code>?join=1` as an existing member → straight to the dashboard with that wallet active. No duplicate membership or activity log.
+- [x] Targeted invite + wrong account → no POST. "Use a different account" → login → after login, the user is auto-joined.
 
 **Verification:**
-- [ ] `pnpm run lint`, `pnpm run build`
-- [ ] Manual browser run of all 4 scenarios (normal mode, private window). Screenshot each end state.
+- [x] `pnpm run lint`, `pnpm run build`
+- [x] Manual browser run of all 4 scenarios (normal mode, private window). Screenshot each end state.
 
 **Dependencies:** Tasks 3, 4
 **Files:** `src/app/invite/[code]/page.tsx`, `src/context/AppContext.tsx`, `src/lib/i18n/dictionaries/{en,el}.ts`
 **Scope:** M
 
 ## Checkpoint 2: after Tasks 3–5
-- [ ] `pnpm test`, `pnpm run test:api`, `pnpm run build` pass
-- [ ] Logged out → register → dashboard as member works end-to-end
-- [ ] Mock mode invite join still works (one click, no redirects)
-- [ ] Review with human before the chrome changes
+- [x] `pnpm test`, `pnpm run test:api`, `pnpm run build` pass
+- [x] Logged out → register → dashboard as member works end-to-end
+- [x] Mock mode invite join still works (one click, no redirects)
+- [x] Review with human before the chrome changes
 
 ---
 
@@ -116,14 +116,14 @@ Check that the AppContext `activeWalletId` effect doesn't reset the active walle
 **Description:** Add `isPublicChromeView({ pathname, authMode, isAuthLoading, hasUser })` to `navigation.ts`. It is true in normal mode, on a public non-auth path, with auth resolved and no user. Extend `isSplashView` to cover public non-auth paths while auth is loading. In `AppShell`, render a new `src/components/public-header.tsx` instead of Sidebar + MonthContextBar: logo linking to `/`, EN/EL toggle, and a "Sign in" link with `next` set to the current path. Content sits in a centered `<main>`. Mobile: the same header, with no drawer and no bottom bar.
 
 **Acceptance criteria:**
-- [ ] Logged out on `/invite/<code>` (desktop and mobile widths): no wallet selector, "+ Add", nav groups, month bar, "Guest User" footer or bottom bar.
-- [ ] No sidebar flash during auth loading (splash shows instead).
-- [ ] Logged-in and mock mode on `/invite/<code>`: the normal app chrome is unchanged.
+- [x] Logged out on `/invite/<code>` (desktop and mobile widths): no wallet selector, "+ Add", nav groups, month bar, "Guest User" footer or bottom bar.
+- [x] No sidebar flash during auth loading (splash shows instead).
+- [x] Logged-in and mock mode on `/invite/<code>`: the normal app chrome is unchanged.
 
 **Verification:**
-- [ ] New view-matrix cases in `scripts/test-navigation.ts`
-- [ ] `pnpm run lint`, `pnpm run build`, `npx tsx scripts/check-i18n.ts`
-- [ ] Manual: private window at 1440px and 390px widths, light and dark
+- [x] New view-matrix cases in `scripts/test-navigation.ts`
+- [x] `pnpm run lint`, `pnpm run build`, `npx tsx scripts/check-i18n.ts`
+- [x] Manual: private window at 1280px and 390px widths (light; dark not emulatable in the automation browser, `dark:` classes reviewed in code)
 
 **Dependencies:** Task 2 (independent of 3–5; can run in parallel after Checkpoint 1)
 **Files:** `src/lib/navigation.ts`, `src/components/app-shell.tsx`, `src/components/public-header.tsx`, `scripts/test-navigation.ts`, `src/lib/i18n/dictionaries/{en,el}.ts`
