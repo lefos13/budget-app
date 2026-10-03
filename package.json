@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "tsx scripts/test-e2e.ts && tsx scripts/test-backend-features.ts && tsx scripts/test-wallet-roundtrip.ts && tsx scripts/test-month.ts && tsx scripts/test-month-projection.ts && tsx scripts/test-recurrence.ts && tsx scripts/test-i18n-check.ts && tsx scripts/test-api-errors.ts && tsx scripts/test-bill-alerts.ts && tsx scripts/test-navigation.ts && TZ=Europe/Athens tsx scripts/test-savings.ts && TZ=UTC tsx scripts/test-savings.ts && tsx scripts/test-email.ts && tsx scripts/check-i18n.ts",
+    "test": "tsx scripts/test-e2e.ts && tsx scripts/test-backend-features.ts && tsx scripts/test-wallet-roundtrip.ts && tsx scripts/test-month.ts && tsx scripts/test-month-projection.ts && tsx scripts/test-recurrence.ts && tsx scripts/test-i18n-check.ts && tsx scripts/test-api-errors.ts && tsx scripts/test-bill-alerts.ts && tsx scripts/test-navigation.ts && TZ=Europe/Athens tsx scripts/test-savings.ts && TZ=UTC tsx scripts/test-savings.ts && tsx scripts/test-email.ts && tsx scripts/test-webauthn.ts && tsx scripts/check-i18n.ts",
     "test:api": "tsx scripts/test-invoice-patch.ts && tsx scripts/test-categories.ts && tsx scripts/test-planned-expenses.ts && tsx scripts/test-expense-patch.ts && tsx scripts/test-pay-invoice.ts && tsx scripts/test-savings-api.ts && tsx scripts/test-month-bonus.ts && tsx scripts/test-invite-api.ts && tsx scripts/test-password-reset.ts",
     "i18n:check": "tsx scripts/check-i18n.ts",
     "db:migrate": "prisma migrate deploy",
@@ -15,6 +15,8 @@
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",
+    "@simplewebauthn/browser": "^14.0.0",
+    "@simplewebauthn/server": "^14.0.3",
     "canvas-confetti": "^1.9.4",
     "clsx": "^2.1.1",
     "date-fns": "^4.4.0",
