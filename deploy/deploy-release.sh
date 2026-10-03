@@ -7,7 +7,7 @@ SQLite file, applies migrations, swaps the `current` symlink and reloads PM2.
 Layout under APP_ROOT (default /root/budget-app):
   releases/<id>/           one directory per deploy, newest KEEP_RELEASES kept
   current -> releases/<id>  what PM2 runs
-  shared/.env.production    runtime config (AUTH_SECRET, DATABASE_URL, PORT, HOSTNAME, PUBLIC_BASE_URL, EMAIL_*)
+  shared/.env.production    runtime config (AUTH_SECRET, DATABASE_URL, PORT, HOSTNAME, PUBLIC_BASE_URL, EMAIL_*, WEBAUTHN_*)
   shared/data/              SQLite database (outside releases, survives deploys)
   shared/backups/           pre-migration DB copies, newest KEEP_BACKUPS kept
 
@@ -43,6 +43,21 @@ fi
 if [[ -z "${PUBLIC_BASE_URL:-}" || "${PUBLIC_BASE_URL}" != https://* ]]; then
   echo "PUBLIC_BASE_URL in $ENV_FILE must be set and start with https:// (got '${PUBLIC_BASE_URL:-}')." >&2
   exit 1
+fi
+
+if [[ -n "${WEBAUTHN_ORIGIN:-}" && "${WEBAUTHN_ORIGIN}" != https://* ]]; then
+  echo "WEBAUTHN_ORIGIN in $ENV_FILE must start with https:// (got '${WEBAUTHN_ORIGIN}')." >&2
+  exit 1
+fi
+
+if [[ -n "${WEBAUTHN_RP_ID:-}" ]]; then
+  RP_HOST="${WEBAUTHN_ORIGIN:-$PUBLIC_BASE_URL}"
+  RP_HOST="${RP_HOST#https://}"
+  RP_HOST="${RP_HOST%%[:/]*}"
+  if [[ "$RP_HOST" != "$WEBAUTHN_RP_ID" && "$RP_HOST" != *."$WEBAUTHN_RP_ID" ]]; then
+    echo "WEBAUTHN_RP_ID in $ENV_FILE ('${WEBAUTHN_RP_ID}') does not match host '${RP_HOST}' (host must equal or end with .${WEBAUTHN_RP_ID})." >&2
+    exit 1
+  fi
 fi
 
 DELIVERY_DISABLED=0

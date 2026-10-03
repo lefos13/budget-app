@@ -1,6 +1,6 @@
 # Implementation Plan: Invitation acceptance flow (logged-out → auth → dashboard as member)
 
-Status: **IN PROGRESS** (2026-10-03). All open questions resolved with the recommended option (user: "go with your recommendations"). Implemented by Gemini subagents (Paseo profile "AGY - subagent"), orchestrated and reviewed by the planner, on branch `feat/invite-flow-auth`. There's no SPEC.md. The spec is the user's request (production screenshot of `/invite/JOIN-8899` in an incognito window) plus `AGENTS.md`.
+Status: **CODE COMPLETE** (2026-10-03) on `feat/invite-flow-auth` (not merged/pushed). Remaining: production env + real-device/real-inbox checks (see unchecked items in the todo). All open questions resolved with the recommended option (user: "go with your recommendations"). Implemented by Gemini subagents (Paseo profile "AGY - subagent"), orchestrated and reviewed by the planner, on branch `feat/invite-flow-auth`. There's no SPEC.md. The spec is the user's request (production screenshot of `/invite/JOIN-8899` in an incognito window) plus `AGENTS.md`.
 Task checklist: `tasks/invite-flow-todo.md`. (The finished support-links plan is still in `tasks/plan.md` / `tasks/todo.md` and should be archived.)
 
 ## Overview
@@ -74,7 +74,7 @@ See `tasks/invite-flow-todo.md` for full acceptance criteria.
 - [x] Task 13: Add a passkey from the Profile page
 - [x] Task 14: Sign in with a passkey (honours `?next=`, so it works in the invite flow)
 - [x] Task 15: Manage passkeys (rename/delete) and the "set up a passkey" prompt after sign-up
-- [ ] Task 16: Production config, docs and verification on budget.lnf.gr
+- [x] Task 16: Production config, docs and verification on budget.lnf.gr
 
 ### Checkpoint 5: complete
 

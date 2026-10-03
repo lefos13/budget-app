@@ -81,8 +81,12 @@ Production environment variables (`shared/.env.production`):
 | `SMTP_SECURE` | Optional (default: `false`) | `true` for SSL/TLS (port 465), `false` for STARTTLS |
 | `SMTP_USER` | Optional | SMTP username |
 | `SMTP_PASS` | Optional | SMTP password |
+| `WEBAUTHN_ORIGIN` | Optional (default: `PUBLIC_BASE_URL`) | Public origin (e.g. `https://budget.lnf.gr`); only set if it differs from `PUBLIC_BASE_URL` |
+| `WEBAUTHN_RP_ID` | Optional (default: derived from origin) | Relying party ID (e.g. `budget.lnf.gr`); defaults to hostname of `WEBAUTHN_ORIGIN` / `PUBLIC_BASE_URL` |
 
 > **Gmail app passwords**: A Google Account with 2-Step Verification (2FA) enabled is required to generate an App Password (Google Account → Security → 2-Step Verification → App passwords). A `535 BadCredentials` error means the app password was revoked, expired, or entered incorrectly.
+
+> **Passkeys**: Passkeys work on HTTPS origins and on `http://localhost` in dev. For local browser testing, use Chrome DevTools → More tools → WebAuthn to set up a virtual authenticator.
 
 nginx (`deploy/nginx/`, live copy in `/etc/nginx/conf.d/budget.lnf.gr.conf`) terminates TLS (Let's Encrypt, renewed by certbot via webroot) and rate-limits `/api/auth/login|register` to 10 requests/min per IP.
 

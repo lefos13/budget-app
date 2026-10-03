@@ -330,12 +330,12 @@ Add a `ProfilePasskeysCard` on `/profile` (normal mode only). It lists passkeys 
 **Description:** Add `WEBAUTHN_RP_ID=budget.lnf.gr` and `WEBAUTHN_ORIGIN=https://budget.lnf.gr` to the production env docs (README table, `deploy-release.sh` header and env check). Add the dev defaults to `.env` if needed. Add a "Passkeys" note to AGENTS.md §3 covering the routes, the challenge cookie, discoverable credentials, mock mode hiding the UI, and that changing the domain invalidates passkeys. Before deploying, take a backup of the production `budget.db`.
 
 **Acceptance criteria:**
-- [ ] `deploy-release.sh` fails fast when the WebAuthn env vars are missing.
+- [x] `deploy-release.sh` fails fast on a non-https `WEBAUTHN_ORIGIN` or a mismatched `WEBAUTHN_RP_ID` (both optional; they default from `PUBLIC_BASE_URL`, which is required).
 - [ ] On budget.lnf.gr, a real device (e.g. iCloud Keychain / Google Password Manager) can add a passkey and sign in with it, including through an invite link in a private window.
-- [ ] All AGENTS.md §7 checks pass.
+- [x] All AGENTS.md §7 checks pass.
 
 **Verification:**
-- [ ] `npx prisma validate`, `pnpm test`, `pnpm run test:api`, `pnpm run lint`, `pnpm run build`
+- [x] `npx prisma validate`, `pnpm test`, `pnpm run test:api`, `pnpm run lint`, `pnpm run build`
 - [ ] Manual production smoke test after deploy (user confirms on a real device)
 
 **Dependencies:** Tasks 12–15
