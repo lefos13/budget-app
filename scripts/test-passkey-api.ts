@@ -69,6 +69,7 @@ async function main() {
   const password = 'Password123!';
 
   let fixtureUserId: string | null = null;
+  let fixtureUserBId: string | null = null;
 
   try {
     // 1. Create fixture user with a password
@@ -257,12 +258,181 @@ async function main() {
       '  ✓ (d) GET list with cookie contains fixture passkey without publicKey/credentialId; without cookie → 401'
     );
 
+    // 3. Create fixture user B with a passkey row
+    const userB = await prisma.user.create({
+      data: {
+        name: `Passkey Test User B ${suffix}`,
+        email: `passkey-test-b-${suffix}@example.com`,
+        passwordHash: hashPassword(password),
+      },
+    });
+    fixtureUserBId = userB.id;
+    const passkeyB = await prisma.passkey.create({
+      data: {
+        userId: userB.id,
+        credentialId: `fixture-cred-b-${suffix}`,
+        publicKey: Buffer.from('fixture-b-public-key-bytes'),
+        counter: 0,
+        deviceType: 'singleDevice',
+        backedUp: false,
+        name: "User B's Passkey",
+      },
+    });
+    console.log(`  ✓ Created fixture user B (${fixtureUserBId}) with passkey: ${passkeyB.id}`);
+
+    // (e) without cookie → 401 for both PATCH and DELETE
+    const resPatchNoCookie = await call(
+      'PATCH',
+      `/api/auth/passkeys/${fixturePasskey.id}`,
+      {},
+      { name: 'New Name' }
+    );
+    assert.equal(
+      resPatchNoCookie.status,
+      401,
+      `PATCH /api/auth/passkeys/[id] without cookie must return 401, got ${resPatchNoCookie.status}`
+    );
+
+    const resDeleteNoCookie = await call('DELETE', `/api/auth/passkeys/${fixturePasskey.id}`);
+    assert.equal(
+      resDeleteNoCookie.status,
+      401,
+      `DELETE /api/auth/passkeys/[id] without cookie must return 401, got ${resDeleteNoCookie.status}`
+    );
+    console.log('  ✓ (e) PATCH & DELETE without cookie → 401');
+
+    // (f) as user A: PATCH B's passkey → 404 and B's row unchanged
+    const resPatchB = await call(
+      'PATCH',
+      `/api/auth/passkeys/${passkeyB.id}`,
+      { Cookie: sessionCookie },
+      { name: 'Hacked Name' }
+    );
+    assert.equal(
+      resPatchB.status,
+      404,
+      `PATCH other user's passkey must return 404, got ${resPatchB.status}`
+    );
+    assert.equal(resPatchB.data.error, 'Passkey not found');
+    const passkeyBAfterPatch = await prisma.passkey.findUnique({
+      where: { id: passkeyB.id },
+    });
+    assert.equal(
+      passkeyBAfterPatch?.name,
+      "User B's Passkey",
+      "User B's passkey name must remain unchanged in DB"
+    );
+    console.log("  ✓ (f) PATCH B's passkey as user A → 404 and B's row unchanged");
+
+    // (g) as user A: DELETE B's passkey → 404 and row still exists
+    const resDeleteB = await call(
+      'DELETE',
+      `/api/auth/passkeys/${passkeyB.id}`,
+      { Cookie: sessionCookie }
+    );
+    assert.equal(
+      resDeleteB.status,
+      404,
+      `DELETE other user's passkey must return 404, got ${resDeleteB.status}`
+    );
+    assert.equal(resDeleteB.data.error, 'Passkey not found');
+    const passkeyBAfterDelete = await prisma.passkey.findUnique({
+      where: { id: passkeyB.id },
+    });
+    assert.ok(passkeyBAfterDelete, "User B's passkey must still exist in DB");
+    console.log("  ✓ (g) DELETE B's passkey as user A → 404 and B's row still exists");
+
+    // (h) PATCH own passkey with '' → 400, with 51 chars → 400
+    const resPatchEmpty = await call(
+      'PATCH',
+      `/api/auth/passkeys/${fixturePasskey.id}`,
+      { Cookie: sessionCookie },
+      { name: '' }
+    );
+    assert.equal(
+      resPatchEmpty.status,
+      400,
+      `PATCH own passkey with empty string must return 400, got ${resPatchEmpty.status}`
+    );
+    assert.equal(
+      resPatchEmpty.data.error,
+      'Passkey name must be 1 to 50 characters'
+    );
+
+    const longName = 'a'.repeat(51);
+    const resPatchTooLong = await call(
+      'PATCH',
+      `/api/auth/passkeys/${fixturePasskey.id}`,
+      { Cookie: sessionCookie },
+      { name: longName }
+    );
+    assert.equal(
+      resPatchTooLong.status,
+      400,
+      `PATCH own passkey with 51 chars must return 400, got ${resPatchTooLong.status}`
+    );
+    assert.equal(
+      resPatchTooLong.data.error,
+      'Passkey name must be 1 to 50 characters'
+    );
+    console.log("  ✓ (h) PATCH own passkey with '' or 51 chars → 400");
+
+    // (i) PATCH own passkey with 'Work laptop' → 200 and DB updated
+    const resPatchValid = await call(
+      'PATCH',
+      `/api/auth/passkeys/${fixturePasskey.id}`,
+      { Cookie: sessionCookie },
+      { name: 'Work laptop' }
+    );
+    assert.equal(
+      resPatchValid.status,
+      200,
+      `PATCH own passkey with 'Work laptop' must return 200, got ${resPatchValid.status}`
+    );
+    assert.equal(resPatchValid.data.passkey?.name, 'Work laptop');
+    assert.equal(resPatchValid.data.passkey?.id, fixturePasskey.id);
+    assert.ok(resPatchValid.data.passkey?.createdAt);
+    assert.equal(resPatchValid.data.passkey?.deviceType, 'singleDevice');
+    assert.equal(resPatchValid.data.passkey?.backedUp, false);
+    const fixturePasskeyInDb = await prisma.passkey.findUnique({
+      where: { id: fixturePasskey.id },
+    });
+    assert.equal(
+      fixturePasskeyInDb?.name,
+      'Work laptop',
+      "DB must be updated with 'Work laptop'"
+    );
+    console.log("  ✓ (i) PATCH own passkey with 'Work laptop' → 200 and DB updated");
+
+    // (j) DELETE own → 200 and row gone
+    const resDeleteOwn = await call(
+      'DELETE',
+      `/api/auth/passkeys/${fixturePasskey.id}`,
+      { Cookie: sessionCookie }
+    );
+    assert.equal(
+      resDeleteOwn.status,
+      200,
+      `DELETE own passkey must return 200, got ${resDeleteOwn.status}`
+    );
+    assert.equal(resDeleteOwn.data.ok, true);
+    const deletedPasskeyInDb = await prisma.passkey.findUnique({
+      where: { id: fixturePasskey.id },
+    });
+    assert.equal(deletedPasskeyInDb, null, 'Passkey row must be deleted from DB');
+    console.log('  ✓ (j) DELETE own passkey → 200 and row gone');
+
     console.log('🎉 All Passkey API tests passed successfully!');
   } finally {
+    if (fixtureUserBId) {
+      await prisma.passkey.deleteMany({ where: { userId: fixtureUserBId } }).catch(() => {});
+      await prisma.user.delete({ where: { id: fixtureUserBId } }).catch(() => {});
+      console.log('  ✓ Cleaned up test fixture user B and passkeys');
+    }
     if (fixtureUserId) {
       await prisma.passkey.deleteMany({ where: { userId: fixtureUserId } }).catch(() => {});
       await prisma.user.delete({ where: { id: fixtureUserId } }).catch(() => {});
-      console.log('  ✓ Cleaned up test fixture user and passkeys');
+      console.log('  ✓ Cleaned up test fixture user A and passkeys');
     }
     await prisma.$disconnect();
   }

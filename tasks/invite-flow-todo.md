@@ -258,13 +258,13 @@ Create `src/lib/webauthn.ts` with:
 - `clearChallengeCookie(res)`
 
 **Acceptance criteria:**
-- [ ] `npx prisma validate` passes. The migration is additive and existing data is intact (row counts of User/Wallet unchanged before and after).
-- [ ] A challenge cookie is rejected when tampered with, expired, or read with the wrong purpose.
-- [ ] `next build` still works without the WebAuthn env vars (they are resolved lazily, like `getSessionSecret`).
+- [x] `npx prisma validate` passes. The migration is additive and existing data is intact (row counts of User/Wallet unchanged before and after).
+- [x] A challenge cookie is rejected when tampered with, expired, or read with the wrong purpose.
+- [x] `next build` still works without the WebAuthn env vars (they are resolved lazily, like `getSessionSecret`).
 
 **Verification:**
-- [ ] New `scripts/test-webauthn.ts` (pure: sign/verify/expiry/purpose). Added to `pnpm test`.
-- [ ] `npx prisma validate`, `pnpm run build`
+- [x] New `scripts/test-webauthn.ts` (pure: sign/verify/expiry/purpose). Added to `pnpm test`.
+- [x] `npx prisma validate`, `pnpm run build`
 
 **Dependencies:** Checkpoint 4 (needs a stable auth flow and `PUBLIC_BASE_URL`; technically only Tasks 2 and 8)
 **Files:** `package.json`, `pnpm-lock.yaml`, `prisma/schema.prisma`, `prisma/migrations/<ts>_add_passkeys/`, `src/lib/webauthn.ts`, `scripts/test-webauthn.ts`
@@ -280,17 +280,18 @@ Add a `ProfilePasskeysCard` on `/profile` (normal mode only). It lists passkeys 
 **Acceptance criteria:**
 - [ ] With the virtual authenticator, Add a passkey creates exactly one row, and it shows in the list.
 - [ ] Adding again with the same authenticator is refused by the browser (excludeCredentials) and shows a friendly message.
-- [ ] Without a session (or in mock mode), the routes return 401 and the card is hidden.
+- [x] Without a session (or in mock mode), the routes return 401 and the card is hidden.
 
 **Verification:**
-- [ ] `scripts/test-passkey-api.ts` (HTTP): 401 without a session. The options payload has `excludeCredentials` and RP ID `localhost`. Verify with a missing/forged challenge cookie → 400. Added to `test:api`.
-- [ ] `pnpm run lint`, `npx tsx scripts/check-i18n.ts`, manual browser check
+- [x] `scripts/test-passkey-api.ts` (HTTP): 401 without a session. The options payload has `excludeCredentials` and RP ID `localhost`. Verify with a missing/forged challenge cookie → 400. Added to `test:api`.
+- [x] `pnpm run lint`, `npx tsx scripts/check-i18n.ts`, manual browser check
 
 **Dependencies:** Task 12
 **Files:** `src/app/api/auth/passkey/register/{options,verify}/route.ts`, `src/app/api/auth/passkeys/route.ts` (GET list), `src/components/profile/profile-passkeys-card.tsx`, `src/app/profile/page.tsx`, `src/lib/i18n/dictionaries/{en,el}.ts`, `scripts/test-passkey-api.ts`
 **Scope:** L → keep the card minimal here; rename/delete live in Task 15
 
 ### Task 14: Sign in with a passkey
+> Note: challenge cookies are additionally single-use server-side (`consumeChallenge`), so a replayed verify request is rejected with 400.
 **Description:** Add the `login/options` route (no session needed, empty `allowCredentials` for discoverable credentials, purpose `login` cookie) and the `login/verify` route.
 - Verify finds the passkey by `credentialId` and runs `verifyAuthenticationResponse`. On success it updates the counter and `lastUsedAt`, sets the `aura_session` cookie through the existing helpers, and returns `{ user }`. An unknown credential or failed verification returns 401 with a generic error.
 - Login page: a **Sign in with a passkey** button above or below the form, plus conditional UI (`autocomplete="username webauthn"` + `startAuthentication({ useBrowserAutofill: true })` when supported). On success it runs the same post-login steps as the password login (`setAuthMode('normal')`, `setCurrentUser`, `refreshWallets`, `router.push(safeNextPath(next))`).
@@ -298,12 +299,12 @@ Add a `ProfilePasskeysCard` on `/profile` (normal mode only). It lists passkeys 
 **Acceptance criteria:**
 - [ ] Logged out → `/login` → Sign in with a passkey → lands on `/` (or on `next`) signed in as the passkey's owner.
 - [ ] **Invite flow:** private window → `/invite/<code>` → Sign in & join → passkey → auto-joined and on the dashboard as a member.
-- [ ] The counter and `lastUsedAt` are updated. A replayed verify request (same challenge) → 400.
-- [ ] Password login is unchanged.
+- [x] The counter and `lastUsedAt` are updated. A replayed verify request (same challenge) → 400.
+- [x] Password login is unchanged.
 
 **Verification:**
-- [ ] Extend `scripts/test-passkey-api.ts`: login/verify without or with a stale challenge → 400, unknown credential → 401.
-- [ ] `pnpm run build`, manual check with the virtual authenticator (both cases above)
+- [x] Extend `scripts/test-passkey-api.ts`: login/verify without or with a stale challenge → 400, unknown credential → 401.
+- [x] `pnpm run build`, manual check with the virtual authenticator (both cases above)
 
 **Dependencies:** Tasks 3, 5, 13
 **Files:** `src/app/api/auth/passkey/login/{options,verify}/route.ts`, `src/app/login/page.tsx`, `src/lib/i18n/dictionaries/{en,el}.ts`, `scripts/test-passkey-api.ts`
@@ -313,13 +314,13 @@ Add a `ProfilePasskeysCard` on `/profile` (normal mode only). It lists passkeys 
 **Description:** Add `PATCH /api/auth/passkeys/[id]` (rename, 1–50 chars) and `DELETE` (owner only, 404 for anyone else). Add rename (inline) and remove (confirm dialog) to `ProfilePasskeysCard`. Add a dismissible **"Sign in faster with a passkey"** card on the dashboard. It shows in normal mode when WebAuthn is supported, the user has 0 passkeys, and it hasn't been dismissed (`localStorage` `aura_passkey_prompt_dismissed:<userId>`). Its CTA runs the same add-passkey ceremony, or links to `/profile#passkeys`. New users, including invite signups, see it on first landing.
 
 **Acceptance criteria:**
-- [ ] Rename and delete work. Another user's passkey ID → 404, and the row is untouched.
+- [x] Rename and delete work. Another user's passkey ID → 404, and the row is untouched.
 - [ ] A deleted passkey can no longer sign in (401).
-- [ ] The prompt shows for a new user with no passkeys, disappears once one is added or the prompt is dismissed, and never shows in mock mode.
+- [x] The prompt shows for a new user with no passkeys, disappears once one is added or the prompt is dismissed, and never shows in mock mode.
 
 **Verification:**
-- [ ] Extend `scripts/test-passkey-api.ts` with ownership cases (insert a fixture `Passkey` row directly through Prisma for user B and try PATCH/DELETE as user A).
-- [ ] `pnpm run lint`, `npx tsx scripts/check-i18n.ts`, manual check at desktop and mobile widths
+- [x] Extend `scripts/test-passkey-api.ts` with ownership cases (insert a fixture `Passkey` row directly through Prisma for user B and try PATCH/DELETE as user A).
+- [ ] manual ceremony check; `pnpm run lint`, `npx tsx scripts/check-i18n.ts` pass; prompt checked at desktop width at desktop and mobile widths
 
 **Dependencies:** Task 13 (and Task 14 for the "deleted passkey can't sign in" check)
 **Files:** `src/app/api/auth/passkeys/[id]/route.ts`, `src/components/profile/profile-passkeys-card.tsx`, `src/components/passkey-setup-prompt.tsx`, `src/app/page.tsx` (dashboard), `src/lib/i18n/dictionaries/{en,el}.ts`

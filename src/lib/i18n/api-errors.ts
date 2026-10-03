@@ -110,6 +110,10 @@ export const API_ERROR_MAP: Record<string, string> = {
   'Failed to fetch passkeys': 'passkeys.genericError',
   'Failed to generate passkey login options': 'auth.passkeyFailed',
   'Failed to verify passkey': 'auth.passkeyFailed',
+  'Passkey name must be 1 to 50 characters': 'passkeys.nameLengthError',
+  'Passkey not found': 'passkeys.notFound',
+  'Failed to update passkey': 'passkeys.failedToUpdate',
+  'Failed to delete passkey': 'passkeys.failedToDelete',
 };
 
 export const STATUS_ERROR_MAP: Record<number, string> = {

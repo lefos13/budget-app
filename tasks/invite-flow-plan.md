@@ -70,10 +70,10 @@ See `tasks/invite-flow-todo.md` for full acceptance criteria.
 ### Checkpoint 4: password recovery works in production
 
 ### Phase 5: Passkeys (WebAuthn)
-- [ ] Task 12: Passkey schema, WebAuthn config and challenge helpers
-- [ ] Task 13: Add a passkey from the Profile page
-- [ ] Task 14: Sign in with a passkey (honours `?next=`, so it works in the invite flow)
-- [ ] Task 15: Manage passkeys (rename/delete) and the "set up a passkey" prompt after sign-up
+- [x] Task 12: Passkey schema, WebAuthn config and challenge helpers
+- [x] Task 13: Add a passkey from the Profile page
+- [x] Task 14: Sign in with a passkey (honours `?next=`, so it works in the invite flow)
+- [x] Task 15: Manage passkeys (rename/delete) and the "set up a passkey" prompt after sign-up
 - [ ] Task 16: Production config, docs and verification on budget.lnf.gr
 
 ### Checkpoint 5: complete

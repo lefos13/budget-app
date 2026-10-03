@@ -17,6 +17,7 @@ import { CategoryBreakdown } from '@/components/category-breakdown';
 import { UpcomingBillsCard } from '@/components/upcoming-bills-card';
 import { RecentExpensesCard } from '@/components/recent-expenses-card';
 import { PendingInvitesBanner } from '@/components/pending-invites-banner';
+import { PasskeySetupPrompt } from '@/components/passkey-setup-prompt';
 import { MonthProjectionCard } from '@/components/month-projection-card';
 import { MonthlySavingsCard } from '@/components/savings/monthly-savings-card';
 import { SupportStrip } from '@/components/support-strip';
@@ -46,6 +47,7 @@ function Dashboard() {
     return (
       <div className="max-w-xl mx-auto space-y-6 py-12 px-4">
         <PendingInvitesBanner />
+        <PasskeySetupPrompt />
         <div className="text-center py-10 px-4 rounded-3xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-md">
           <div className="w-16 h-16 rounded-3xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mx-auto mb-4 border border-indigo-200/80 dark:border-indigo-800 shadow-md">
             <Layers className="w-8 h-8" />
@@ -74,6 +76,9 @@ function Dashboard() {
     <div className={`space-y-7 transition-opacity ${isSwitching ? 'opacity-60' : ''}`} aria-busy={isSwitching}>
       {/* Targeted Pending Invites Banner */}
       <PendingInvitesBanner />
+
+      {/* Passkey Setup Prompt */}
+      <PasskeySetupPrompt />
 
       {/* Top Welcome & Wallet Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-5 sm:p-6 rounded-3xl border border-zinc-200/90 dark:border-zinc-800 bg-white/95 dark:bg-zinc-900/90 shadow-sm">
