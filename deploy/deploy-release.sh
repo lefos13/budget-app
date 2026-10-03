@@ -7,7 +7,7 @@ SQLite file, applies migrations, swaps the `current` symlink and reloads PM2.
 Layout under APP_ROOT (default /root/budget-app):
   releases/<id>/           one directory per deploy, newest KEEP_RELEASES kept
   current -> releases/<id>  what PM2 runs
-  shared/.env.production    runtime config (AUTH_SECRET, DATABASE_URL, PORT, HOSTNAME)
+  shared/.env.production    runtime config (AUTH_SECRET, DATABASE_URL, PORT, HOSTNAME, PUBLIC_BASE_URL, EMAIL_*)
   shared/data/              SQLite database (outside releases, survives deploys)
   shared/backups/           pre-migration DB copies, newest KEEP_BACKUPS kept
 
@@ -39,6 +39,48 @@ if [[ "${DATABASE_URL:-}" != file:/* ]]; then
   echo "DATABASE_URL in $ENV_FILE must be an absolute file: URL (got '${DATABASE_URL:-}')." >&2
   exit 1
 fi
+
+if [[ -z "${PUBLIC_BASE_URL:-}" || "${PUBLIC_BASE_URL}" != https://* ]]; then
+  echo "PUBLIC_BASE_URL in $ENV_FILE must be set and start with https:// (got '${PUBLIC_BASE_URL:-}')." >&2
+  exit 1
+fi
+
+DELIVERY_DISABLED=0
+case "${EMAIL_DELIVERY_ENABLED:-}" in
+  [Ff][Aa][Ll][Ss][Ee]|0|[Nn][Oo]) DELIVERY_DISABLED=1 ;;
+esac
+
+if [[ "$DELIVERY_DISABLED" -eq 0 ]]; then
+  if [[ -z "${EMAIL_FROM:-}" ]]; then
+    echo "EMAIL_FROM in $ENV_FILE must be set." >&2
+    exit 1
+  fi
+
+  EMAIL_PROV="${EMAIL_PROVIDER:-smtp}"
+  case "$EMAIL_PROV" in
+    gmail)
+      if [[ -z "${GMAIL_USER:-}" ]]; then
+        echo "GMAIL_USER in $ENV_FILE must be set when EMAIL_PROVIDER=gmail." >&2
+        exit 1
+      fi
+      if [[ -z "${GMAIL_APP_PASSWORD:-}" ]] && [[ -z "${GMAIL_CLIENT_ID:-}" || -z "${GMAIL_CLIENT_SECRET:-}" || -z "${GMAIL_REFRESH_TOKEN:-}" ]]; then
+        echo "EMAIL_PROVIDER=gmail in $ENV_FILE requires GMAIL_APP_PASSWORD or (GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN)." >&2
+        exit 1
+      fi
+      ;;
+    smtp)
+      if [[ -z "${SMTP_HOST:-}" || -z "${SMTP_PORT:-}" ]]; then
+        echo "EMAIL_PROVIDER=smtp in $ENV_FILE requires SMTP_HOST and SMTP_PORT." >&2
+        exit 1
+      fi
+      ;;
+    *)
+      echo "Unknown EMAIL_PROVIDER '$EMAIL_PROV' in $ENV_FILE (expected gmail or smtp)." >&2
+      exit 1
+      ;;
+  esac
+fi
+
 DB_FILE="${DATABASE_URL#file:}"
 mkdir -p "$(dirname "$DB_FILE")" "$APP_ROOT/shared/backups"
 
@@ -53,6 +95,7 @@ if [[ -f "$DB_FILE" ]]; then
   ls -1t "$APP_ROOT/shared/backups/"*.db | tail -n +"$((KEEP_BACKUPS + 1))" | xargs -r rm -f
 fi
 
+# Schema migrations are strictly additive; applied before swapping symlink and reloading PM2.
 nice -n 10 "$RELEASE_DIR/migrator/node_modules/.bin/prisma" migrate deploy --schema "$RELEASE_DIR/prisma/schema.prisma"
 
 # Atomic swap: rename a fresh symlink over the old one.

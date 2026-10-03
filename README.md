@@ -31,6 +31,11 @@ Database changes are additive migrations only (`prisma migrate deploy`); never r
 
 Local dev needs a `.env` file (gitignored) containing `DATABASE_URL="file:./dev.db"`. `prisma/*.db` files are gitignored too: databases and their backups stay local. A fresh clone runs `pnpm exec prisma migrate deploy && pnpm exec tsx prisma/seed.ts`.
 
+For local email and password reset testing, configure the same variables in `.env`:
+- `PUBLIC_BASE_URL=http://localhost:3000`
+- `EMAIL_DELIVERY_ENABLED=false` (default outside production: emails and reset links are printed to the server console instead of sending over the network)
+- Optional `EMAIL_PROVIDER=gmail`, `GMAIL_USER`, `GMAIL_APP_PASSWORD`, `EMAIL_FROM`, `EMAIL_REPLY_TO` (or `SMTP_*` alternatives). To test real delivery locally, set `EMAIL_DELIVERY_ENABLED=true` and run `npx tsx scripts/send-test-email.ts <to>`.
+
 ## Production (budget.lnf.gr)
 
 Pushing to `main` runs `.github/workflows/deploy-production.yml`. All of it happens on the GitHub runner except the final step:
@@ -51,9 +56,33 @@ Droplet layout (`/root/budget-app`):
 |---|---|
 | `current` | Symlink to the live release, which PM2 runs |
 | `releases/<time>-<sha>` | Last 3 releases. Roll back with `ln -sfn` to an older one, then `pm2 reload budget-app` |
-| `shared/.env.production` | `NODE_ENV`, `PORT=3200`, `HOSTNAME=127.0.0.1`, `DATABASE_URL=file:/root/budget-app/shared/data/budget.db`, `AUTH_SECRET` |
+| `shared/.env.production` | Runtime environment configuration (see table below) |
 | `shared/data/budget.db` | Production SQLite database |
 | `shared/backups/` | Pre-migration DB copies (last 10) |
+
+Production environment variables (`shared/.env.production`):
+
+| Variable | Required / Default | Example / Description |
+|---|---|---|
+| `NODE_ENV` | Required (`production`) | Production mode (disables mock auth) |
+| `PORT` | Required (`3200`) | Port PM2 binds the Next server to |
+| `HOSTNAME` | Required (`127.0.0.1`) | Localhost interface behind nginx |
+| `DATABASE_URL` | Required | `file:/root/budget-app/shared/data/budget.db` (absolute file: URL) |
+| `AUTH_SECRET` | Required | Session cookie signing secret (min 32 characters) |
+| `PUBLIC_BASE_URL` | Required | `https://budget.lnf.gr` (root URL for emails/password resets; must start with `https://`) |
+| `EMAIL_PROVIDER` | Optional (default: `smtp`) | `gmail` or `smtp` |
+| `GMAIL_USER` | Required if provider is `gmail` | e.g. `example@gmail.com` |
+| `GMAIL_APP_PASSWORD` | Required if provider is `gmail` | 16-character Google App Password (e.g. `abcd efgh ijkl mnop`), unless OAuth2 credentials are configured |
+| `EMAIL_FROM` | Required | Sender header, e.g. `Aura Budget <example@gmail.com>` |
+| `EMAIL_REPLY_TO` | Optional | Reply-To address, e.g. `support@example.com` |
+| `EMAIL_DELIVERY_ENABLED` | Optional (default: `true` in prod) | Set `false` / `0` / `no` to suppress sending and log emails to console |
+| `SMTP_HOST` | Required if provider is `smtp` | SMTP server host, e.g. `smtp.example.com` |
+| `SMTP_PORT` | Required if provider is `smtp` | SMTP server port, e.g. `587` |
+| `SMTP_SECURE` | Optional (default: `false`) | `true` for SSL/TLS (port 465), `false` for STARTTLS |
+| `SMTP_USER` | Optional | SMTP username |
+| `SMTP_PASS` | Optional | SMTP password |
+
+> **Gmail app passwords**: A Google Account with 2-Step Verification (2FA) enabled is required to generate an App Password (Google Account → Security → 2-Step Verification → App passwords). A `535 BadCredentials` error means the app password was revoked, expired, or entered incorrectly.
 
 nginx (`deploy/nginx/`, live copy in `/etc/nginx/conf.d/budget.lnf.gr.conf`) terminates TLS (Let's Encrypt, renewed by certbot via webroot) and rate-limits `/api/auth/login|register` to 10 requests/min per IP.
 
