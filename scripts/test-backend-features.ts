@@ -418,11 +418,16 @@ async function runBackendVerification() {
   if (getInviteJson.invite.targetEmail !== targetUserEmail.toLowerCase()) throw new Error('targetEmail missing in GET /api/invite/[code]');
   console.log(`✓ GET /api/invite/[code] verified targetEmail "${getInviteJson.invite.targetEmail}"`);
 
-  // 8. Accept with wrong email -> 403
+  // 8. Accept as a signed-in user with the wrong email -> 403
+  const intruderUser = await prisma.user.create({
+    data: { email: `intruder-${Date.now()}@other.com`, name: 'Intruder' },
+  });
+  const targetUser = await prisma.user.create({
+    data: { email: targetUserEmail, name: 'Valid Invitee' },
+  });
   const intruderReq = new NextRequest(`http://localhost:3000/api/invite/${code}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name: 'Intruder', email: 'intruder@other.com' }),
+    headers: { 'Content-Type': 'application/json', 'x-user-id': intruderUser.id },
   });
   const intruderRes = await invitePostRoute(intruderReq, { params: Promise.resolve({ code }) });
   if (intruderRes.status !== 403) throw new Error(`Expected 403 for wrong target email, got ${intruderRes.status}`);
@@ -431,8 +436,7 @@ async function runBackendVerification() {
   // 9. Accept with matching email -> 200
   const validInviteeReq = new NextRequest(`http://localhost:3000/api/invite/${code}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name: 'Valid Invitee', email: targetUserEmail }),
+    headers: { 'Content-Type': 'application/json', 'x-user-id': targetUser.id },
   });
   const validInviteeRes = await invitePostRoute(validInviteeReq, { params: Promise.resolve({ code }) });
   if (validInviteeRes.status !== 200) throw new Error('Failed to accept invite with valid email');
@@ -500,6 +504,7 @@ async function runBackendVerification() {
   await prisma.wallet.delete({ where: { id: newImportWallet.id } });
   await prisma.user.delete({ where: { id: regJson.user.id } });
   await prisma.user.delete({ where: { email: targetUserEmail } });
+  await prisma.user.delete({ where: { id: intruderUser.id } });
 
   console.log('\n🎉 ALL 6 COMPREHENSIVE BACKEND TEST SUITES PASSED!\n');
 }

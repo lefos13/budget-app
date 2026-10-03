@@ -76,6 +76,44 @@ export function isPublicPath(pathname: string | null | undefined): boolean {
   return isAuthPath(pathname) || pathname === '/invite' || pathname.startsWith('/invite/');
 }
 
+/** Pages a `next` redirect must never point back to (would loop through auth). */
+const AUTH_FLOW_PATHS = new Set(['/login', '/register', '/forgot-password', '/reset-password']);
+
+/**
+ * Validates a post-auth redirect target. Only same-origin relative paths pass;
+ * anything else (absolute URLs, `//host`, backslash tricks, auth pages) falls back to `/`.
+ */
+export function safeNextPath(raw: string | null | undefined): string {
+  if (typeof raw !== 'string' || !raw.startsWith('/')) return '/';
+  if (raw.startsWith('//') || raw.includes('\\') || /[\u0000-\u001f\u007f]/.test(raw)) return '/';
+  let decoded: string;
+  try {
+    decoded = decodeURIComponent(raw);
+  } catch {
+    return '/';
+  }
+  if (decoded.startsWith('//') || decoded.includes('\\')) return '/';
+  const pathname = raw.split(/[?#]/)[0];
+  if (AUTH_FLOW_PATHS.has(pathname)) return '/';
+  return raw;
+}
+
+export type AuthPageKind = 'login' | 'register' | 'forgot-password';
+
+/** Link to an auth page that returns to `next` afterwards (only kept when it is safe). */
+export function authHref(
+  kind: AuthPageKind,
+  next?: string | null,
+  extra?: { email?: string | null }
+): string {
+  const params = new URLSearchParams();
+  const safe = safeNextPath(next);
+  if (safe !== '/') params.set('next', safe);
+  if (extra?.email) params.set('email', extra.email);
+  const query = params.toString();
+  return query ? `/${kind}?${query}` : `/${kind}`;
+}
+
 interface LandingState {
   pathname: string | null | undefined;
   authMode: AuthModeId;

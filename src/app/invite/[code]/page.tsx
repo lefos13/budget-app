@@ -52,11 +52,6 @@ export default function InviteJoinPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isJoining, setIsJoining] = useState(false);
 
-  // Optional new profile fields
-  const [customName, setCustomName] = useState('');
-  const [customEmail, setCustomEmail] = useState('');
-  const [useCustomProfile, setUseCustomProfile] = useState(false);
-
   useEffect(() => {
     async function loadInvite() {
       try {
@@ -68,9 +63,6 @@ export default function InviteJoinPage() {
         } else {
           const data: InviteDetails = await res.json();
           setInviteData(data);
-          if (data.invite.targetEmail) {
-            setCustomEmail(data.invite.targetEmail);
-          }
         }
       } catch {
         setError(t('invites.errorLoading'));
@@ -87,19 +79,13 @@ export default function InviteJoinPage() {
     try {
       setIsJoining(true);
       setError(null);
-      const payload: { name?: string; email?: string } = {};
-      if (useCustomProfile && customName && customEmail) {
-        payload.name = customName.trim();
-        payload.email = customEmail.trim();
-      }
 
       const res = await fetch(`/api/invite/${code}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(currentUser && !useCustomProfile ? { 'x-user-id': currentUser.id } : {}),
+          ...(currentUser ? { 'x-user-id': currentUser.id } : {}),
         },
-        body: JSON.stringify(payload),
       });
 
       const data = await res.json();
@@ -166,7 +152,7 @@ export default function InviteJoinPage() {
 
   const { wallet, invite } = inviteData;
   const isTargeted = Boolean(invite.targetEmail);
-  const activeEmail = useCustomProfile ? customEmail.trim().toLowerCase() : (currentUser?.email?.toLowerCase() || '');
+  const activeEmail = currentUser?.email?.toLowerCase() || '';
   const targetEmailLower = (invite.targetEmail || '').toLowerCase();
   const isEmailMatching = !isTargeted || activeEmail === targetEmailLower;
 
@@ -252,52 +238,6 @@ export default function InviteJoinPage() {
         </div>
       </div>
 
-      {/* Join Option Switch */}
-      {currentUser && (
-        <div className="mb-4">
-          <button
-            type="button"
-            onClick={() => setUseCustomProfile(!useCustomProfile)}
-            className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
-          >
-            {useCustomProfile
-              ? `← ${t('invites.useExistingProfile')} ${currentUser.name}`
-              : t('invites.useCustomProfile')}
-          </button>
-        </div>
-      )}
-
-      {useCustomProfile && (
-        <div className="space-y-3 mb-6 p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200 dark:border-zinc-800">
-          <div>
-            <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">
-              {t('invites.fullNameLabel')}
-            </label>
-            <input
-              type="text"
-              required
-              placeholder={t('invites.namePlaceholder')}
-              value={customName}
-              onChange={(e) => setCustomName(e.target.value)}
-              className="w-full px-3 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-xs text-zinc-900 dark:text-white"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1">
-              {t('invites.emailLabel')}
-            </label>
-            <input
-              type="email"
-              required
-              placeholder={invite.targetEmail || t('invites.emailPlaceholder')}
-              value={customEmail}
-              onChange={(e) => setCustomEmail(e.target.value)}
-              className="w-full px-3 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-xs text-zinc-900 dark:text-white"
-            />
-          </div>
-        </div>
-      )}
-
       {/* Accept & Join Button */}
       <button
         type="button"
@@ -310,8 +250,6 @@ export default function InviteJoinPage() {
             ? t('invites.joiningWallet')
             : !isEmailMatching
             ? interpolate(t('invites.lockedToEmail'), { email: invite.targetEmail || '' })
-            : useCustomProfile
-            ? t('invites.joinWallet')
             : `${t('invites.joinAs')} ${currentUser?.name || t('roles.MEMBER')}`}
         </span>
         <ArrowRight className="w-4 h-4" />

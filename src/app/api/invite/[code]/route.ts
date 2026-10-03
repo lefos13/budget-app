@@ -71,9 +71,6 @@ export async function POST(
 ) {
   try {
     const { code } = await params;
-    const body = await req.json().catch(() => ({}));
-    const { name, email } = body;
-
     const invite = await prisma.walletInvite.findUnique({
       where: { code },
       include: {
@@ -95,21 +92,7 @@ export async function POST(
       return NextResponse.json({ error: 'This invitation has reached its usage limit' }, { status: 410 });
     }
 
-    // Determine user joining
-    let user;
-    if (email && name) {
-      user = await prisma.user.upsert({
-        where: { email: email.trim().toLowerCase() },
-        update: { name: name.trim() },
-        create: {
-          email: email.trim().toLowerCase(),
-          name: name.trim(),
-          avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(name.trim())}`,
-        },
-      });
-    } else {
-      user = await getCurrentUser(req);
-    }
+    const user = await getCurrentUser(req);
 
     if (!user) {
       return NextResponse.json({ error: 'Authentication required to accept invite' }, { status: 401 });
