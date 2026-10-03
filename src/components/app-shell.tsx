@@ -5,9 +5,10 @@ import { usePathname } from 'next/navigation';
 import { Wallet } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { useTranslation } from '@/context/LanguageContext';
-import { isLandingView, isSplashView } from '@/lib/navigation';
+import { isLandingView, isSplashView, isPublicChromeView } from '@/lib/navigation';
 import { Sidebar } from '@/components/sidebar';
 import { MonthContextBar } from '@/components/month-context-bar';
+import { PublicHeader } from '@/components/public-header';
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -29,6 +30,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <Wallet className="w-7 h-7" />
         </div>
         <div className="w-6 h-6 border-[3px] border-indigo-600 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (isPublicChromeView({ pathname, authMode, isAuthLoading, hasUser: !!currentUser })) {
+    return (
+      <div className="min-h-screen flex flex-col bg-zinc-50 dark:bg-zinc-950">
+        <PublicHeader />
+        <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+          {children}
+        </main>
       </div>
     );
   }

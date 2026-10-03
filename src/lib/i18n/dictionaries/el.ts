@@ -444,6 +444,14 @@ export const el: Dictionary = {
     accountCreatedWelcome: 'Ο λογαριασμός δημιουργήθηκε! Καλώς ορίσατε στο Aura, {name}.',
     signInToSync: 'Συνδεθείτε για συγχρονισμό',
   },
+  publicHeader: {
+    homeLabel: 'Aura Budget — Αρχική',
+    navLabel: 'Δημόσια πλοήγηση',
+    languageLabel: 'Επιλογή γλώσσας',
+    langEn: 'EN',
+    langEl: 'ΕΛ',
+    signIn: 'Σύνδεση',
+  },
   landing: {
     brandName: 'Aura Budget',
     splashLabel: 'Φόρτωση του Aura Budget',

@@ -442,6 +442,14 @@ export const en = {
     accountCreatedWelcome: 'Account created! Welcome to Aura, {name}.',
     signInToSync: 'Sign in to sync',
   },
+  publicHeader: {
+    homeLabel: 'Aura Budget — Home',
+    navLabel: 'Public navigation',
+    languageLabel: 'Select language',
+    langEn: 'EN',
+    langEl: 'ΕΛ',
+    signIn: 'Sign In',
+  },
   landing: {
     brandName: 'Aura Budget',
     splashLabel: 'Loading Aura Budget',

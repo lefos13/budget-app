@@ -1,16 +1,19 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Wallet, Lock, Mail, ArrowRight, Sparkles, AlertCircle, Loader2 } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { useTranslation } from '@/context/LanguageContext';
 import { translateApiError } from '@/lib/i18n/api-errors';
 import { interpolate } from '@/lib/i18n/translator';
+import { safeNextPath, authHref } from '@/lib/navigation';
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const next = searchParams.get('next');
   const { setCurrentUser, setAuthMode, refreshWallets, showToast } = useApp();
   const { t } = useTranslation();
 
@@ -53,7 +56,7 @@ export default function LoginPage() {
       setCurrentUser(data.user);
       await refreshWallets();
       showToast(interpolate(t('auth.welcomeBackUser'), { name: data.user.name }));
-      router.push('/');
+      router.push(safeNextPath(next));
     } catch (err) {
       console.error('Login submit error:', err);
       setError(t('errors.networkError'));
@@ -213,7 +216,7 @@ export default function LoginPage() {
           <div className="mt-6 pt-5 border-t border-zinc-100 dark:border-zinc-800/80 flex items-center justify-between text-xs">
             <span className="text-zinc-500">{t.auth.dontHaveAccount}</span>
             <Link
-              href="/register"
+              href={authHref('register', next)}
               className="font-bold text-indigo-600 dark:text-indigo-400 hover:underline"
             >
               {t.actions.register}
@@ -242,5 +245,13 @@ export default function LoginPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
   );
 }

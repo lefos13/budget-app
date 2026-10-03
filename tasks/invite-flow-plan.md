@@ -43,8 +43,8 @@ isPublicChromeView (navigation.ts) ── AppShell + PublicHeader (independent o
 See `tasks/invite-flow-todo.md` for full acceptance criteria.
 
 ### Phase 1: Foundation (security + helpers)
-- [ ] Task 1: Close the anonymous name/email upsert on `POST /api/invite/[code]`
-- [ ] Task 2: `safeNextPath()` + `authHref()` helpers with tests
+- [x] Task 1: Close the anonymous name/email upsert on `POST /api/invite/[code]`
+- [x] Task 2: `safeNextPath()` + `authHref()` helpers with tests
 
 ### Checkpoint 1
 
@@ -62,7 +62,7 @@ See `tasks/invite-flow-todo.md` for full acceptance criteria.
 ### Checkpoint 3: invite flow complete
 
 ### Phase 4: Forgot password (email)
-- [ ] Task 8: Email service (ported from softaware-apis) + env config
+- [x] Task 8: Email service (ported from softaware-apis) + env config
 - [ ] Task 9: Request a reset link (`/forgot-password` + email)
 - [ ] Task 10: Set a new password from the link (`/reset-password`) + sign out old sessions
 - [ ] Task 11: Production email config, docs and real-inbox verification

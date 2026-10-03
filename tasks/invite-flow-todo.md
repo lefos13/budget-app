@@ -10,13 +10,13 @@ Plan: `tasks/invite-flow-plan.md`. Verification commands (AGENTS.md §7): `npx p
 **Description:** Joining must require a real session (normal) or mock user (dev). Remove the `name`/`email` → `prisma.user.upsert` branch, so the user always comes from `getCurrentUser(req)`. In normal mode, call it with `allowMockFallback` honoured through the `x-auth-mode` header, which is how it already works. Remove the matching "custom profile" UI state and fields from the invite page, and their now-unused i18n keys (en + el).
 
 **Acceptance criteria:**
-- [ ] POST with `{name, email}` and no session/`x-user-id` (header `x-auth-mode: normal`) → `401`, and no `User` row is created or renamed.
-- [ ] POST with a valid user still joins (`201/200`, `walletId` returned), and calling it again returns "already a member" with the same `walletId`.
-- [ ] Targeted invite with a non-matching user → `403`.
+- [x] POST with `{name, email}` and no session/`x-user-id` (header `x-auth-mode: normal`) → `401`, and no `User` row is created or renamed.
+- [x] POST with a valid user still joins (`201/200`, `walletId` returned), and calling it again returns "already a member" with the same `walletId`.
+- [x] Targeted invite with a non-matching user → `403`.
 
 **Verification:**
-- [ ] New `scripts/test-invite-api.ts` (HTTP, pattern of `test-month-bonus.ts`) covers the 3 cases above and cleans up after itself. Added to `test:api` in `package.json`.
-- [ ] `pnpm run lint`, `npx tsx scripts/check-i18n.ts`
+- [x] New `scripts/test-invite-api.ts` (HTTP, pattern of `test-month-bonus.ts`) covers the 3 cases above and cleans up after itself. Added to `test:api` in `package.json`.
+- [x] `pnpm run lint`, `npx tsx scripts/check-i18n.ts`
 
 **Dependencies:** None
 **Files:** `src/app/api/invite/[code]/route.ts`, `src/app/invite/[code]/page.tsx`, `src/lib/i18n/dictionaries/{en,el}.ts`, `scripts/test-invite-api.ts`, `package.json`
@@ -26,20 +26,20 @@ Plan: `tasks/invite-flow-plan.md`. Verification commands (AGENTS.md §7): `npx p
 **Description:** In `src/lib/navigation.ts` add `safeNextPath(raw: string | null | undefined): string`. It returns `raw` only if it is a same-origin relative path that is not an auth path, otherwise `/`. Also add `authHref(kind: 'login' | 'register', next: string, extra?: { email?: string }): string`, which builds the encoded URL.
 
 **Acceptance criteria:**
-- [ ] `safeNextPath` rejects `//evil.com`, `/\evil.com`, `https://evil.com`, `javascript:alert(1)`, `%2F%2Fevil.com`, `/login`, `/register?next=…`, `''`, `null` → `/`.
-- [ ] Accepts `/invite/JOIN-8899?join=1`, `/expenses`.
-- [ ] `authHref('register', '/invite/X?join=1', { email: 'a@b.c' })` round-trips through `URLSearchParams`.
+- [x] `safeNextPath` rejects `//evil.com`, `/\evil.com`, `https://evil.com`, `javascript:alert(1)`, `%2F%2Fevil.com`, `/login`, `/register?next=…`, `''`, `null` → `/`.
+- [x] Accepts `/invite/JOIN-8899?join=1`, `/expenses`.
+- [x] `authHref('register', '/invite/X?join=1', { email: 'a@b.c' })` round-trips through `URLSearchParams`.
 
 **Verification:**
-- [ ] Cases added to `scripts/test-navigation.ts`. `npx tsx scripts/test-navigation.ts` passes.
+- [x] Cases added to `scripts/test-navigation.ts`. `npx tsx scripts/test-navigation.ts` passes.
 
 **Dependencies:** None
 **Files:** `src/lib/navigation.ts`, `scripts/test-navigation.ts`
 **Scope:** S
 
 ## Checkpoint 1: after Tasks 1–2
-- [ ] `pnpm test` and `pnpm run test:api` (dev server running) pass
-- [ ] `pnpm run lint` clean
+- [x] `pnpm test` passes; `pnpm run test:api` passes after restarting a stale dev server (its Prisma client predated the calendar-token migration)
+- [x] `pnpm run lint` clean
 
 ---
 
@@ -166,14 +166,14 @@ When delivery is off, write the email to the console instead of sending it. Add 
 Copy these variables from `softaware-apis/.env.production` into `budget-app/.env` (gitignored), file to file without echoing: `EMAIL_PROVIDER`, `GMAIL_USER`, `GMAIL_APP_PASSWORD`, `EMAIL_FROM` (display name changed to "Aura Budget"), `EMAIL_REPLY_TO`. Add `EMAIL_DELIVERY_ENABLED=false` and `PUBLIC_BASE_URL=http://localhost:3000`. Add `scripts/send-test-email.ts <to>` for manual diagnosis. It sends one real email only when `EMAIL_DELIVERY_ENABLED=true` is passed explicitly.
 
 **Acceptance criteria:**
-- [ ] The config check reports a clear error for each missing variable (gmail without user/password, smtp without host), as in softaware-apis.
-- [ ] With delivery off, `sendEmail` sends nothing over the network and logs the recipient and subject.
-- [ ] `EMAIL_DELIVERY_ENABLED=true npx tsx scripts/send-test-email.ts eevangelinos@cognity.gr` delivers a real email (user confirms it arrived).
-- [ ] `git status` shows no `.env` changes, and no secrets appear in any committed file.
+- [x] The config check reports a clear error for each missing variable (gmail without user/password, smtp without host), as in softaware-apis.
+- [x] With delivery off, `sendEmail` sends nothing over the network and logs the recipient and subject.
+- [ ] `EMAIL_DELIVERY_ENABLED=true npx tsx scripts/send-test-email.ts eevangelinos@cognity.gr` delivers a real email (user confirms it arrived). **BLOCKED 2026-10-03: Gmail returned 535 BadCredentials for the copied app password (same value in softaware-apis .env and .env.production) — needs a new app password.**
+- [x] `git status` shows no `.env` changes, and no secrets appear in any committed file.
 
 **Verification:**
-- [ ] New `scripts/test-email.ts` (pure: provider selection, config validation, delivery-enabled default with an injected env). Added to `pnpm test`.
-- [ ] `pnpm run lint`, `pnpm run build` (builds without email env vars; config is resolved lazily)
+- [x] New `scripts/test-email.ts` (pure: provider selection, config validation, delivery-enabled default with an injected env). Added to `pnpm test`.
+- [x] `pnpm run lint`, `pnpm run build` (builds without email env vars; config is resolved lazily)
 
 **Dependencies:** None (can start after Checkpoint 3, or in parallel with Phase 3)
 **Files:** `package.json`, `pnpm-lock.yaml`, `src/lib/email.ts`, `scripts/test-email.ts`, `scripts/send-test-email.ts`, `.env` (local only, not committed)

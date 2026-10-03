@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { isValidMonthKey, getCurrentMonthKey, addMonthsToKey } from '@/lib/month';
 import { MonthProjection } from '@/lib/month-projection';
 import { useTranslation } from '@/context/LanguageContext';
-import { isAuthPath, isPublicPath, isLandingView } from '@/lib/navigation';
+import { isAuthPath, isPublicPath, isLandingView, safeNextPath, authHref } from '@/lib/navigation';
 
 export interface User {
   id: string;
@@ -426,9 +426,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (authMode === 'normal') {
       const landing = isLandingView({ pathname, authMode, isAuthLoading, hasUser: !!currentUser });
       if (!currentUser && !landing && !isPublicPath(pathname)) {
-        router.push('/login');
+        router.push(authHref('login', pathname));
       } else if (currentUser && isAuthPath(pathname)) {
-        router.push('/');
+        router.push(safeNextPath(new URLSearchParams(window.location.search).get('next')));
       }
     }
   }, [authMode, currentUser, isAuthLoading, pathname, router]);

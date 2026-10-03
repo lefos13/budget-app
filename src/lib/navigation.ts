@@ -114,7 +114,7 @@ export function authHref(
   return query ? `/${kind}?${query}` : `/${kind}`;
 }
 
-interface LandingState {
+export interface NavigationViewState {
   pathname: string | null | undefined;
   authMode: AuthModeId;
   isAuthLoading: boolean;
@@ -122,11 +122,23 @@ interface LandingState {
 }
 
 /** Logged-out visitor on `/` in normal mode: public landing page, no app chrome. */
-export function isLandingView({ pathname, authMode, isAuthLoading, hasUser }: LandingState): boolean {
+export function isLandingView({ pathname, authMode, isAuthLoading, hasUser }: NavigationViewState): boolean {
   return pathname === '/' && authMode === 'normal' && !isAuthLoading && !hasUser;
 }
 
-/** Normal mode on `/` while auth is still resolving: neutral splash, no chrome. */
-export function isSplashView({ pathname, authMode, isAuthLoading }: Omit<LandingState, 'hasUser'>): boolean {
-  return pathname === '/' && authMode === 'normal' && isAuthLoading;
+/** Normal mode on `/` or public non-auth paths while auth is still resolving: neutral splash, no chrome. */
+export function isSplashView({ pathname, authMode, isAuthLoading }: Omit<NavigationViewState, 'hasUser'>): boolean {
+  if (authMode !== 'normal' || !isAuthLoading) return false;
+  return pathname === '/' || (isPublicPath(pathname) && !isAuthPath(pathname));
+}
+
+/** Logged-out visitor on a public non-auth path (e.g. `/invite/*`) in normal mode: minimal public header, no app chrome. */
+export function isPublicChromeView({ pathname, authMode, isAuthLoading, hasUser }: NavigationViewState): boolean {
+  return (
+    authMode === 'normal' &&
+    !isAuthLoading &&
+    !hasUser &&
+    isPublicPath(pathname) &&
+    !isAuthPath(pathname)
+  );
 }

@@ -1,21 +1,25 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Wallet, User, Lock, Mail, ArrowRight, Sparkles, AlertCircle, Loader2 } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { useTranslation } from '@/context/LanguageContext';
 import { translateApiError } from '@/lib/i18n/api-errors';
 import { interpolate } from '@/lib/i18n/translator';
+import { safeNextPath, authHref } from '@/lib/navigation';
 
-export default function RegisterPage() {
+function RegisterForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const next = searchParams.get('next');
+  const emailParam = searchParams.get('email');
   const { setCurrentUser, setAuthMode, refreshWallets, showToast } = useApp();
   const { t } = useTranslation();
 
   const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(emailParam || '');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -65,7 +69,7 @@ export default function RegisterPage() {
       setCurrentUser(data.user);
       await refreshWallets();
       showToast(interpolate(t('auth.accountCreatedWelcome'), { name: data.user.name }));
-      router.push('/');
+      router.push(safeNextPath(next));
     } catch (err) {
       console.error('Registration submit error:', err);
       setError(t('errors.networkError'));
@@ -235,7 +239,7 @@ export default function RegisterPage() {
           <div className="mt-6 pt-5 border-t border-zinc-100 dark:border-zinc-800/80 flex items-center justify-between text-xs">
             <span className="text-zinc-500">{t.auth.alreadyHaveAccount}</span>
             <Link
-              href="/login"
+              href={authHref('login', next)}
               className="font-bold text-indigo-600 dark:text-indigo-400 hover:underline"
             >
               {t.auth.signInInstead}
@@ -264,5 +268,13 @@ export default function RegisterPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={null}>
+      <RegisterForm />
+    </Suspense>
   );
 }
