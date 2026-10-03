@@ -8,6 +8,9 @@ import {
   defaultPasskeyName,
   parseTransports,
   CHALLENGE_TTL_MS,
+  readChallengeCookie,
+  consumeChallenge,
+  WEBAUTHN_COOKIE_NAME,
 } from '../src/lib/webauthn';
 
 function run() {
@@ -168,6 +171,18 @@ function run() {
   assert.equal(parseTransports('[]'), undefined);
   assert.equal(parseTransports('["unknown-future"]'), undefined);
   console.log('✓ Test 13: parseTransports JSON parser');
+
+  // Test 14: a challenge cookie is accepted once only
+  const secret14 = 'test-secret-14';
+  const cookie14 = signChallenge({ challenge: 'one-shot', purpose: 'login' }, Date.now(), secret14);
+  const req14 = { cookies: { get: (name: string) => (name === WEBAUTHN_COOKIE_NAME ? { value: cookie14 } : undefined) } };
+  assert.ok(readChallengeCookie(req14, 'login', Date.now(), secret14));
+  assert.equal(readChallengeCookie(req14, 'login', Date.now(), secret14), null);
+  const t0 = Date.now();
+  assert.equal(consumeChallenge('expiring', t0), true);
+  assert.equal(consumeChallenge('expiring', t0 + 1000), false);
+  assert.equal(consumeChallenge('expiring', t0 + CHALLENGE_TTL_MS + 1), true);
+  console.log('✓ Test 14: challenges are single-use until they expire');
 
   console.log('\n🎉 All WebAuthn tests passed!');
 }

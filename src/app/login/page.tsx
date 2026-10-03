@@ -1,14 +1,22 @@
 'use client';
 
-import React, { useState, Suspense } from 'react';
+import React, { useState, useEffect, useRef, useSyncExternalStore, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Wallet, Lock, Mail, ArrowRight, Sparkles, AlertCircle, Loader2 } from 'lucide-react';
+import { Wallet, Lock, Mail, ArrowRight, Sparkles, AlertCircle, Loader2, KeyRound } from 'lucide-react';
+import {
+  browserSupportsWebAuthn,
+  browserSupportsWebAuthnAutofill,
+  startAuthentication,
+  WebAuthnAbortService,
+} from '@simplewebauthn/browser';
 import { useApp } from '@/context/AppContext';
 import { useTranslation } from '@/context/LanguageContext';
 import { translateApiError } from '@/lib/i18n/api-errors';
 import { interpolate } from '@/lib/i18n/translator';
 import { safeNextPath, authHref } from '@/lib/navigation';
+
+const emptySubscribe = () => () => {};
 
 function LoginForm() {
   const router = useRouter();
@@ -21,6 +29,134 @@ function LoginForm() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isPasskeyLoading, setIsPasskeyLoading] = useState(false);
+  const hasWebAuthn = useSyncExternalStore(
+    emptySubscribe,
+    () => browserSupportsWebAuthn(),
+    () => false
+  );
+
+  const handleAuthSuccess = async (user: {
+    id: string;
+    name: string;
+    email: string;
+    avatarUrl?: string | null;
+  }) => {
+    setAuthMode('normal');
+    setCurrentUser({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      avatarUrl: user.avatarUrl ?? null,
+    });
+    await refreshWallets();
+    showToast(interpolate(t('auth.welcomeBackUser'), { name: user.name }));
+    router.push(safeNextPath(next));
+  };
+
+  const handleAuthSuccessRef = useRef(handleAuthSuccess);
+  useEffect(() => {
+    handleAuthSuccessRef.current = handleAuthSuccess;
+  });
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const initAutofill = async () => {
+      try {
+        const isAutofillSupported = await browserSupportsWebAuthnAutofill();
+        if (!isAutofillSupported || cancelled) return;
+
+        const optsRes = await fetch('/api/auth/passkey/login/options', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+        });
+
+        if (!optsRes.ok || cancelled) return;
+        const optionsJSON = await optsRes.json();
+        if (cancelled) return;
+
+        const authResp = await startAuthentication({
+          optionsJSON,
+          useBrowserAutofill: true,
+        });
+
+        if (cancelled) return;
+
+        const verifyRes = await fetch('/api/auth/passkey/login/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify(authResp),
+        });
+
+        const verifyData = await verifyRes.json().catch(() => ({}));
+        if (!verifyRes.ok || cancelled) return;
+
+        await handleAuthSuccessRef.current(verifyData.user);
+      } catch (err: unknown) {
+        const errorName = (err as { name?: string })?.name;
+        if (errorName === 'AbortError' || errorName === 'NotAllowedError') {
+          return;
+        }
+      }
+    };
+
+    initAutofill();
+
+    return () => {
+      cancelled = true;
+      WebAuthnAbortService.cancelCeremony();
+    };
+  }, []);
+
+  const handlePasskeySignIn = async () => {
+    setError(null);
+    setIsPasskeyLoading(true);
+
+    try {
+      WebAuthnAbortService.cancelCeremony();
+
+      const optsRes = await fetch('/api/auth/passkey/login/options', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+      });
+
+      const optsData = await optsRes.json().catch(() => ({}));
+      if (!optsRes.ok) {
+        setError(translateApiError(optsData.error, optsRes.status, t));
+        return;
+      }
+
+      const authResp = await startAuthentication({ optionsJSON: optsData });
+
+      const verifyRes = await fetch('/api/auth/passkey/login/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(authResp),
+      });
+
+      const verifyData = await verifyRes.json().catch(() => ({}));
+      if (!verifyRes.ok) {
+        setError(translateApiError(verifyData.error, verifyRes.status, t));
+        return;
+      }
+
+      await handleAuthSuccess(verifyData.user);
+    } catch (err: unknown) {
+      const errorName = (err as { name?: string })?.name;
+      if (errorName === 'NotAllowedError') {
+        return;
+      }
+      console.error('Passkey login error:', err);
+      setError(t('auth.passkeyFailed'));
+    } finally {
+      setIsPasskeyLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,11 +188,7 @@ function LoginForm() {
         return;
       }
 
-      setAuthMode('normal');
-      setCurrentUser(data.user);
-      await refreshWallets();
-      showToast(interpolate(t('auth.welcomeBackUser'), { name: data.user.name }));
-      router.push(safeNextPath(next));
+      await handleAuthSuccess(data.user);
     } catch (err) {
       console.error('Login submit error:', err);
       setError(t('errors.networkError'));
@@ -132,6 +264,7 @@ function LoginForm() {
                 <input
                   id="email"
                   type="email"
+                  autoComplete="username webauthn"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -174,7 +307,7 @@ function LoginForm() {
 
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={isLoading || isPasskeyLoading}
               className="w-full mt-2 py-3 px-4 rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 text-white font-bold text-sm shadow-md shadow-indigo-500/25 flex items-center justify-center gap-2 transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
             >
               {isLoading ? (
@@ -190,6 +323,38 @@ function LoginForm() {
               )}
             </button>
           </form>
+
+          {hasWebAuthn && (
+            <div className="mt-4 space-y-4">
+              <div className="relative flex items-center justify-center">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-zinc-200/80 dark:border-zinc-800/80" />
+                </div>
+                <div className="relative px-3 bg-white/80 dark:bg-zinc-900/80 text-[11px] font-bold uppercase tracking-wider text-zinc-400">
+                  {t('auth.orDivider')}
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={handlePasskeySignIn}
+                disabled={isLoading || isPasskeyLoading}
+                className="w-full py-2.5 px-4 rounded-xl border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 text-zinc-800 dark:text-zinc-200 font-semibold text-sm flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {isPasskeyLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin text-zinc-500" />
+                    <span>{t('auth.passkeySigningIn')}</span>
+                  </>
+                ) : (
+                  <>
+                    <KeyRound className="w-4 h-4 text-zinc-500 dark:text-zinc-400" />
+                    <span>{t('auth.signInWithPasskey')}</span>
+                  </>
+                )}
+              </button>
+            </div>
+          )}
 
           {/* Quick Demo Pre-fill helpers */}
           <div className="mt-6 pt-5 border-t border-zinc-100 dark:border-zinc-800/80">

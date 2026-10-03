@@ -203,7 +203,25 @@ export function readChallengeCookie(
   secret = getAuthSecret()
 ): VerifyChallengeResult | null {
   const value = req.cookies.get(WEBAUTHN_COOKIE_NAME)?.value;
-  return verifyChallenge(value, purpose, now, secret);
+  const result = verifyChallenge(value, purpose, now, secret);
+  if (!result || !consumeChallenge(result.challenge, now)) return null;
+  return result;
+}
+
+/**
+ * Challenges already presented to a verify route. Clearing the cookie doesn't stop a captured
+ * cookie + assertion pair being replayed, and synced passkeys report counter 0, so the server
+ * remembers used challenges until they expire. In memory: production runs a single PM2 instance.
+ */
+const usedChallenges = new Map<string, number>();
+
+export function consumeChallenge(challenge: string, now = Date.now()): boolean {
+  for (const [key, expiresAt] of usedChallenges) {
+    if (expiresAt <= now) usedChallenges.delete(key);
+  }
+  if (usedChallenges.has(challenge)) return false;
+  usedChallenges.set(challenge, now + CHALLENGE_TTL_MS);
+  return true;
 }
 
 /**

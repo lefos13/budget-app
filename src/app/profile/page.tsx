@@ -15,6 +15,7 @@ import {
 import { useApp } from '@/context/AppContext';
 import { useTranslation } from '@/context/LanguageContext';
 import { ProfileSupportCard } from '@/components/support/profile-support-card';
+import { ProfilePasskeysCard } from '@/components/profile/profile-passkeys-card';
 
 export default function ProfilePage() {
   const { currentUser, updateCurrentUser, refreshWallet, authMode, showToast, isLoading } = useApp();
@@ -436,6 +437,8 @@ export default function ProfilePage() {
           </button>
         </div>
       </form>
+
+      {authMode === 'normal' && <ProfilePasskeysCard />}
 
       <ProfileSupportCard />
     </div>

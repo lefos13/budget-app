@@ -101,6 +101,15 @@ export const API_ERROR_MAP: Record<string, string> = {
   'Label must be at most 80 characters': 'errors.bonusLabelLength',
   'Bonus not found': 'errors.bonusNotFound',
   'Failed to update bonuses': 'errors.failedToUpdateBonuses',
+  'Passkey challenge expired, please try again': 'auth.passkeyFailed',
+  'Passkey not recognised': 'auth.passkeyFailed',
+  'Passkey verification failed': 'passkeys.verificationFailed',
+  'This passkey is already registered': 'passkeys.alreadyRegistered',
+  'Failed to generate passkey registration options': 'passkeys.genericError',
+  'Failed to register passkey': 'passkeys.genericError',
+  'Failed to fetch passkeys': 'passkeys.genericError',
+  'Failed to generate passkey login options': 'auth.passkeyFailed',
+  'Failed to verify passkey': 'auth.passkeyFailed',
 };
 
 export const STATUS_ERROR_MAP: Record<number, string> = {
