@@ -1026,6 +1026,12 @@ export const en = {
     googleCalendarStep: 'Other calendars (+) → "From URL" → Paste feed link.',
     outlook: 'Outlook:',
     outlookStep: 'Add Calendar → "Subscribe from web" → Paste feed link.',
+    privateLinkNote: 'This link is private to you. Anyone who has it can see this wallet\'s bills.',
+    resetLink: 'Reset link',
+    resetLinkConfirm: 'Reset your calendar link? Calendars subscribed with the old link will stop updating.',
+    resetLinkDone: 'Calendar link reset. Re-subscribe with the new link.',
+    linkLoading: 'Loading your private link…',
+    linkLoadFailed: 'Could not load your calendar link. Please try again.',
   },
   activity: {
     WALLET_CREATED: 'Wallet Created',

@@ -29,7 +29,7 @@ npx prisma validate
 
 Database changes are additive migrations only (`prisma migrate deploy`); never reset `prisma/dev.db`. Every schema change needs a committed migration. CI builds its test database from migrations alone, so a `db push`-only change fails the deploy.
 
-Local dev needs a `.env` file (gitignored) containing `DATABASE_URL="file:./dev.db"`.
+Local dev needs a `.env` file (gitignored) containing `DATABASE_URL="file:./dev.db"`. `prisma/*.db` files are gitignored too: databases and their backups stay local. A fresh clone runs `pnpm exec prisma migrate deploy && pnpm exec tsx prisma/seed.ts`.
 
 ## Production (budget.lnf.gr)
 
@@ -42,6 +42,8 @@ Pushing to `main` runs `.github/workflows/deploy-production.yml`. All of it happ
 5. Ship it to the droplet. `deploy/deploy-release.sh` backs up the database, runs `prisma migrate deploy`, swaps the `current` symlink, reloads PM2 (`budget-app`), and checks the health URL.
 
 Production runs with mock auth disabled. When `NODE_ENV=production`, the server ignores `x-user-id`, never falls back to a default user, returns 404 for `/api/users`, and refuses to sign sessions without `AUTH_SECRET`.
+
+Calendar feeds (`/api/wallets/[id]/calendar.ics`) need a per-member secret in `?token=`, because calendar apps can't send cookies. Members get their token from `GET /api/wallets/[id]/calendar-token` (session-authenticated, created on first use) and replace it with `POST`. The Sync .ICS modal has a "Reset link" button for this. A missing or wrong token returns 404. Removing a member deletes their token.
 
 Droplet layout (`/root/budget-app`):
 

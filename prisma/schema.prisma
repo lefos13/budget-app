@@ -73,6 +73,9 @@ model WalletMember {
   wallet   Wallet   @relation(fields: [walletId], references: [id], onDelete: Cascade)
   user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   joinedAt DateTime @default(now())
+  /// Secret for this member's calendar feed URL (calendar apps cannot send cookies).
+  /// Per member, so removing a member revokes their feed; rotated via POST /api/wallets/[id]/calendar-token.
+  calendarToken String? @unique
 
   @@unique([walletId, userId])
 }

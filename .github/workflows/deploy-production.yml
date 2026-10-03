@@ -113,6 +113,15 @@ jobs:
           test "$(code $B/api/wallets)" = 401
           test "$(code -H 'x-user-id: anything' $B/api/wallets)" = 401
           test "$(code $B/api/users)" = 404
+          # Calendar feed: only the member's secret token opens it; resetting revokes the old one.
+          W=$(curl -s -b "$RUNNER_TEMP/ck" $B/api/wallets | node -pe 'JSON.parse(require("fs").readFileSync(0)).wallets[0].id')
+          test "$(code $B/api/wallets/$W/calendar.ics)" = 404
+          test "$(code "$B/api/wallets/$W/calendar.ics?token=wrong")" = 404
+          test "$(code $B/api/wallets/$W/calendar-token)" = 401
+          T=$(curl -s -b "$RUNNER_TEMP/ck" $B/api/wallets/$W/calendar-token | node -pe 'JSON.parse(require("fs").readFileSync(0)).token')
+          test "$(code "$B/api/wallets/$W/calendar.ics?token=$T")" = 200
+          curl -s -o /dev/null -b "$RUNNER_TEMP/ck" -X POST $B/api/wallets/$W/calendar-token
+          test "$(code "$B/api/wallets/$W/calendar.ics?token=$T")" = 404
           echo "Smoke test passed"
           pkill -f "node server.js" || true
 

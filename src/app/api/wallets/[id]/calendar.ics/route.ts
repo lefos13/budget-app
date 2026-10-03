@@ -2,12 +2,24 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { generateIcsCalendar } from '@/lib/ics-generator';
 
+/**
+ * Read-only bills feed for calendar apps. They cannot send cookies, so access is a per-member
+ * secret in `?token=` (issued by /api/wallets/[id]/calendar-token). Unknown wallet, missing or
+ * wrong token all return the same 404 so the feed never confirms that a wallet exists.
+ */
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params;
+    const token = req.nextUrl.searchParams.get('token');
+    const membership = token
+      ? await prisma.walletMember.findUnique({ where: { calendarToken: token } })
+      : null;
+    if (!membership || membership.walletId !== id) {
+      return new NextResponse('Not found', { status: 404 });
+    }
 
     const wallet = await prisma.wallet.findUnique({
       where: { id },
@@ -22,7 +34,7 @@ export async function GET(
     });
 
     if (!wallet) {
-      return new NextResponse('Wallet not found', { status: 404 });
+      return new NextResponse('Not found', { status: 404 });
     }
 
     const bills = wallet.invoices.map((inv) => ({
