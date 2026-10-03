@@ -241,8 +241,8 @@ Add a `/reset-password` page with new password + confirm. On success: `setAuthMo
 
 ## Checkpoint 4: password recovery works in production
 - [ ] All acceptance criteria of Tasks 8–11 met
-- [ ] No secrets in git (`git log -p | grep -i app_password` is empty)
-- [ ] Review with human before starting passkeys
+- [x] No secrets in git (checked: GMAIL_USER / GMAIL_APP_PASSWORD values absent from branch history; no .env/.db tracked)
+- [x] Review with human before starting passkeys (user: "go with your recommendations", build everything)
 
 ---
 
@@ -344,6 +344,6 @@ Add a `ProfilePasskeysCard` on `/profile` (normal mode only). It lists passkeys 
 
 ## Checkpoint 5: Complete
 - [ ] All acceptance criteria met (Tasks 1–16)
-- [ ] Open questions in the plan resolved or deferred explicitly
+- [x] Open questions in the plan resolved or deferred explicitly
 - [ ] DB backed up, migration applied in production, passkeys verified on a real device
 - [ ] Ready for review / deploy to budget.lnf.gr
