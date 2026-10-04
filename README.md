@@ -62,8 +62,8 @@ Droplet layout (`/root/budget-app`):
 
 Production environment variables come from two files. Both `deploy/deploy-release.sh` and the PM2 ecosystem load them in this order, so the later file wins:
 
-1. `/root/shared/.env.production`: droplet-wide mail settings shared by all apps (`EMAIL_PROVIDER=gmail`, `GMAIL_USER`, `GMAIL_APP_PASSWORD`, `EMAIL_FROM`, `EMAIL_REPLY_TO`). The path can be overridden with `SHARED_ENV_FILE`.
-2. `/root/budget-app/shared/.env.production`: this app's values. It overrides `EMAIL_FROM` with `Aura Budget <softaware.studios@gmail.com>`.
+1. `/root/shared/.env.production`: droplet-wide mail settings shared by all apps. These are Brevo SMTP relay settings for lnf.gr (`EMAIL_PROVIDER=smtp`, `SMTP_HOST=smtp-relay.brevo.com`, `SMTP_PORT=587`, `SMTP_SECURE=false`, `SMTP_USER`, `SMTP_PASS`, plus a default `EMAIL_FROM`). The path can be overridden with `SHARED_ENV_FILE`.
+2. `/root/budget-app/shared/.env.production`: this app's values. It overrides `EMAIL_FROM` with `Aura Budget <no-reply@lnf.gr>`. There is no Reply-To, because the sender is no-reply.
 
 | Variable | Required / Default | Example / Description |
 |---|---|---|
