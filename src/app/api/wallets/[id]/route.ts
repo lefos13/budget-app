@@ -6,7 +6,7 @@ import { monthlyEquivalent, pickSeriesOccurrences } from '@/lib/recurrence';
 import { computeMonthProjection } from '@/lib/month-projection';
 import { computeSavingsMonth, round2 } from '@/lib/savings';
 import { loadSavingsInputs } from '@/lib/savings-server';
-import { effectiveBudget, sumBonusForMonth } from '@/lib/month-bonus';
+import { sumBonusForMonth } from '@/lib/month-bonus';
 
 export async function GET(
   req: NextRequest,
@@ -230,14 +230,7 @@ export async function GET(
       metrics: {
         monthlyBudget: wallet.monthlyBudget,
         totalSpentMonth,
-        remainingBudget: Math.max(
-          0,
-          round2(
-            effectiveBudget({ monthlyBudget: wallet.monthlyBudget, boost: savingsMonth.boost, bonus: bonusTotal }) -
-              totalSpentMonth -
-              savingsMonth.deposited
-          )
-        ),
+        remainingBudget: Math.max(0, projection.remaining),
         savings: {
           deposited: savingsMonth.deposited,
           savingsDue: savingsMonth.savingsDue,

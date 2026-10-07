@@ -47,9 +47,15 @@ export interface MonthProjection {
   plannedPending: number;
   billsDue: number;
   subscriptionsDue: number;
+  /** Subscriptions paid as of month end (they never create expenses, so they are counted here). */
+  subscriptionsPaid: number;
   carryOver: number;
   carryOverBills: number;
   carryOverSubscriptions: number;
+  /** Budget already used: spent + savingsDeposited + subscriptionsPaid. */
+  used: number;
+  /** Budget left before anything still due: budget + boost + bonus − used. */
+  remaining: number;
   committedTotal: number;
   projectedRemaining: number;
   isOverBudget: boolean;
@@ -68,8 +74,10 @@ const round2 = (x: number): number => Math.round(x * 100) / 100;
 /**
  * Computes projected remaining budget for a given month key.
  *
- * projectedRemaining = B + boost + bonus − spent − savingsDeposited − committedTotal
+ * used = spent + savingsDeposited + subscriptionsPaid
+ * remaining = B + boost + bonus − used
  * committedTotal = plannedPending + savingsDue + billsDue + subscriptionsDue + carryOver
+ * projectedRemaining = remaining − committedTotal (the month's "free to spend")
  * overBy = Math.max(0, -projectedRemaining)
  */
 export function computeMonthProjection(input: MonthProjectionInput): MonthProjection {
@@ -89,6 +97,7 @@ export function computeMonthProjection(input: MonthProjectionInput): MonthProjec
 
   let billsDue = 0;
   let subscriptionsDue = 0;
+  let subscriptionsPaid = 0;
   let carryOverBills = 0;
   let carryOverSubscriptions = 0;
 
@@ -99,13 +108,20 @@ export function computeMonthProjection(input: MonthProjectionInput): MonthProjec
     }
 
     if (bill.type === 'SUBSCRIPTION') {
+      const paidAtMs = toTime(bill.paidAt);
+      const isUnpaidAsOfE = bill.status !== 'PAID' || (paidAtMs !== null && paidAtMs > endMs);
       if (dueMs >= startMs && dueMs <= endMs) {
-        subscriptionsDue += bill.amount;
+        if (isUnpaidAsOfE) {
+          subscriptionsDue += bill.amount;
+        } else {
+          subscriptionsPaid += bill.amount;
+        }
       } else if (dueMs < startMs) {
-        const paidAtMs = toTime(bill.paidAt);
-        const isUnpaidAsOfE = bill.status !== 'PAID' || (paidAtMs !== null && paidAtMs > endMs);
         if (isUnpaidAsOfE) {
           carryOverSubscriptions += bill.amount;
+        } else if (paidAtMs !== null && paidAtMs >= startMs) {
+          // Paid late: it uses the budget of the month it was paid in
+          subscriptionsPaid += bill.amount;
         }
       }
     } else {
@@ -143,11 +159,14 @@ export function computeMonthProjection(input: MonthProjectionInput): MonthProjec
   const rPlannedPending = round2(plannedPending);
   const rBillsDue = round2(billsDue);
   const rSubscriptionsDue = round2(subscriptionsDue);
+  const rSubscriptionsPaid = round2(subscriptionsPaid);
   const rCarryOverBills = round2(carryOverBills);
   const rCarryOverSubscriptions = round2(carryOverSubscriptions);
   const carryOver = round2(rCarryOverBills + rCarryOverSubscriptions);
   const committedTotal = round2(rPlannedPending + savingsDue + rBillsDue + rSubscriptionsDue + carryOver);
-  let projectedRemaining = round2(budget + boost + bonus - spent - savingsDeposited - committedTotal);
+  const used = round2(spent + savingsDeposited + rSubscriptionsPaid);
+  const remaining = round2(budget + boost + bonus - used);
+  let projectedRemaining = round2(remaining - committedTotal);
   if (projectedRemaining === 0) {
     projectedRemaining = 0;
   }
@@ -164,9 +183,12 @@ export function computeMonthProjection(input: MonthProjectionInput): MonthProjec
     plannedPending: rPlannedPending,
     billsDue: rBillsDue,
     subscriptionsDue: rSubscriptionsDue,
+    subscriptionsPaid: rSubscriptionsPaid,
     carryOver,
     carryOverBills: rCarryOverBills,
     carryOverSubscriptions: rCarryOverSubscriptions,
+    used,
+    remaining,
     committedTotal,
     projectedRemaining,
     isOverBudget,

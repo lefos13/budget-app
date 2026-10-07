@@ -18,7 +18,6 @@ import { UpcomingBillsCard } from '@/components/upcoming-bills-card';
 import { RecentExpensesCard } from '@/components/recent-expenses-card';
 import { PendingInvitesBanner } from '@/components/pending-invites-banner';
 import { PasskeySetupPrompt } from '@/components/passkey-setup-prompt';
-import { MonthProjectionCard } from '@/components/month-projection-card';
 import { MonthlySavingsCard } from '@/components/savings/monthly-savings-card';
 import { SupportStrip } from '@/components/support-strip';
 
@@ -153,9 +152,6 @@ function Dashboard() {
 
       {/* Monthly Budget Overview Gauge */}
       <BudgetOverviewCard />
-
-      {/* "If everything is paid" Month Projection */}
-      <MonthProjectionCard />
 
       {/* Savings contributions for this month (hidden when there are no buckets) */}
       <MonthlySavingsCard />

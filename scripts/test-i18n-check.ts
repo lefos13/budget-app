@@ -230,6 +230,11 @@ function run() {
     const pHealthy = calculateBudgetPacing(1000, 500, new Date(2026, 8, 15));
     assert.equal(pHealthy.statusKey, 'healthy');
     assert.equal(pHealthy.statusText, 'Pacing healthy');
+
+    // Money still due is held back from the daily amount but does not change the pace
+    const pCommitted = calculateBudgetPacing(3040, 1112.9, new Date(2026, 9, 7), 953.9);
+    assert.equal(pCommitted.percentageSpent, calculateBudgetPacing(3040, 1112.9, new Date(2026, 9, 7)).percentageSpent);
+    assert.equal(Math.round(pCommitted.dailyBudgetRemaining * 100) / 100, 40.55); // 973.20 / 24 days left
     console.log('✓ Test 14: calculateBudgetPacing returns correct statusKey and statusText values');
 
     // 15. createTranslator handles dictionary path navigation and fallback

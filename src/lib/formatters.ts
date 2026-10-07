@@ -125,10 +125,15 @@ export function formatRelativeDueDate(
   }
 }
 
+/**
+ * `committed` is money still due this month (bills, planned expenses...): it does not move the pace,
+ * but it is held back from the daily amount left to spend.
+ */
 export function calculateBudgetPacing(
   totalBudget: number,
   totalSpent: number,
-  currentDate: Date = new Date()
+  currentDate: Date = new Date(),
+  committed: number = 0
 ): {
   percentageSpent: number;
   expectedPercentage: number;
@@ -148,7 +153,7 @@ export function calculateBudgetPacing(
   const percentageSpent = totalBudget > 0 ? Math.round((totalSpent / totalBudget) * 100) : 0;
 
   const daysRemaining = Math.max(1, totalDaysInMonth - currentDay);
-  const budgetRemaining = Math.max(0, totalBudget - totalSpent);
+  const budgetRemaining = Math.max(0, totalBudget - totalSpent - committed);
   const dailyBudgetRemaining = budgetRemaining / daysRemaining;
 
   const isOverPace = percentageSpent > expectedPercentage + 5;

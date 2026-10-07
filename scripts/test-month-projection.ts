@@ -23,9 +23,12 @@ function run() {
       plannedPending: 0,
       billsDue: 0,
       subscriptionsDue: 0,
+      subscriptionsPaid: 0,
       carryOver: 0,
       carryOverBills: 0,
       carryOverSubscriptions: 0,
+      used: 0,
+      remaining: 1500,
       committedTotal: 0,
       projectedRemaining: 1500,
       isOverBudget: false,
@@ -83,7 +86,7 @@ function run() {
     assert.equal(res3.projectedRemaining, 820); // 1000 - 100 - 80
     console.log('✓ Test 3: unpaid bill due in month counted in billsDue; paid bill with linked expense in month NOT counted');
 
-    // 4. subscription due in month counted both PAID and unpaid
+    // 4. subscription due in month: unpaid one is still due, PAID one is used budget (subscriptions never create expenses)
     const res4 = computeMonthProjection({
       monthKey: '2026-09',
       monthlyBudget: 1000,
@@ -108,11 +111,14 @@ function run() {
       ],
       planned: [],
     });
-    assert.equal(res4.subscriptionsDue, 50);
+    assert.equal(res4.subscriptionsDue, 20);
+    assert.equal(res4.subscriptionsPaid, 30);
     assert.equal(res4.billsDue, 0);
-    assert.equal(res4.committedTotal, 50);
+    assert.equal(res4.used, 30);
+    assert.equal(res4.remaining, 970);
+    assert.equal(res4.committedTotal, 20);
     assert.equal(res4.projectedRemaining, 950);
-    console.log('✓ Test 4: subscription due in month counted both PAID and unpaid in subscriptionsDue');
+    console.log('✓ Test 4: unpaid subscription is still due; PAID subscription counts as used budget');
 
     // 5. carry-over: bill due Aug unpaid → shows as carryOverBills in Sep AND Oct;
     // after it is paid with linkedExpenseDate in Aug → carry-over 0 in Sep and Oct and not counted in Aug
@@ -368,7 +374,8 @@ function run() {
     // 11. a full hand-calculated example:
     // budget 2000, spent 300, planned pending 100, unpaid bill due in month 250,
     // subscription due in month 15 (paid), carry-over bill 80
-    // → projectedRemaining = 2000 − 300 − 100 − 250 − 15 − 80 = 1255.
+    // → used = 300 + 15, still due = 100 + 250 + 80
+    // → projectedRemaining = 2000 − 315 − 430 = 1255.
     const res11 = computeMonthProjection({
       monthKey: '2026-09',
       monthlyBudget: 2000,
@@ -407,11 +414,14 @@ function run() {
     assert.equal(res11.spent, 300);
     assert.equal(res11.plannedPending, 100);
     assert.equal(res11.billsDue, 250);
-    assert.equal(res11.subscriptionsDue, 15);
+    assert.equal(res11.subscriptionsDue, 0);
+    assert.equal(res11.subscriptionsPaid, 15);
     assert.equal(res11.carryOverBills, 80);
     assert.equal(res11.carryOverSubscriptions, 0);
     assert.equal(res11.carryOver, 80);
-    assert.equal(res11.committedTotal, 445);
+    assert.equal(res11.used, 315);
+    assert.equal(res11.remaining, 1685);
+    assert.equal(res11.committedTotal, 430);
     assert.equal(res11.projectedRemaining, 1255);
     assert.equal(res11.isOverBudget, false);
     assert.equal(res11.overBy, 0);
@@ -434,6 +444,8 @@ function run() {
     assert.equal(res12.savingsDue, 375);
     assert.equal(res12.boost, 100);
     assert.equal(res12.plannedPending, 600); // 1000 − 400, over-funded item never negative
+    assert.equal(res12.used, 800); // 300 spent + 500 deposited
+    assert.equal(res12.remaining, 1300); // 2000 + 100 − 800
     assert.equal(res12.committedTotal, 975); // 600 + 375
     assert.equal(res12.projectedRemaining, 325); // 2000 + 100 − 300 − 500 − 975
     const res12b = computeMonthProjection({
@@ -476,6 +488,45 @@ function run() {
       'no bonus input means 0'
     );
     console.log('✓ Test 13: month bonus stacks with boost and leaves the target untouched');
+
+    // Test 14: a subscription due in Aug but paid in Sep is still due in Aug and used budget in Sep
+    const lateSub = {
+      type: 'SUBSCRIPTION',
+      amount: 12,
+      dueDate: '2026-08-28T00:00:00.000Z',
+      status: 'PAID',
+      paidAt: '2026-09-03T10:00:00.000Z',
+      linkedExpenseDate: null,
+    };
+    const res14Aug = computeMonthProjection({ monthKey: '2026-08', monthlyBudget: 100, spent: 0, planned: [], bills: [lateSub] });
+    assert.equal(res14Aug.subscriptionsDue, 12);
+    assert.equal(res14Aug.subscriptionsPaid, 0);
+    const res14Sep = computeMonthProjection({ monthKey: '2026-09', monthlyBudget: 100, spent: 0, planned: [], bills: [lateSub] });
+    assert.equal(res14Sep.subscriptionsPaid, 12);
+    assert.equal(res14Sep.carryOverSubscriptions, 0);
+    assert.equal(res14Sep.used, 12);
+    assert.equal(res14Sep.projectedRemaining, 88);
+    console.log('✓ Test 14: a late-paid subscription is due in its own month and used budget in the month it was paid');
+
+    // Test 15: dashboard example — remaining, still due and free to spend reconcile to one number
+    const res15 = computeMonthProjection({
+      monthKey: '2026-10',
+      monthlyBudget: 2920,
+      spent: 965.4,
+      bonus: 120,
+      savings: { deposited: 107.5, savingsDue: 0, boost: 0 },
+      planned: [{ amount: 750, expectedDate: '2026-10-20T00:00:00.000Z', status: 'PENDING' }],
+      bills: [
+        { type: 'BILL', amount: 179.9, dueDate: '2026-10-25T00:00:00.000Z', status: 'PENDING', paidAt: null, linkedExpenseDate: null },
+        { type: 'SUBSCRIPTION', amount: 40, dueDate: '2026-10-02T00:00:00.000Z', status: 'PAID', paidAt: '2026-10-02T09:00:00.000Z', linkedExpenseDate: null },
+        { type: 'SUBSCRIPTION', amount: 24, dueDate: '2026-10-18T00:00:00.000Z', status: 'PENDING', paidAt: null, linkedExpenseDate: null },
+      ],
+    });
+    assert.equal(res15.used, 1112.9); // 965.40 + 107.50 + 40
+    assert.equal(res15.remaining, 1927.1); // 3040 − 1112.90
+    assert.equal(res15.committedTotal, 953.9); // 750 + 179.90 + 24
+    assert.equal(res15.projectedRemaining, 973.2); // 1927.10 − 953.90
+    console.log('✓ Test 15: used + still due + free to spend add up to the month budget');
 
     console.log('\n🎉 All month projection tests passed successfully!\n');
   } catch (err) {
