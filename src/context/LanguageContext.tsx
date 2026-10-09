@@ -29,17 +29,30 @@ function subscribeLanguage(callback: () => void) {
   return () => window.removeEventListener('storage', callback);
 }
 
+/** Greek-first: visitors who never picked a language get Greek. */
+export const DEFAULT_LANGUAGE: Language = 'el';
+
 function getLanguageSnapshot(): Language {
-  if (typeof window === 'undefined') return 'en';
+  if (typeof window === 'undefined') return DEFAULT_LANGUAGE;
   const saved = localStorage.getItem('aura_language');
-  return saved === 'en' || saved === 'el' ? saved : 'en';
+  return saved === 'en' || saved === 'el' ? saved : DEFAULT_LANGUAGE;
 }
 
 function getLanguageServerSnapshot(): Language {
-  return 'en';
+  return DEFAULT_LANGUAGE;
 }
 
-export function LanguageProvider({ children }: { children: React.ReactNode }) {
+/*
+ * `pageLanguage` pins the language to the URL (the `/` and `/en` landing pages). There
+ * `setLanguage` only remembers the choice for the app; switching pages is a navigation.
+ */
+export function LanguageProvider({
+  children,
+  pageLanguage,
+}: {
+  children: React.ReactNode;
+  pageLanguage?: Language;
+}) {
   const storeLang = React.useSyncExternalStore(
     subscribeLanguage,
     getLanguageSnapshot,
@@ -47,13 +60,13 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   );
 
   const [activeLang, setActiveLang] = useState<Language | null>(null);
-  const language = activeLang ?? storeLang;
+  const language = pageLanguage ?? activeLang ?? storeLang;
 
   const setLanguage = (lang: Language) => {
-    setActiveLang(lang);
+    if (!pageLanguage) setActiveLang(lang);
     if (typeof window !== 'undefined') {
       localStorage.setItem('aura_language', lang);
-      document.documentElement.lang = lang;
+      if (!pageLanguage) document.documentElement.lang = lang;
       window.dispatchEvent(new Event('storage'));
     }
   };
@@ -65,6 +78,8 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const dateLocale = language === 'el' ? elLocale : enUS;
 
   React.useEffect(() => {
+    // Pinned pages get `lang` and their SEO title from server metadata.
+    if (pageLanguage) return;
     document.documentElement.lang = language;
     const applyTitle = () => {
       if (document.title !== t.meta.title) document.title = t.meta.title;
@@ -74,7 +89,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     const observer = new MutationObserver(applyTitle);
     observer.observe(document.head, { childList: true, subtree: true, characterData: true });
     return () => observer.disconnect();
-  }, [language, t]);
+  }, [language, t, pageLanguage]);
 
   return (
     <LanguageContext.Provider value={{ language, setLanguage, t, dateLocale }}>

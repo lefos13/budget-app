@@ -479,6 +479,12 @@ export const en = {
     signIn: 'Sign In',
   },
   landing: {
+    seo: {
+      title: 'Aura Budget: Free Shared Household Budget App & Bill Reminders',
+      description:
+        'A free shared budget app for households and couples: track monthly expenses, get bill reminders, save towards goals and budget together.',
+      ogImageAlt: 'Aura Budget, the free shared household budget app',
+    },
     brandName: 'Aura Budget',
     splashLabel: 'Loading Aura Budget',
     languageLabel: 'Language',
@@ -487,7 +493,7 @@ export const en = {
     logIn: 'Log in',
     getStarted: 'Get started',
     hero: {
-      eyebrow: 'Shared monthly budgeting',
+      eyebrow: 'Shared household budget app',
       title: 'Your money, in rhythm with your month.',
       subtitle:
         'Plan the month, track every expense, never miss a bill, and save for what comes next, together with the people you share your money with.',
@@ -496,7 +502,8 @@ export const en = {
     features: {
       eyebrow: 'Everything in one place',
       title: 'Built around how a month really goes',
-      subtitle: 'Four simple ideas that keep the whole household on the same page.',
+      subtitle:
+        'Monthly budget, bill reminders, savings goals and shared wallets: four simple ideas that keep the whole household on the same page.',
       pace: {
         eyebrow: 'Monthly budget',
         title: 'Know your pace, every day',
@@ -545,8 +552,8 @@ export const en = {
       title: 'Questions, answered',
       q1: 'Is Aura Budget free?',
       a1: 'Yes. Create an account and start budgeting. There are no paid plans.',
-      q2: 'Who can change what in a shared wallet?',
-      a2: 'The Owner sets the budget and can delete the wallet. Members add expenses, pay bills and manage savings. Viewers can see everything but change nothing.',
+      q2: 'Can I share a budget with my partner or family?',
+      a2: 'Yes. Invite them into the same wallet and everyone sees the same numbers. The Owner sets the budget and can delete the wallet. Members add expenses, pay bills and manage savings. Viewers can see everything but change nothing.',
       q3: 'How are subscriptions different from expenses?',
       a3: 'Expenses are your day-to-day spending and count against the monthly budget. Subscriptions are tracked separately as recurring payments with their monthly cost, so they never get counted twice.',
       q4: 'How do savings buckets work?',
@@ -580,6 +587,7 @@ export const en = {
       tagline: 'Shared monthly budgeting for households.',
       copyright: '© {year} Aura Budget',
       supportLink: 'Support the project',
+      partOf: 'Part of LnF',
     },
   },
   support: {
@@ -1219,7 +1227,7 @@ export const en = {
   },
   landingMock: {
     ariaLabel: 'Preview of the Aura Budget dashboard on desktop and mobile: remaining monthly budget, spending by category and upcoming bills.',
-    appUrl: 'aura.budget',
+    appUrl: 'budget.lnf.gr',
     remaining: 'Remaining this month',
     ofBudget: 'of {amount}',
     spent: 'Spent',

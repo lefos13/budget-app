@@ -3,9 +3,11 @@
 import React from 'react';
 import Link from 'next/link';
 import { useTranslation } from '@/context/LanguageContext';
+import { useRememberPageLanguage } from '@/components/landing/language-links';
 
 export function FinalCta() {
   const { t } = useTranslation();
+  const rememberLanguage = useRememberPageLanguage();
 
   return (
     <section aria-labelledby="final-cta-title" className="py-14 sm:py-20">
@@ -23,12 +25,14 @@ export function FinalCta() {
           <div className="mt-8 flex flex-col sm:flex-row justify-center gap-3">
             <Link
               href="/register"
+            onClick={rememberLanguage}
               className="px-6 py-3.5 rounded-2xl bg-white text-indigo-700 hover:bg-indigo-50 font-bold text-sm text-center shadow-lg transition-all hover:scale-[1.02] active:scale-[0.98]"
             >
               {t('landing.getStarted')}
             </Link>
             <Link
               href="/login"
+            onClick={rememberLanguage}
               className="px-6 py-3.5 rounded-2xl border border-white/60 text-white hover:bg-white/15 font-bold text-sm text-center transition-colors"
             >
               {t('landing.logIn')}

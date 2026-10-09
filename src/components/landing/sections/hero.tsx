@@ -3,6 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { useTranslation } from '@/context/LanguageContext';
+import { useRememberPageLanguage } from '@/components/landing/language-links';
 
 interface HeroProps {
   mockup?: React.ReactNode;
@@ -10,6 +11,7 @@ interface HeroProps {
 
 export function Hero({ mockup }: HeroProps) {
   const { t } = useTranslation();
+  const rememberLanguage = useRememberPageLanguage();
 
   return (
     <section className="relative overflow-hidden">
@@ -28,12 +30,14 @@ export function Hero({ mockup }: HeroProps) {
           <div className="mt-8 w-full sm:w-auto flex flex-col sm:flex-row justify-center gap-3">
             <Link
               href="/register"
+            onClick={rememberLanguage}
               className="px-6 py-3.5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm text-center shadow-lg shadow-indigo-600/25 transition-all hover:scale-[1.02] active:scale-[0.98]"
             >
               {t('landing.getStarted')}
             </Link>
             <Link
               href="/login"
+            onClick={rememberLanguage}
               className="px-6 py-3.5 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200 font-bold text-sm text-center hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
             >
               {t('landing.logIn')}

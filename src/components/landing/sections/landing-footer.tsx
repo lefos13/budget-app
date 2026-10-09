@@ -3,11 +3,13 @@
 import React from 'react';
 import { Wallet, HeartHandshake } from 'lucide-react';
 import { useTranslation } from '@/context/LanguageContext';
+import { LanguageLinks } from '@/components/landing/language-links';
+import { useLandingToday } from '@/components/landing/landing-today';
 import { interpolate } from '@/lib/i18n/translator';
 
 export function LandingFooter() {
-  const { t, language, setLanguage } = useTranslation();
-  const year = new Date().getFullYear();
+  const { t } = useTranslation();
+  const year = useLandingToday().getFullYear();
 
   return (
     <footer className="border-t border-zinc-200/70 dark:border-zinc-800/70">
@@ -29,27 +31,13 @@ export function LandingFooter() {
             <HeartHandshake aria-hidden="true" className="w-3.5 h-3.5" />
             <span>{t('landing.footer.supportLink')}</span>
           </a>
-          <div
-            role="group"
-            aria-label={t('landing.languageLabel')}
-            className="flex items-center rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white/60 dark:bg-zinc-900/60 p-0.5"
+          <a
+            href="https://apps.lnf.gr"
+            className="text-xs text-zinc-500 dark:text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
           >
-            {(['en', 'el'] as const).map((lang) => (
-              <button
-                key={lang}
-                type="button"
-                onClick={() => setLanguage(lang)}
-                aria-pressed={language === lang}
-                className={`px-2.5 py-1 rounded-lg text-xs font-bold cursor-pointer transition-colors ${
-                  language === lang
-                    ? 'bg-indigo-600 text-white'
-                    : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
-                }`}
-              >
-                {lang === 'en' ? t('landing.langEn') : t('landing.langEl')}
-              </button>
-            ))}
-          </div>
+            {t('landing.footer.partOf')}
+          </a>
+          <LanguageLinks />
           <p className="text-xs text-zinc-500 dark:text-zinc-400">
             {interpolate(t('landing.footer.copyright'), { year })}
           </p>

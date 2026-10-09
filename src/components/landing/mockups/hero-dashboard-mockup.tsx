@@ -8,6 +8,7 @@ import { interpolate } from '@/lib/i18n/translator';
 import { BrowserFrame } from './browser-frame';
 import { PhoneFrame } from './phone-frame';
 import { mockWallet as w, mockDateISO } from './fixture';
+import { useLandingToday } from '../landing-today';
 
 const remaining = w.monthlyBudget - w.spent - w.saved;
 const pct = (n: number) => `${(n / w.monthlyBudget) * 100}%`;
@@ -41,8 +42,9 @@ export function HeroDashboardMockup() {
   const { t, dateLocale } = useTranslation();
   const m = t.landingMock;
   const money = (n: number) => formatCurrency(n, w.currency);
+  const today = useLandingToday();
   const dayLabel = (day: number, pattern = 'd MMM') =>
-    format(parseISO(mockDateISO(day)), pattern, { locale: dateLocale });
+    format(parseISO(mockDateISO(day, today)), pattern, { locale: dateLocale });
 
   const desktop = (
     <BrowserFrame url={m.appUrl}>

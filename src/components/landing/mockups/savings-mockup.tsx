@@ -6,6 +6,7 @@ import { useTranslation } from '@/context/LanguageContext';
 import { formatCurrency } from '@/lib/formatters';
 import { interpolate } from '@/lib/i18n/translator';
 import { mockWallet as w } from './fixture';
+import { useLandingToday } from '../landing-today';
 
 const general = w.buckets.find((b) => b.labelKey === 'general')!;
 const goal = w.buckets.find((b) => b.labelKey === 'goalSummerTrip')!;
@@ -42,7 +43,8 @@ export function SavingsMockup() {
   const { t, dateLocale } = useTranslation();
   const m = t.landingMock;
   const money = (n: number) => formatCurrency(n, w.currency);
-  const targetMonth = format(addMonths(new Date(), MONTHS_AHEAD), 'LLLL', { locale: dateLocale });
+  const today = useLandingToday();
+  const targetMonth = format(addMonths(today, MONTHS_AHEAD), 'LLLL', { locale: dateLocale });
 
   return (
     <div role="img" aria-label={m.savingsAriaLabel} className="relative mx-auto w-full max-w-xl">

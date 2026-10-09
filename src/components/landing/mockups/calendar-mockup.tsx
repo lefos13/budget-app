@@ -6,6 +6,7 @@ import { useTranslation } from '@/context/LanguageContext';
 import { formatCurrency } from '@/lib/formatters';
 import { interpolate } from '@/lib/i18n/translator';
 import { mockWallet as w, mockDateISO } from './fixture';
+import { useLandingToday } from '../landing-today';
 
 const YEARLY_AMOUNT = 99;
 const ICS_EXT = '.ics';
@@ -18,7 +19,7 @@ export function CalendarMockup() {
   const m = t.landingMock;
   const money = (n: number) => formatCurrency(n, w.currency);
 
-  const now = new Date();
+  const now = useLandingToday();
   const first = startOfMonth(now);
   const lead = (first.getDay() + 6) % 7; // Monday-first offset
   const cells: (number | null)[] = [
@@ -95,7 +96,7 @@ export function CalendarMockup() {
                     {s.paid
                       ? m.paid
                       : interpolate(m.dueOn, {
-                          date: format(parseISO(mockDateISO(w.bills[1].day)), 'd MMM', { locale: dateLocale }),
+                          date: format(parseISO(mockDateISO(w.bills[1].day, now)), 'd MMM', { locale: dateLocale }),
                         })}
                   </span>
                 </span>

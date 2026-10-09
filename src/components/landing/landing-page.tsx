@@ -11,28 +11,32 @@ import { FinalCta } from '@/components/landing/sections/final-cta';
 import { LandingFooter } from '@/components/landing/sections/landing-footer';
 import { Reveal } from '@/components/landing/reveal';
 import { HeroDashboardMockup } from '@/components/landing/mockups/hero-dashboard-mockup';
+import { LandingTodayProvider } from '@/components/landing/landing-today';
 
-export function LandingPage() {
+/** `today` (yyyy-MM-dd) pins the mockups' date when prerendered; see landing-today.tsx. */
+export function LandingPage({ today }: { today?: string }) {
   return (
-    <div className="min-h-screen w-full">
-      <LandingHeader />
-      <main>
-        <Hero mockup={<HeroDashboardMockup />} />
-        <Features />
-        <Reveal>
-          <HowItWorks />
-        </Reveal>
-        <Reveal>
-          <Faq />
-        </Reveal>
-        <Reveal>
-          <Support />
-        </Reveal>
-        <Reveal>
-          <FinalCta />
-        </Reveal>
-      </main>
-      <LandingFooter />
-    </div>
+    <LandingTodayProvider today={today}>
+      <div className="min-h-screen w-full">
+        <LandingHeader />
+        <main>
+          <Hero mockup={<HeroDashboardMockup />} />
+          <Features />
+          <Reveal>
+            <HowItWorks />
+          </Reveal>
+          <Reveal>
+            <Faq />
+          </Reveal>
+          <Reveal>
+            <Support />
+          </Reveal>
+          <Reveal>
+            <FinalCta />
+          </Reveal>
+        </main>
+        <LandingFooter />
+      </div>
+    </LandingTodayProvider>
   );
 }
