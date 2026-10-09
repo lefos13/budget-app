@@ -5,6 +5,7 @@ Collaborative monthly budget app (Next.js 16, Prisma + SQLite, English/Greek).
 ## Key behaviours
 
 - **Landing page** – logged-out visitors (Normal auth mode) get a public landing page on `/` (`src/components/landing/`) with coded product mockups, features, FAQ and sign-up / log-in calls to action. Logged-in users get the dashboard on `/`; logout returns to the landing page. Route rules live in `src/lib/navigation.ts` (tested by `scripts/test-navigation.ts`).
+- **SEO** – the landing is prerendered per language by `src/app/(marketing)/[lang]/`: Greek at `/` (served from `/el` by a cookie-less rewrite in `next.config.ts`), English at `/en`, with `hreflang`, canonical URLs, Open Graph/Twitter cards, generated share images and icons, and `WebApplication` + `FAQPage` JSON-LD. Everything under `src/app/(app)/` (the signed-in app, auth pages, invites) is `noindex`; `robots.txt`, `sitemap.xml` and the manifest come from `src/lib/seo.ts`.
 - **Selected month** – one global month bar (`src/components/month-context-bar.tsx`) sits at the top of the month-scoped pages (Overview, Alerts, Expenses, Savings, Calendar; list in `src/lib/navigation.ts`) and is persisted in `localStorage['aura_selected_month']`. `GET /api/wallets/[id]?month=YYYY-MM` returns that month's expenses, planned expenses and metrics.
 - **Planned expenses** – expenses you know will happen later in a month. They never count as spent until you press "Mark as spent" (creates a real `Expense`, exactly once).
 - **"If everything is paid" projection** (`src/lib/month-projection.ts`) – `budget + extra from General − spent − saved into savings − savings contributions still due − pending planned − bills due − subscriptions due − carry-over`. A bill is *unpaid as of month end* until it has a linked expense (or legacy `PAID` status) dated on/before that month end, so an unpaid bill from an earlier month is carried into every later month until it is paid. Paying it from its own month (the UI passes `paidDate` inside that month) removes the extra from all later months. Subscriptions due in the month always count (they never create expenses). The result is not clamped.
@@ -24,6 +25,7 @@ All UI text lives in `src/lib/i18n/dictionaries/en.ts` and `el.ts`. `pnpm i18n:c
 ```bash
 pnpm test        # e2e data checks + DB-free unit tests + i18n gate
 pnpm test:api    # HTTP API tests; needs `pnpm dev` running (creates and removes temporary rows)
+pnpm test:seo    # crawler's-eye HTML checks; needs NEXT_PUBLIC_AUTH_MODE=normal pnpm build && pnpm start -p 3300
 npx prisma validate
 ```
 
