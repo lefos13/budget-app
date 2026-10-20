@@ -66,7 +66,7 @@ function run() {
     assert.equal(get(app, 'offers', 'price'), '0');
     assert.equal(get(app, 'publisher', '@type'), 'Organization');
     assert.equal(get(app, 'publisher', 'name'), 'LnF');
-    assert.equal(get(app, 'publisher', 'url'), 'https://apps.lnf.gr');
+    assert.equal(get(app, 'publisher', 'url'), undefined);
     assert.equal(get(faq, '@type'), 'FAQPage');
     assert.equal(get(faq, 'mainEntity', 'length'), 6);
     assert.equal(get(faq, 'mainEntity', 0, 'name'), dict.landing.faq.q1);

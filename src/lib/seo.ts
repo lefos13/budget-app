@@ -12,7 +12,7 @@ export const SITE_URL = 'https://budget.lnf.gr';
 // i18n-ignore: brand name
 export const BRAND_NAME = 'Aura Budget';
 // i18n-ignore: publisher brand
-const PUBLISHER = { name: 'LnF', url: 'https://apps.lnf.gr' } as const;
+const PUBLISHER = { name: 'LnF' } as const;
 
 /** Greek first: it owns `/` (and `x-default`), English lives at `/en`. See `.scratch/adr/0002`. */
 export const LANDING_LANGUAGES = ['el', 'en'] as const satisfies readonly Language[];
@@ -74,7 +74,7 @@ export function landingJsonLd(lang: Language): Record<string, unknown>[] {
       operatingSystem: 'Any',
       browserRequirements: 'Requires JavaScript', // i18n-ignore: schema.org value, not UI
       offers: { '@type': 'Offer', price: '0', priceCurrency: 'EUR' },
-      publisher: { '@type': 'Organization', name: PUBLISHER.name, url: PUBLISHER.url },
+      publisher: { '@type': 'Organization', name: PUBLISHER.name },
     },
     {
       '@context': 'https://schema.org',

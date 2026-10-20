@@ -40,7 +40,7 @@ async function run() {
     assert.ok(ogImage, `${path} og:image`);
     const image = await fetch(`${BASE}${ogImage}`);
     assert.equal(image.headers.get('content-type'), 'image/png', `${path} og:image renders`);
-    assert.ok(body.includes('href="https://apps.lnf.gr"'), `${path} links back to the LnF showcase`);
+    assert.ok(!body.includes('apps.lnf.gr'), `${path} must not link to the retired LnF showcase`);
   }
   console.log('✓ Test 1: / (Greek) and /en ship full, indexable, cross-linked landing HTML');
 

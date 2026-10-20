@@ -31,12 +31,6 @@ export function LandingFooter() {
             <HeartHandshake aria-hidden="true" className="w-3.5 h-3.5" />
             <span>{t('landing.footer.supportLink')}</span>
           </a>
-          <a
-            href="https://apps.lnf.gr"
-            className="text-xs text-zinc-500 dark:text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
-          >
-            {t('landing.footer.partOf')}
-          </a>
           <LanguageLinks />
           <p className="text-xs text-zinc-500 dark:text-zinc-400">
             {interpolate(t('landing.footer.copyright'), { year })}

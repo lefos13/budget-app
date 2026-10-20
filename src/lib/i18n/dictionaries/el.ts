@@ -589,7 +589,6 @@ export const el: Dictionary = {
       tagline: 'Κοινός μηνιαίος προϋπολογισμός για το σπίτι.',
       copyright: '© {year} Aura Budget',
       supportLink: 'Υποστήριξη του έργου',
-      partOf: 'Μέρος του LnF',
     },
   },
   support: {

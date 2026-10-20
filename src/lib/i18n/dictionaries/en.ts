@@ -587,7 +587,6 @@ export const en = {
       tagline: 'Shared monthly budgeting for households.',
       copyright: '© {year} Aura Budget',
       supportLink: 'Support the project',
-      partOf: 'Part of LnF',
     },
   },
   support: {
