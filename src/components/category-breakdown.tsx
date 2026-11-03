@@ -8,6 +8,7 @@ import { useTranslation } from '@/context/LanguageContext';
 import { interpolate } from '@/lib/i18n/translator';
 import { formatCurrency } from '@/lib/formatters';
 import { getCategoryIcon } from '@/lib/category-icons';
+import { CardHeader } from '@/components/ui/card-header';
 
 export function CategoryBreakdown() {
   const { walletData } = useApp();
@@ -28,50 +29,47 @@ export function CategoryBreakdown() {
 
   return (
     <div className="rounded-3xl border border-zinc-200/90 dark:border-zinc-800 bg-white dark:bg-zinc-900/90 p-5 sm:p-7 shadow-sm">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-zinc-100 dark:border-zinc-800 gap-2">
-        <div>
-          <div className="flex items-center gap-2">
-            <h2 className="text-base font-extrabold text-zinc-900 dark:text-white">{t('categories.cardTitle')}</h2>
-            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300">
+      <CardHeader
+        className="pb-4 border-b border-zinc-100 dark:border-zinc-800"
+        title={
+          <div className="flex items-center gap-2 flex-wrap">
+            <span>{t('categories.cardTitle')}</span>
+            <span className="text-chip font-semibold px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300">
               {walletData.categories.length === 1
                 ? t('categories.categoriesCountOne')
                 : interpolate(t('categories.categoriesCountMany'), { count: walletData.categories.length })}
             </span>
+            {overCount > 0 ? (
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900/60 text-chip font-bold">
+                <AlertTriangle className="w-3 h-3" />
+                <span>{interpolate(t('categories.exceededLimit'), { count: overCount })}</span>
+              </span>
+            ) : warningCount > 0 ? (
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-900/60 text-chip font-bold">
+                <AlertTriangle className="w-3 h-3" />
+                <span>{interpolate(t('categories.nearLimit'), { count: warningCount })}</span>
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900/60 text-chip font-bold">
+                <CheckCircle2 className="w-3 h-3" />
+                <span>{t('categories.allOnTrack')}</span>
+              </span>
+            )}
           </div>
-          <p className="text-xs text-zinc-500 mt-0.5">
-            {t('categories.cardSubtitle')}
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2 text-xs font-bold">
-          {overCount > 0 ? (
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900/60">
-              <AlertTriangle className="w-3.5 h-3.5" />
-              <span>{interpolate(t('categories.exceededLimit'), { count: overCount })}</span>
-            </span>
-          ) : warningCount > 0 ? (
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-900/60">
-              <AlertTriangle className="w-3.5 h-3.5" />
-              <span>{interpolate(t('categories.nearLimit'), { count: warningCount })}</span>
-            </span>
-          ) : (
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900/60">
-              <CheckCircle2 className="w-3.5 h-3.5" />
-              <span>{t('categories.allOnTrack')}</span>
-            </span>
-          )}
-
-          {walletData.userRole === 'OWNER' && (
+        }
+        description={t('categories.cardSubtitle')}
+        actions={
+          walletData.userRole === 'OWNER' ? (
             <Link
               href="/wallet#categories"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-xs font-semibold text-zinc-700 dark:text-zinc-300 transition-colors"
+              className="min-h-11 sm:min-h-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-xs font-semibold text-zinc-700 dark:text-zinc-300 transition-colors"
             >
               <Sliders className="w-3.5 h-3.5" />
               <span>{t('categories.manageLimits')}</span>
             </Link>
-          )}
-        </div>
-      </div>
+          ) : undefined
+        }
+      />
 
       <div className="mt-5 grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
         {walletData.categories.map((cat) => {
@@ -103,7 +101,7 @@ export function CategoryBreakdown() {
                   </div>
 
                   <span
-                    className={`text-[10px] font-black px-2 py-0.5 rounded-full shrink-0 tabular-nums ${
+                    className={`text-chip font-black px-2 py-0.5 rounded-full shrink-0 tabular-nums ${
                       isExceeded
                         ? 'bg-rose-100 dark:bg-rose-950/80 text-rose-700 dark:text-rose-300'
                         : isWarning
@@ -140,7 +138,7 @@ export function CategoryBreakdown() {
                 </div>
 
                 {limit > 0 && (
-                  <p className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400 mt-1.5 flex justify-between tabular-nums">
+                  <p className="text-meta font-medium text-zinc-500 dark:text-zinc-400 mt-1.5 flex justify-between tabular-nums">
                     <span>
                       {isExceeded
                         ? interpolate(t('categories.overLimit'), { amount: formatCurrency(Math.abs(remaining), currency) })

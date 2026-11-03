@@ -146,20 +146,20 @@ export function Sidebar() {
       {/* ---------------------------------------------------- */}
       {/* 1. Mobile Topbar (Sticky on Small Screens)            */}
       {/* ---------------------------------------------------- */}
-      <header className="md:hidden sticky top-0 z-40 w-full h-[var(--app-header-h)] border-b border-zinc-200/80 dark:border-zinc-800/80 bg-white/90 dark:bg-zinc-950/90 backdrop-blur-md px-4 py-2.5 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2 font-bold text-zinc-900 dark:text-white">
+      <header className="md:hidden sticky top-0 z-40 w-full h-[var(--app-header-h)] border-b border-zinc-200/80 dark:border-zinc-800/80 bg-white/90 dark:bg-zinc-950/90 backdrop-blur-md px-3 sm:px-4 py-2 flex items-center justify-between gap-1.5">
+        <Link href="/" className="flex items-center gap-2 font-bold text-zinc-900 dark:text-white shrink-0">
           <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-600 to-sky-400 flex items-center justify-center text-white shadow-2xs">
             <Wallet className="w-4 h-4" />
           </div>
           <span className="text-base font-extrabold tracking-tight">Aura</span>
         </Link>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 sm:gap-2 min-w-0">
           {activeWallet && (
             <button
               type="button"
               onClick={() => setIsMobileDrawerOpen(true)}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-zinc-200 dark:border-zinc-800 bg-zinc-100/70 dark:bg-zinc-900 text-xs font-semibold max-w-[130px] truncate"
+              className="flex items-center gap-1.5 px-2.5 py-1 min-h-11 rounded-full border border-zinc-200 dark:border-zinc-800 bg-zinc-100/70 dark:bg-zinc-900 text-xs font-semibold max-w-[85px] min-[360px]:max-w-[120px] truncate cursor-pointer shrink"
             >
               <span
                 className="w-2 h-2 rounded-full shrink-0"
@@ -174,14 +174,14 @@ export function Sidebar() {
             aria-label={alertBadge.hasOverdue
               ? interpolate(t('alerts.badgeAriaLabelOverdue'), { count: alertBadge.countLabel, overdue: alertBadge.overdueCount })
               : interpolate(t('alerts.badgeAriaLabel'), { count: alertBadge.countLabel })}
-            className="relative p-2 rounded-xl text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
+            className="relative size-11 inline-flex items-center justify-center rounded-xl text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer shrink-0"
           >
             <Bell className="w-5 h-5" />
             {alertBadge.isVisible && (
               <span
-                className={`absolute top-1 right-1 min-w-[16px] h-4 px-1 rounded-full ${
+                className={`absolute top-1.5 right-1.5 min-w-[18px] h-[18px] px-1 rounded-full ${
                   alertBadge.hasOverdue ? 'bg-rose-500 text-white' : 'bg-amber-500 text-white'
-                } text-[9px] font-extrabold flex items-center justify-center ring-2 ring-white dark:ring-zinc-950`}
+                } text-chip font-extrabold flex items-center justify-center ring-2 ring-white dark:ring-zinc-950`}
               >
                 {alertBadge.countLabel}
               </span>
@@ -192,7 +192,7 @@ export function Sidebar() {
             type="button"
             aria-label={t.nav.openMenu}
             onClick={() => setIsMobileDrawerOpen(true)}
-            className="p-2 rounded-xl text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
+            className="size-11 inline-flex items-center justify-center rounded-xl text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer shrink-0"
           >
             <Menu className="w-5 h-5" />
           </button>
@@ -218,15 +218,16 @@ export function Sidebar() {
                   </div>
                   <div>
                     <span className="font-extrabold text-base text-zinc-900 dark:text-white">Aura</span>
-                    <span className="ml-1.5 text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800">
+                    <span className="ml-1.5 text-chip font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800">
                       {t.brand.badge}
                     </span>
                   </div>
                 </div>
                 <button
                   type="button"
+                  aria-label={t.common.close}
                   onClick={() => setIsMobileDrawerOpen(false)}
-                  className="p-2 rounded-xl text-zinc-400 hover:text-zinc-700 dark:hover:text-white"
+                  className="size-11 inline-flex items-center justify-center rounded-xl text-zinc-400 hover:text-zinc-700 dark:hover:text-white cursor-pointer"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -234,7 +235,7 @@ export function Sidebar() {
 
               {/* Wallet Switcher in Drawer */}
               <div className="mt-4">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 block mb-1.5">
+                <label className="text-chip font-bold uppercase tracking-wider text-zinc-400 block mb-1.5">
                   {t.wallet.yourWallets}
                 </label>
                 <div className="space-y-1">
@@ -246,7 +247,7 @@ export function Sidebar() {
                         setActiveWalletId(w.id);
                         setIsMobileDrawerOpen(false);
                       }}
-                      className={`w-full text-left px-3 py-2 rounded-xl flex items-center justify-between text-xs font-semibold ${
+                      className={`w-full text-left px-3 py-2 min-h-11 rounded-xl flex items-center justify-between text-xs font-semibold cursor-pointer ${
                         w.id === activeWalletId
                           ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/80'
                           : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300'
@@ -265,7 +266,7 @@ export function Sidebar() {
                       setIsMobileDrawerOpen(false);
                       setIsNewWalletOpen(true);
                     }}
-                    className="w-full text-left px-3 py-2 text-xs text-indigo-600 dark:text-indigo-400 font-semibold flex items-center gap-2 hover:underline cursor-pointer"
+                    className="w-full text-left px-3 py-2 min-h-11 text-xs text-indigo-600 dark:text-indigo-400 font-semibold flex items-center gap-2 hover:underline cursor-pointer"
                   >
                     <Plus className="w-3.5 h-3.5" />
                     <span>{t.wallet.createNew}</span>
@@ -283,7 +284,7 @@ export function Sidebar() {
 
                   return (
                     <div key={group.id} className={groupIdx > 0 ? 'mt-4' : ''}>
-                      <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 block px-1 mb-1.5">
+                      <label className="text-chip font-bold uppercase tracking-wider text-zinc-400 block px-1 mb-1.5">
                         {headingText}
                       </label>
                       <div className="space-y-1">
@@ -298,7 +299,7 @@ export function Sidebar() {
                               key={item.href}
                               href={item.href}
                               onClick={() => setIsMobileDrawerOpen(false)}
-                              className={`flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
+                              className={`flex items-center justify-between px-3 py-2.5 min-h-11 rounded-xl text-sm font-semibold transition-colors ${
                                 isActive
                                   ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900'
                                   : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800'
@@ -311,7 +312,7 @@ export function Sidebar() {
                               {badge && badge.badge > 0 ? (
                                 <span
                                   aria-label={badge.badgeAriaLabel}
-                                  className={`px-1.5 py-0.5 text-[10px] font-extrabold rounded-full ${
+                                  className={`px-1.5 py-0.5 text-chip font-extrabold rounded-full ${
                                     badge.hasOverdue ? 'bg-rose-500 text-white' : 'bg-amber-500 text-white'
                                   }`}
                                 >
@@ -336,7 +337,7 @@ export function Sidebar() {
                       setIsMobileDrawerOpen(false);
                       openAddExpense();
                     }}
-                    className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-2xs cursor-pointer"
+                    className="flex items-center justify-center gap-1.5 py-2.5 px-3 min-h-11 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-2xs cursor-pointer"
                   >
                     <Receipt className="w-3.5 h-3.5" />
                     <span>{t.actions.addExpense}</span>
@@ -347,7 +348,7 @@ export function Sidebar() {
                       setIsMobileDrawerOpen(false);
                       openAddInvoice(undefined, 'BILL');
                     }}
-                    className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold shadow-2xs cursor-pointer"
+                    className="flex items-center justify-center gap-1.5 py-2.5 px-3 min-h-11 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold shadow-2xs cursor-pointer"
                   >
                     <FileText className="w-3.5 h-3.5" />
                     <span>{t.actions.addBill}</span>
@@ -358,7 +359,7 @@ export function Sidebar() {
                       setIsMobileDrawerOpen(false);
                       openAddExpense(undefined, 'PLANNED');
                     }}
-                    className="col-span-2 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold shadow-2xs cursor-pointer"
+                    className="col-span-2 flex items-center justify-center gap-1.5 py-2.5 px-3 min-h-11 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold shadow-2xs cursor-pointer"
                   >
                     <CalendarClock className="w-3.5 h-3.5" />
                     <span>{t.planned.sidebarAction}</span>
@@ -379,7 +380,7 @@ export function Sidebar() {
                   <button
                     type="button"
                     onClick={() => setLanguage('en')}
-                    className={`px-2 py-1 rounded text-[11px] font-bold transition-all cursor-pointer ${
+                    className={`px-3 py-1.5 min-h-11 min-w-11 rounded text-chip font-bold transition-all cursor-pointer ${
                       language === 'en'
                         ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-2xs'
                         : 'text-zinc-400'
@@ -390,7 +391,7 @@ export function Sidebar() {
                   <button
                     type="button"
                     onClick={() => setLanguage('el')}
-                    className={`px-2 py-1 rounded text-[11px] font-bold transition-all cursor-pointer ${
+                    className={`px-3 py-1.5 min-h-11 min-w-11 rounded text-chip font-bold transition-all cursor-pointer ${
                       language === 'el'
                         ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-2xs'
                         : 'text-zinc-400'
@@ -411,7 +412,7 @@ export function Sidebar() {
                 <button
                   type="button"
                   onClick={() => setAuthMode(authMode === 'mock' ? 'normal' : 'mock')}
-                  className="px-2 py-1 rounded-lg border border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 text-[10px] font-bold uppercase tracking-wider cursor-pointer"
+                  className="px-3 py-2 min-h-11 rounded-lg border border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 text-chip font-bold uppercase tracking-wider cursor-pointer"
                 >
                   {t.devMode.toggle}
                 </button>
@@ -420,7 +421,7 @@ export function Sidebar() {
 
               {/* Profile Card & Logout */}
               {currentUser && (
-                <div className={`p-2.5 rounded-xl bg-zinc-100 dark:bg-zinc-800/60 flex items-center justify-between ${
+                <div className={`p-2.5 rounded-xl bg-zinc-100 dark:bg-zinc-800/60 flex items-center justify-between min-h-11 ${
                   pathname === '/profile' ? 'ring-2 ring-indigo-500/50 bg-indigo-50/50 dark:bg-indigo-950/30' : ''
                 }`}>
                   <Link
@@ -445,14 +446,14 @@ export function Sidebar() {
                       <p className="text-xs font-bold text-zinc-900 dark:text-white truncate">
                         {currentUser.name}
                       </p>
-                      <p className="text-[10px] text-zinc-400 truncate">{currentUser.email}</p>
+                      <p className="text-meta text-zinc-400 truncate">{currentUser.email}</p>
                     </div>
                   </Link>
                   <button
                     type="button"
                     onClick={() => logout()}
                     aria-label={t.actions.logout}
-                    className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 cursor-pointer shrink-0 ml-1"
+                    className="size-11 inline-flex items-center justify-center rounded-xl text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 cursor-pointer shrink-0 ml-1"
                   >
                     <LogOut className="w-4 h-4" />
                   </button>
@@ -484,7 +485,7 @@ export function Sidebar() {
                   <span className="text-base font-extrabold tracking-tight bg-gradient-to-r from-zinc-900 via-zinc-800 to-zinc-600 dark:from-white dark:via-zinc-200 dark:to-zinc-400 bg-clip-text text-transparent">
                     Aura
                   </span>
-                  <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950/70 text-indigo-600 dark:text-indigo-400 border border-indigo-200/80 dark:border-indigo-800/60">
+                  <span className="text-chip font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950/70 text-indigo-600 dark:text-indigo-400 border border-indigo-200/80 dark:border-indigo-800/60">
                     {t.brand.badge}
                   </span>
                 </div>
@@ -520,7 +521,7 @@ export function Sidebar() {
           {/* Active Wallet Switcher */}
           {!isCollapsed ? (
             <div className="relative">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 block px-1 mb-1">
+              <label className="text-chip font-bold uppercase tracking-wider text-zinc-400 block px-1 mb-1">
                 {t.wallet.selectWallet}
               </label>
               <button
@@ -547,13 +548,13 @@ export function Sidebar() {
                   <ChevronDown className="w-3.5 h-3.5 text-zinc-400 shrink-0 ml-1" />
                 </div>
                 {activeWallet && (
-                  <div className="mt-1 flex items-center justify-between text-[11px] text-zinc-500 dark:text-zinc-400">
+                  <div className="mt-1 flex items-center justify-between text-meta text-zinc-500 dark:text-zinc-400">
                     <span className="font-mono">
                       {interpolate(t('wallet.remainingLeft'), {
                         amount: formatCurrency(remainingBudget, activeWallet.currency),
                       })}
                     </span>
-                    <span className="font-semibold text-zinc-400 uppercase text-[10px]">
+                    <span className="font-semibold text-zinc-400 uppercase text-chip">
                       {activeWallet.currency}
                     </span>
                   </div>
@@ -565,7 +566,7 @@ export function Sidebar() {
                 <>
                   <div className="fixed inset-0 z-20" onClick={() => setIsWalletDropdownOpen(false)} />
                   <div className="absolute left-0 mt-2 w-full rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-xl z-30 py-2 animate-in fade-in zoom-in-95">
-                    <div className="px-3.5 py-1 text-[10px] font-bold uppercase tracking-wider text-zinc-400 flex items-center justify-between">
+                    <div className="px-3.5 py-1 text-chip font-bold uppercase tracking-wider text-zinc-400 flex items-center justify-between">
                       <span>{t.wallet.yourWallets}</span>
                       <span>{wallets.length}</span>
                     </div>
@@ -588,7 +589,7 @@ export function Sidebar() {
                             <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: w.color }} />
                             <div className="min-w-0 truncate">
                               <p className="text-xs font-semibold truncate leading-tight">{w.name}</p>
-                              <p className="text-[10px] text-zinc-400 truncate">{w.userRole}</p>
+                              <p className="text-meta text-zinc-400 truncate">{w.userRole}</p>
                             </div>
                           </div>
                           {w.id === activeWalletId && <Check className="w-3.5 h-3.5 shrink-0 ml-1 text-indigo-600" />}
@@ -666,7 +667,7 @@ export function Sidebar() {
                       </div>
                       <div>
                         <p className="font-bold text-xs">{t.actions.addExpense}</p>
-                        <p className="text-[10px] text-zinc-400">{t.actions.addExpenseSub}</p>
+                        <p className="text-meta text-zinc-400">{t.actions.addExpenseSub}</p>
                       </div>
                     </button>
                     <button
@@ -682,7 +683,7 @@ export function Sidebar() {
                       </div>
                       <div>
                         <p className="font-bold text-xs">{t.actions.addBill}</p>
-                        <p className="text-[10px] text-zinc-400">{t.actions.addBillSub}</p>
+                        <p className="text-meta text-zinc-400">{t.actions.addBillSub}</p>
                       </div>
                     </button>
                     <button
@@ -698,7 +699,7 @@ export function Sidebar() {
                       </div>
                       <div>
                         <p className="font-bold text-xs">{t.planned.sidebarAction}</p>
-                        <p className="text-[10px] text-zinc-400">{t.planned.sidebarActionSub}</p>
+                        <p className="text-meta text-zinc-400">{t.planned.sidebarActionSub}</p>
                       </div>
                     </button>
                   </div>
@@ -736,7 +737,7 @@ export function Sidebar() {
                       <div className="my-2 mx-3 border-t border-zinc-200/80 dark:border-zinc-800/80" />
                     )
                   ) : (
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 block px-1 mb-1">
+                    <label className="text-chip font-bold uppercase tracking-wider text-zinc-400 block px-1 mb-1">
                       {headingText}
                     </label>
                   )}
@@ -771,7 +772,7 @@ export function Sidebar() {
                               {badge && badge.badge > 0 ? (
                                 <span
                                   aria-label={badge.badgeAriaLabel}
-                                  className={`px-1.5 py-0.5 text-[10px] font-black rounded-full ${
+                                  className={`px-1.5 py-0.5 text-chip font-black rounded-full ${
                                     badge.hasOverdue ? 'bg-rose-500 text-white animate-pulse' : 'bg-amber-500 text-white'
                                   }`}
                                 >
@@ -810,14 +811,14 @@ export function Sidebar() {
                       authMode === 'mock' ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500'
                     }`}
                   />
-                  <span className="text-[11px] font-bold text-zinc-800 dark:text-zinc-200">
+                  <span className="text-meta font-bold text-zinc-800 dark:text-zinc-200">
                     {authMode === 'mock' ? t.devMode.mockMode : t.devMode.normalMode}
                   </span>
                 </div>
                 <button
                   type="button"
                   onClick={() => setAuthMode(authMode === 'mock' ? 'normal' : 'mock')}
-                  className="text-[10px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
+                  className="text-chip font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
                 >
                   {t.devMode.toggle}
                 </button>
@@ -829,7 +830,7 @@ export function Sidebar() {
                   <button
                     type="button"
                     onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
-                    className="w-full flex items-center justify-between text-[11px] text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 cursor-pointer"
+                    className="w-full flex items-center justify-between text-meta text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 cursor-pointer"
                   >
                     <span className="flex items-center gap-1">
                       <UserCheck className="w-3 h-3 text-amber-500" />
@@ -842,7 +843,7 @@ export function Sidebar() {
                     <>
                       <div className="fixed inset-0 z-20" onClick={() => setIsUserDropdownOpen(false)} />
                       <div className="absolute left-0 bottom-full mb-2 w-56 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-xl z-30 py-1.5 animate-in fade-in zoom-in-95">
-                        <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-zinc-400">
+                        <div className="px-3 py-1 text-chip font-bold uppercase tracking-wider text-zinc-400">
                           {t.devMode.title}
                         </div>
                         <div className="max-h-48 overflow-y-auto py-1">
@@ -889,7 +890,7 @@ export function Sidebar() {
           {/* Language Switcher */}
           {!isCollapsed ? (
             <div className="flex items-center justify-between px-1 text-xs">
-              <span className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5">
+              <span className="text-meta font-medium text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5">
                 <Globe className="w-3.5 h-3.5" />
                 <span>{t.common.language}</span>
               </span>
@@ -897,7 +898,7 @@ export function Sidebar() {
                 <button
                   type="button"
                   onClick={() => setLanguage('en')}
-                  className={`px-1.5 py-0.5 rounded text-[10px] font-bold transition-all cursor-pointer ${
+                  className={`px-1.5 py-0.5 rounded text-chip font-bold transition-all cursor-pointer ${
                     language === 'en'
                       ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-2xs'
                       : 'text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'
@@ -908,7 +909,7 @@ export function Sidebar() {
                 <button
                   type="button"
                   onClick={() => setLanguage('el')}
-                  className={`px-1.5 py-0.5 rounded text-[10px] font-bold transition-all cursor-pointer ${
+                  className={`px-1.5 py-0.5 rounded text-chip font-bold transition-all cursor-pointer ${
                     language === 'el'
                       ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-2xs'
                       : 'text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'
@@ -926,7 +927,7 @@ export function Sidebar() {
                 title={interpolate(t('nav.languageTooltip'), {
                   lang: language.toUpperCase(),
                 })}
-                className="text-[11px] font-black uppercase w-9 h-7 rounded-lg bg-zinc-100 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-300 flex items-center justify-center hover:bg-zinc-200 dark:hover:bg-zinc-800 cursor-pointer"
+                className="text-chip font-black uppercase w-9 h-7 rounded-lg bg-zinc-100 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-300 flex items-center justify-center hover:bg-zinc-200 dark:hover:bg-zinc-800 cursor-pointer"
               >
                 {language.toUpperCase()}
               </button>
@@ -952,7 +953,7 @@ export function Sidebar() {
                       className="w-7 h-7 rounded-full object-cover shrink-0 ring-1 ring-zinc-300 dark:ring-zinc-700"
                     />
                   ) : (
-                    <div className="w-7 h-7 rounded-full bg-indigo-600 text-white font-bold text-[10px] flex items-center justify-center shrink-0">
+                    <div className="w-7 h-7 rounded-full bg-indigo-600 text-white font-bold text-chip flex items-center justify-center shrink-0">
                       {/* i18n-ignore: avatar fallback initial */}
                       {currentUser?.name?.slice(0, 2).toUpperCase() || 'U'}
                     </div>
@@ -961,7 +962,7 @@ export function Sidebar() {
                     <p className="text-xs font-bold text-zinc-900 dark:text-white truncate leading-tight">
                       {currentUser?.name || t.common.guestUser}
                     </p>
-                    <p className="text-[10px] text-zinc-400 truncate leading-tight">
+                    <p className="text-meta text-zinc-400 truncate leading-tight">
                       {currentUser?.email || t.auth.signInToSync}
                     </p>
                   </div>
@@ -995,7 +996,7 @@ export function Sidebar() {
                     className="w-7 h-7 rounded-full object-cover"
                   />
                 ) : (
-                  <div className="w-7 h-7 rounded-full bg-indigo-600 text-white font-bold text-[10px] flex items-center justify-center">
+                  <div className="w-7 h-7 rounded-full bg-indigo-600 text-white font-bold text-chip flex items-center justify-center">
                     {/* i18n-ignore: avatar fallback initial */}
                     {currentUser?.name?.slice(0, 2).toUpperCase() || 'U'}
                   </div>

@@ -87,7 +87,7 @@ export function BudgetOverviewCard() {
               {t.budget.monthlyStatus}
             </span>
             <span
-              className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border ${
+              className={`text-chip font-extrabold px-2.5 py-0.5 rounded-full border ${
                 pacing.isOverPace
                   ? 'bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-900/60'
                   : 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900/60'
@@ -133,7 +133,7 @@ export function BudgetOverviewCard() {
                 <button
                   type="button"
                   onClick={() => setIsBonusOpen(true)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-emerald-200 dark:border-emerald-900/60 bg-emerald-50/70 dark:bg-emerald-950/30 text-xs font-bold text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-950/60 cursor-pointer transition-colors"
+                  className="min-h-11 sm:min-h-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-emerald-200 dark:border-emerald-900/60 bg-emerald-50/70 dark:bg-emerald-950/30 text-xs font-bold text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-950/60 cursor-pointer transition-colors"
                 >
                   <Gift className="w-3.5 h-3.5" />
                   {t('bonus.addButton')}
@@ -142,7 +142,7 @@ export function BudgetOverviewCard() {
               {bonuses.length > 0 && (
                 <ul aria-label={t('bonus.listTitle')} className="space-y-1">
                   {bonuses.map((b) => (
-                    <li key={b.id} className="flex items-center gap-2 text-[11px] text-zinc-600 dark:text-zinc-400">
+                    <li key={b.id} className="flex items-center gap-2 text-meta text-zinc-600 dark:text-zinc-400">
                       <span className="font-bold tabular-nums text-emerald-700 dark:text-emerald-400">
                         +{formatCurrency(b.amount, currency)}
                       </span>
@@ -156,9 +156,9 @@ export function BudgetOverviewCard() {
                           disabled={removingId === b.id}
                           aria-label={t('bonus.remove')}
                           title={t('bonus.remove')}
-                          className="p-1 rounded-md text-zinc-400 hover:text-rose-600 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer disabled:opacity-50"
+                          className="size-11 sm:size-7 inline-flex items-center justify-center p-1 rounded-md text-zinc-400 hover:text-rose-600 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer disabled:opacity-50"
                         >
-                          <Trash2 className="w-3 h-3" />
+                          <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       )}
                     </li>
@@ -170,12 +170,12 @@ export function BudgetOverviewCard() {
           </div>
 
         {/* Daily Pacing Badge */}
-        <div className="flex items-center gap-3.5 bg-zinc-50 dark:bg-zinc-800/60 p-3 sm:p-3.5 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 self-start lg:self-auto shrink-0 shadow-xs">
+        <div className="flex items-center gap-3.5 bg-zinc-50 dark:bg-zinc-800/60 p-3 sm:p-3.5 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 w-full sm:w-auto self-start lg:self-auto shrink-0 shadow-xs">
           <div className="w-11 h-11 rounded-xl bg-indigo-500/10 dark:bg-indigo-400/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold text-base">
             <DollarSign className="w-5 h-5" />
           </div>
           <div>
-            <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
+            <p className="text-chip font-bold text-zinc-400 uppercase tracking-wider">
               {t.budget.dailyFreeToSpend}
             </p>
             <p className="text-lg font-black text-zinc-900 dark:text-white tabular-nums">
@@ -235,7 +235,7 @@ export function BudgetOverviewCard() {
         </div>
 
         {/* Bar legend */}
-        <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] font-semibold text-zinc-500">
+        <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-chip font-semibold text-zinc-500">
           <span className="inline-flex items-center gap-1.5">
             <span
               className={`w-2.5 h-2.5 rounded-full ${
@@ -259,12 +259,12 @@ export function BudgetOverviewCard() {
         </div>
       </div>
 
-      {/* 4 Financial Health Grid Cards: remaining → still due → free to spend */}
-      <div className="mt-6 grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      {/* 4 Financial Health Grid Cards. Single column below 360px so long labels ('ΥΠΟΛΟΙΠΟ ΠΡΟΫΠΟΛΟΓΙΣΜΟΥ') don't squeeze */}
+      <div className="mt-6 grid grid-cols-1 min-[360px]:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {/* Card 1: Remaining after what is already used */}
         <div className="p-4 rounded-2xl bg-zinc-50/70 dark:bg-zinc-800/40 border border-zinc-200/60 dark:border-zinc-800">
           <div className="flex items-center justify-between">
-            <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">
+            <p className="text-chip font-bold text-zinc-400 uppercase tracking-wider">
               {t.budget.remainingBudget}
             </p>
             <TrendingUp className="w-3.5 h-3.5 text-zinc-400" />
@@ -272,7 +272,7 @@ export function BudgetOverviewCard() {
           <p className="text-lg sm:text-xl font-black text-zinc-900 dark:text-white mt-1.5 tabular-nums">
             {formatCurrency(projection.remaining, currency)}
           </p>
-          <p className="text-[11px] text-zinc-500 mt-0.5">
+          <p className="text-meta text-zinc-500 mt-0.5">
             {interpolate(t('budget.percentLeft'), { percent: percentLeft })}
           </p>
         </div>
@@ -280,7 +280,7 @@ export function BudgetOverviewCard() {
         {/* Card 2: Still due this month (bills, subscriptions, planned expenses, savings contributions) */}
         <div className="p-4 rounded-2xl bg-zinc-50/70 dark:bg-zinc-800/40 border border-zinc-200/60 dark:border-zinc-800">
           <div className="flex items-center justify-between">
-            <p className="text-[11px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
+            <p className="text-chip font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
               {t.budget.stillDue}
             </p>
             <Calendar className="w-3.5 h-3.5 text-amber-500" />
@@ -288,7 +288,7 @@ export function BudgetOverviewCard() {
           <p className="text-lg sm:text-xl font-black text-amber-600 dark:text-amber-400 mt-1.5 tabular-nums">
             {formatCurrency(stillDue, currency)}
           </p>
-          <p className="text-[11px] text-zinc-500 mt-0.5">{t.budget.stillDueHint}</p>
+          <p className="text-meta text-zinc-500 mt-0.5">{t.budget.stillDueHint}</p>
         </div>
 
         {/* Card 3: Free to spend once everything still due is paid */}
@@ -301,7 +301,7 @@ export function BudgetOverviewCard() {
         >
           <div className="flex items-center justify-between">
             <p
-              className={`text-[11px] font-bold uppercase tracking-wider ${
+              className={`text-chip font-bold uppercase tracking-wider ${
                 projection.isOverBudget ? 'text-rose-700 dark:text-rose-400' : 'text-emerald-700 dark:text-emerald-400'
               }`}
             >
@@ -321,7 +321,7 @@ export function BudgetOverviewCard() {
             {formatCurrency(freeToSpend, currency)}
           </p>
           <p
-            className={`text-[11px] mt-0.5 ${
+            className={`text-meta mt-0.5 ${
               projection.isOverBudget
                 ? 'text-rose-600/80 dark:text-rose-400/80'
                 : 'text-emerald-600/80 dark:text-emerald-400/80'
@@ -336,7 +336,7 @@ export function BudgetOverviewCard() {
         {/* Card 4: Collaborators Active */}
         <div className="p-4 rounded-2xl bg-zinc-50/70 dark:bg-zinc-800/40 border border-zinc-200/60 dark:border-zinc-800">
           <div className="flex items-center justify-between">
-            <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">
+            <p className="text-chip font-bold text-zinc-400 uppercase tracking-wider">
               {t.budget.collaborators}
             </p>
             <Users className="w-3.5 h-3.5 text-indigo-500" />
@@ -348,7 +348,7 @@ export function BudgetOverviewCard() {
           </p>
           <div className="flex items-center gap-1 mt-1">
             {walletData.wallet.members?.slice(0, 3).map((m, idx) => (
-              <span key={idx} className="text-[10px] text-zinc-500 truncate">
+              <span key={idx} className="text-meta text-zinc-500 truncate">
                 {m.user?.name.split(' ')[0]}
                 {idx < Math.min(2, (walletData.wallet.members?.length || 1) - 1) ? ',' : ''}
               </span>
@@ -364,7 +364,7 @@ export function BudgetOverviewCard() {
           onClick={() => setIsBreakdownOpen((open) => !open)}
           aria-expanded={isBreakdownOpen}
           aria-controls="budget-breakdown"
-          className="inline-flex items-center gap-1.5 text-xs font-bold text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 cursor-pointer transition-colors"
+          className="min-h-11 sm:min-h-0 inline-flex items-center gap-1.5 text-xs font-bold text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 cursor-pointer transition-colors"
         >
           <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isBreakdownOpen ? 'rotate-180' : ''}`} />
           {isBreakdownOpen ? t.budget.hideBreakdown : t.budget.showBreakdown}

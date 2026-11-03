@@ -48,12 +48,13 @@ export function MonthSwitcher({ className = '' }: { className?: string }) {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [isOpen]);
 
+  /* Touch target >= 44px on phones; compact from sm. */
   const iconButton =
-    'p-1.5 rounded-lg text-zinc-600 dark:text-zinc-300 hover:bg-white dark:hover:bg-zinc-800 transition-colors cursor-pointer';
+    'size-11 sm:size-8 inline-flex items-center justify-center rounded-lg text-zinc-600 dark:text-zinc-300 hover:bg-white dark:hover:bg-zinc-800 transition-colors cursor-pointer';
 
   return (
     <div className={`relative inline-flex ${className}`}>
-      <div className="flex items-center gap-1 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/80 dark:bg-zinc-950/50 p-1">
+      <div className="flex items-center gap-0.5 sm:gap-1 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/80 dark:bg-zinc-950/50 p-0.5 sm:p-1">
         <button
           type="button"
           onClick={goToPrevMonth}
@@ -71,10 +72,10 @@ export function MonthSwitcher({ className = '' }: { className?: string }) {
           aria-expanded={isOpen}
           aria-label={t.month.pickMonth}
           title={t.month.pickMonth}
-          className="px-2.5 py-1 rounded-lg text-xs font-bold text-zinc-900 dark:text-white hover:bg-white dark:hover:bg-zinc-800 transition-colors cursor-pointer flex items-center gap-1.5 min-w-[8.5rem] justify-center"
+          className="min-h-11 sm:min-h-8 px-2 sm:px-2.5 py-1 rounded-lg text-xs font-bold text-zinc-900 dark:text-white hover:bg-white dark:hover:bg-zinc-800 transition-colors cursor-pointer flex items-center gap-1 sm:gap-1.5 min-w-[7.5rem] sm:min-w-[8.5rem] justify-center"
         >
-          <span className="tabular-nums">{label}</span>
-          <ChevronDown className="w-3 h-3 text-zinc-400" />
+          <span className="tabular-nums truncate">{label}</span>
+          <ChevronDown className="w-3 h-3 text-zinc-400 shrink-0" />
         </button>
 
         <button
@@ -91,7 +92,7 @@ export function MonthSwitcher({ className = '' }: { className?: string }) {
           type="button"
           onClick={goToCurrentMonth}
           disabled={isCurrent}
-          className="px-2.5 py-1 text-xs font-bold rounded-lg transition-colors cursor-pointer text-indigo-600 dark:text-indigo-300 hover:bg-white dark:hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-default disabled:hover:bg-transparent"
+          className="min-h-11 sm:min-h-8 px-2 sm:px-2.5 py-1 text-xs font-bold rounded-lg transition-colors cursor-pointer text-indigo-600 dark:text-indigo-300 hover:bg-white dark:hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-default disabled:hover:bg-transparent inline-flex items-center justify-center"
         >
           {t.month.today}
         </button>
@@ -103,7 +104,7 @@ export function MonthSwitcher({ className = '' }: { className?: string }) {
           <div
             role="dialog"
             aria-label={t.month.pickMonth}
-            className="absolute left-0 top-full mt-2 w-64 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-xl z-30 p-3 animate-in fade-in zoom-in-95"
+            className="absolute left-0 top-full mt-2 w-64 max-w-[calc(100vw-2rem)] rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-xl z-30 p-3 animate-in fade-in zoom-in-95"
           >
             <div className="flex items-center justify-between mb-2">
               <button
@@ -139,7 +140,7 @@ export function MonthSwitcher({ className = '' }: { className?: string }) {
                       setSelectedMonth(key);
                       setIsOpen(false);
                     }}
-                    className={`py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer ${
+                    className={`min-h-11 sm:min-h-0 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center justify-center ${
                       isSelected
                         ? 'bg-indigo-600 text-white shadow-xs'
                         : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800'
