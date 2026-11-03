@@ -20,9 +20,14 @@ const MIGRATED_LISTS = [
   'src/components/upcoming-bills-card.tsx',
   'src/components/calendar/bills-list-view.tsx',
   'src/components/urgent-reminders-banner.tsx',
+  'src/components/calendar/day-agenda-drawer.tsx',
+  'src/components/recurring/recurring-payments-section.tsx',
 ];
 
-const MIGRATED_DIALOGS = ['src/components/savings/deposit-modal.tsx'];
+const MIGRATED_DIALOGS = [
+  'src/components/savings/deposit-modal.tsx',
+  'src/components/calendar/day-agenda-drawer.tsx',
+];
 
 const read = (rel: string) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
 
