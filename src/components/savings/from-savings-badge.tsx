@@ -11,7 +11,7 @@ export function FromSavingsBadge({ amount, currency }: { amount: number | undefi
   const { t } = useTranslation();
   if (!amount || amount <= 0) return null;
   return (
-    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/60 tabular-nums whitespace-nowrap">
+    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-chip font-bold bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/60 tabular-nums whitespace-nowrap">
       <PiggyBank className="w-3 h-3" />
       {interpolate(t('savings.fromSavingsBadge'), { amount: formatCurrency(amount, currency) })}
     </span>

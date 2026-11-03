@@ -35,12 +35,12 @@ export function MonthlySavingsCard() {
   return (
     <section className="rounded-3xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/90 shadow-sm overflow-hidden">
       <div className="p-5 sm:p-6 border-b border-zinc-100 dark:border-zinc-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-200/80 dark:border-emerald-800/60 shadow-xs">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-10 h-10 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-200/80 dark:border-emerald-800/60 shadow-xs shrink-0">
             <PiggyBank className="w-5 h-5" />
           </div>
-          <div>
-            <h2 className="text-base sm:text-lg font-bold text-zinc-900 dark:text-white">{t('savings.monthlyCardTitle')}</h2>
+          <div className="min-w-0">
+            <h2 className="text-base sm:text-lg font-bold text-zinc-900 dark:text-white truncate">{t('savings.monthlyCardTitle')}</h2>
             <p className="text-xs text-zinc-500 mt-0.5">
               {totalDue > 0
                 ? interpolate(t(isFuture ? 'savings.monthlyCardPlanned' : 'savings.monthlyCardDue'), {
@@ -52,7 +52,7 @@ export function MonthlySavingsCard() {
         </div>
         <Link
           href="/savings"
-          className="self-start sm:self-auto inline-flex items-center gap-1 text-xs font-bold text-emerald-700 dark:text-emerald-400 hover:underline"
+          className="self-start sm:self-auto min-h-11 sm:min-h-0 inline-flex items-center gap-1 text-xs font-bold text-emerald-700 dark:text-emerald-400 hover:underline shrink-0"
         >
           {t('savings.openSavings')}
           <ChevronRight className="w-3.5 h-3.5" />
@@ -69,7 +69,7 @@ export function MonthlySavingsCard() {
           <button
             type="button"
             onClick={goToCurrentMonth}
-            className="self-start sm:self-auto shrink-0 px-3 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-700 text-xs font-bold text-zinc-700 dark:text-zinc-300 hover:bg-white dark:hover:bg-zinc-800 cursor-pointer"
+            className="self-start sm:self-auto shrink-0 min-h-11 sm:min-h-0 inline-flex items-center justify-center px-3 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-700 text-xs font-bold text-zinc-700 dark:text-zinc-300 hover:bg-white dark:hover:bg-zinc-800 cursor-pointer"
           >
             {t('savings.goToCurrentMonth')}
           </button>
@@ -78,7 +78,7 @@ export function MonthlySavingsCard() {
 
       <ul className="divide-y divide-zinc-100 dark:divide-zinc-800/80">
         {rows.map((b) => (
-          <li key={b.id} className="px-5 sm:px-6 py-3.5 flex items-center justify-between gap-3">
+          <li key={b.id} className="px-4 sm:px-6 py-3.5 flex flex-col min-[380px]:flex-row min-[380px]:items-center justify-between gap-2 min-[380px]:gap-3">
             <div className="min-w-0 flex items-center gap-2.5">
               <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: b.color }} />
               <div className="min-w-0">
@@ -88,11 +88,11 @@ export function MonthlySavingsCard() {
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center justify-between min-[380px]:justify-end gap-2 shrink-0">
               {b.savingsDue > 0 ? (
                 <>
                   <span
-                    className={`text-xs font-bold px-2 py-0.5 rounded-full border tabular-nums ${
+                    className={`text-chip font-bold px-2 py-0.5 rounded-full border tabular-nums ${
                       isFuture
                         ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border-zinc-200 dark:border-zinc-700'
                         : 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border-amber-200/80 dark:border-amber-800/60'
@@ -106,7 +106,7 @@ export function MonthlySavingsCard() {
                     <button
                       type="button"
                       onClick={() => setDepositTarget({ id: b.id, name: b.name, suggested: b.savingsDue })}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs transition-all cursor-pointer"
+                      className="min-h-11 sm:min-h-0 inline-flex items-center justify-center gap-1 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs transition-all cursor-pointer"
                     >
                       <Plus className="w-3.5 h-3.5" />
                       <span>{t('savings.deposit')}</span>
@@ -114,7 +114,7 @@ export function MonthlySavingsCard() {
                   )}
                 </>
               ) : (
-                <span className="inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/60 tabular-nums">
+                <span className="inline-flex items-center gap-1 text-chip font-bold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/60 tabular-nums">
                   <CheckCircle2 className="w-3.5 h-3.5" />
                   {interpolate(t('savings.savedAmount'), { amount: formatCurrency(b.contributed, currency) })}
                 </span>
