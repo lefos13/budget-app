@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { X, Receipt, CalendarClock } from 'lucide-react';
+import { Receipt, CalendarClock } from 'lucide-react';
+import { Dialog } from '@/components/ui/dialog';
 import { useApp } from '@/context/AppContext';
 import { useTranslation } from '@/context/LanguageContext';
 import { interpolate } from '@/lib/i18n/translator';
@@ -117,14 +118,6 @@ function AddExpenseModalDialog() {
       }
     }
   };
-
-  React.useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !isSubmitting) setIsAddExpenseOpen(false);
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isSubmitting, setIsAddExpenseOpen]);
 
   // Parse the YYYY-MM-DD input as local noon so the month is the one the user picked.
   const showSavingsChoice =
@@ -351,61 +344,79 @@ function AddExpenseModalDialog() {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/60 backdrop-blur-xs animate-in fade-in">
-      <div
-        className="fixed inset-0"
-        onClick={() => !isSubmitting && setIsAddExpenseOpen(false)}
-      />
-      <div className="relative w-full max-w-md bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-2xl p-6 z-10 animate-in zoom-in-95">
-        <div className="flex items-center justify-between pb-4 border-b border-zinc-100 dark:border-zinc-800">
-          <div className="flex items-center gap-2.5">
-            <div
-              className={`w-8 h-8 rounded-xl flex items-center justify-center border ${
+    <>
+      <Dialog
+        onClose={() => setIsAddExpenseOpen(false)}
+        dismissible={!isSubmitting}
+        onSubmit={handleSubmit}
+        title={
+          isEdit
+            ? isEditPlanned
+              ? t('expenseEdit.editPlannedTitle')
+              : t('expenseEdit.editTitle')
+            : kind === 'PLANNED'
+            ? t('planned.addModalTitle')
+            : t('actions.addExpense')
+        }
+        description={
+          isEdit
+            ? t('expenseEdit.editSubtitle')
+            : kind === 'PLANNED'
+            ? t('planned.addModalSubtitle')
+            : interpolate(t('expenses.recordPaymentIn'), {
+                wallet: walletData?.wallet.name || t('common.wallet'),
+              })
+        }
+        icon={
+          <div
+            className={`w-10 h-10 rounded-xl flex items-center justify-center border ${
+              kind === 'PLANNED'
+                ? 'bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800/50'
+                : 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50'
+            }`}
+          >
+            {kind === 'PLANNED' ? <CalendarClock className="w-4 h-4" /> : <Receipt className="w-4 h-4" />}
+          </div>
+        }
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={() => setIsAddExpenseOpen(false)}
+              className="px-4 py-2.5 rounded-xl text-sm sm:text-xs font-semibold text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer transition-colors"
+            >
+              {t('common.cancel')}
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className={`px-5 py-2.5 rounded-xl text-white text-sm sm:text-xs font-semibold shadow-md cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
                 kind === 'PLANNED'
-                  ? 'bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800/50'
-                  : 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50'
+                  ? 'bg-amber-600 hover:bg-amber-700 shadow-amber-600/20'
+                  : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20'
               }`}
             >
-              {kind === 'PLANNED' ? <CalendarClock className="w-4 h-4" /> : <Receipt className="w-4 h-4" />}
-            </div>
-            <div>
-              <h2 className="text-base font-bold text-zinc-900 dark:text-white">
-                {isEdit
-                  ? isEditPlanned
-                    ? t('expenseEdit.editPlannedTitle')
-                    : t('expenseEdit.editTitle')
-                  : kind === 'PLANNED'
-                  ? t('planned.addModalTitle')
-                  : t('actions.addExpense')}
-              </h2>
-              <p className="text-xs text-zinc-500">
-                {isEdit
-                  ? t('expenseEdit.editSubtitle')
-                  : kind === 'PLANNED'
-                  ? t('planned.addModalSubtitle')
-                  : interpolate(t('expenses.recordPaymentIn'), {
-                      wallet: walletData?.wallet.name || t('common.wallet'),
-                    })}
-              </p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={() => setIsAddExpenseOpen(false)}
-            className="p-1 rounded-lg text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-
+              {isSubmitting
+                ? isEdit
+                  ? t('expenseEdit.savingChanges')
+                  : t('common.saving')
+                : isEdit
+                ? t('expenseEdit.saveChanges')
+                : kind === 'PLANNED'
+                ? t('planned.submitButton')
+                : t('actions.addExpense')}
+            </button>
+          </>
+        }
+      >
         {/* Segmented Toggle: Spent / Planned (hidden when editing) */}
         {!isEdit && (
-          <div className="mt-4 space-y-2">
-            <div className="grid grid-cols-2 p-1 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-xs font-bold">
+          <div className="space-y-2">
+            <div className="grid grid-cols-2 gap-1 p-1 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-xs font-bold">
               <button
                 type="button"
                 onClick={() => handleKindChange('ACTUAL')}
-                className={`py-1.5 rounded-lg transition-all cursor-pointer ${
+                className={`min-h-11 sm:min-h-0 py-1.5 rounded-lg transition-all cursor-pointer ${
                   kind === 'ACTUAL'
                     ? 'bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white shadow-2xs'
                     : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
@@ -416,7 +427,7 @@ function AddExpenseModalDialog() {
               <button
                 type="button"
                 onClick={() => handleKindChange('PLANNED')}
-                className={`py-1.5 rounded-lg transition-all cursor-pointer ${
+                className={`min-h-11 sm:min-h-0 py-1.5 rounded-lg transition-all cursor-pointer ${
                   kind === 'PLANNED'
                     ? 'bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white shadow-2xs'
                     : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
@@ -427,14 +438,14 @@ function AddExpenseModalDialog() {
             </div>
 
             {kind === 'PLANNED' && (
-              <p className="text-[11px] text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 p-2.5 rounded-xl border border-amber-200/80 dark:border-amber-800/60 leading-relaxed">
+              <p className="text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 p-2.5 rounded-xl border border-amber-200/80 dark:border-amber-800/60 leading-relaxed">
                 {t('planned.plannedHint')}
               </p>
             )}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="mt-4 space-y-4">
+        <div className="mt-4 space-y-4">
           <div>
             <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
               {t('expenses.titleMerchantLabel')}
@@ -452,7 +463,8 @@ function AddExpenseModalDialog() {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          {/* Amount + date stack on phones: a native date input needs the full width at 320px */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
                 {interpolate(t('bills.amountWithCurrency'), {
@@ -534,7 +546,7 @@ function AddExpenseModalDialog() {
                 <div className="mt-2">
                   <label
                     htmlFor="planned-new-bucket-name"
-                    className="block text-[11px] font-semibold text-zinc-600 dark:text-zinc-400 mb-1"
+                    className="block text-meta font-semibold text-zinc-600 dark:text-zinc-400 mb-1"
                   >
                     {t('savings.newBucketNameFor')}
                   </label>
@@ -571,7 +583,7 @@ function AddExpenseModalDialog() {
                   </option>
                 ))}
               </select>
-              <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
+              <p className="text-meta text-zinc-500 dark:text-zinc-400">
                 {t('savings.trackFromMonthHelp')}
               </p>
             </div>
@@ -594,7 +606,7 @@ function AddExpenseModalDialog() {
           </div>
 
           {kind === 'ACTUAL' && (
-            <div className="flex items-center gap-2 pt-1">
+            <label className="flex items-center gap-2 min-h-11 sm:min-h-0 pt-1 cursor-pointer">
               <input
                 type="checkbox"
                 id="recurringExpense"
@@ -602,14 +614,14 @@ function AddExpenseModalDialog() {
                 onChange={(e) => setIsRecurring(e.target.checked)}
                 className="w-4 h-4 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500"
               />
-              <label htmlFor="recurringExpense" className="text-xs text-zinc-600 dark:text-zinc-400 select-none cursor-pointer">
+              <span className="text-xs text-zinc-600 dark:text-zinc-400 select-none">
                 {t('expenses.recurringCheckbox')}
-              </label>
-            </div>
+              </span>
+            </label>
           )}
 
           {willUnlinkFromSavings && editingPlannedExpense?.savingsBucket && (
-            <p className="text-[11px] text-amber-800 dark:text-amber-200 bg-amber-50 dark:bg-amber-950/40 p-2.5 rounded-xl border border-amber-200/80 dark:border-amber-800/60 leading-relaxed">
+            <p className="text-xs text-amber-800 dark:text-amber-200 bg-amber-50 dark:bg-amber-950/40 p-2.5 rounded-xl border border-amber-200/80 dark:border-amber-800/60 leading-relaxed">
               {interpolate(t('savings.dateUnlinkWarning'), { bucket: editingPlannedExpense.savingsBucket.name })}
             </p>
           )}
@@ -619,38 +631,10 @@ function AddExpenseModalDialog() {
               {errorMessage}
             </div>
           )}
+        </div>
+      </Dialog>
 
-          <div className="flex items-center justify-end gap-2 pt-4 border-t border-zinc-100 dark:border-zinc-800">
-            <button
-              type="button"
-              onClick={() => setIsAddExpenseOpen(false)}
-              className="px-4 py-2 rounded-xl text-xs font-semibold text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer transition-colors"
-            >
-              {t('common.cancel')}
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className={`px-5 py-2 rounded-xl text-white text-xs font-semibold shadow-md cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
-                kind === 'PLANNED'
-                  ? 'bg-amber-600 hover:bg-amber-700 shadow-amber-600/20'
-                  : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20'
-              }`}
-            >
-              {isSubmitting
-                ? isEdit
-                  ? t('expenseEdit.savingChanges')
-                  : t('common.saving')
-                : isEdit
-                ? t('expenseEdit.saveChanges')
-                : kind === 'PLANNED'
-                ? t('planned.submitButton')
-                : t('actions.addExpense')}
-            </button>
-          </div>
-        </form>
-      </div>
       {disposition.element}
-    </div>
+    </>
   );
 }

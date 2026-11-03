@@ -275,7 +275,7 @@ function LoginForm() {
             </div>
 
             <div>
-              <div className="flex items-center justify-between mb-1.5">
+              <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 mb-1.5">
                 <label
                   htmlFor="password"
                   className="block text-xs font-bold uppercase tracking-wider text-zinc-600 dark:text-zinc-400"
@@ -330,7 +330,7 @@ function LoginForm() {
                 <div className="absolute inset-0 flex items-center">
                   <div className="w-full border-t border-zinc-200/80 dark:border-zinc-800/80" />
                 </div>
-                <div className="relative px-3 bg-white/80 dark:bg-zinc-900/80 text-[11px] font-bold uppercase tracking-wider text-zinc-400">
+                <div className="relative px-3 bg-white/80 dark:bg-zinc-900/80 text-meta font-bold uppercase tracking-wider text-zinc-400">
                   {t('auth.orDivider')}
                 </div>
               </div>
@@ -358,33 +358,33 @@ function LoginForm() {
 
           {/* Quick Demo Pre-fill helpers */}
           <div className="mt-6 pt-5 border-t border-zinc-100 dark:border-zinc-800/80">
-            <p className="text-[11px] font-bold uppercase tracking-wider text-zinc-400 text-center mb-2.5">
+            <p className="text-meta font-bold uppercase tracking-wider text-zinc-400 text-center mb-2.5">
               {t('auth.quickTestAccounts')}
             </p>
             {/* i18n-ignore: demo persona accounts */}
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {/* i18n-ignore: demo persona name and email */}
               <button
                 type="button"
                 onClick={() => handleFillDemo('alex@example.com')}
-                className="px-2.5 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 text-left transition-colors text-xs text-zinc-700 dark:text-zinc-300"
+                className="min-h-11 sm:min-h-0 px-2.5 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 text-left transition-colors text-xs text-zinc-700 dark:text-zinc-300"
               >
-                <span className="font-semibold block truncate">Alex Johnson</span>
-                <span className="text-[10px] text-zinc-400 block truncate">alex@example.com</span>
+                <span className="font-semibold block break-words">Alex Johnson</span>
+                <span className="text-meta text-zinc-400 block break-words">alex@example.com</span>
               </button>
               {/* i18n-ignore: demo persona name and email */}
               <button
                 type="button"
                 onClick={() => handleFillDemo('elena@example.com')}
-                className="px-2.5 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 text-left transition-colors text-xs text-zinc-700 dark:text-zinc-300"
+                className="min-h-11 sm:min-h-0 px-2.5 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 text-left transition-colors text-xs text-zinc-700 dark:text-zinc-300"
               >
-                <span className="font-semibold block truncate">Elena Rostova</span>
-                <span className="text-[10px] text-zinc-400 block truncate">elena@example.com</span>
+                <span className="font-semibold block break-words">Elena Rostova</span>
+                <span className="text-meta text-zinc-400 block break-words">elena@example.com</span>
               </button>
             </div>
           </div>
 
-          <div className="mt-6 pt-5 border-t border-zinc-100 dark:border-zinc-800/80 flex items-center justify-between text-xs">
+          <div className="mt-6 pt-5 border-t border-zinc-100 dark:border-zinc-800/80 flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-xs">
             <span className="text-zinc-500">{t.auth.dontHaveAccount}</span>
             <Link
               href={authHref('register', next)}
@@ -399,7 +399,7 @@ function LoginForm() {
         {process.env.NODE_ENV !== 'production' && (
         <div className="mt-6 text-center">
           <div className="inline-flex items-center gap-2 p-1.5 pr-3 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400 text-xs">
-            <div className="px-2 py-0.5 rounded-full bg-amber-500 text-zinc-950 font-black text-[10px] uppercase tracking-wider flex items-center gap-1">
+            <div className="px-2 py-0.5 rounded-full bg-amber-500 text-zinc-950 font-black text-chip uppercase tracking-wider flex items-center gap-1">
               <Sparkles className="w-3 h-3" />
               {t('devMode.badge')}
             </div>

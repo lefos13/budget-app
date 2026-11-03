@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, FileText, Bell, Repeat, Sparkles, AlertCircle } from 'lucide-react';
+import { FileText, Bell, Repeat, Sparkles, AlertCircle } from 'lucide-react';
+import { Dialog } from '@/components/ui/dialog';
 import { useApp } from '@/context/AppContext';
 import { useTranslation } from '@/context/LanguageContext';
 import { interpolate } from '@/lib/i18n/translator';
@@ -60,13 +61,6 @@ function AddInvoiceModalDialog({ initialDate }: { initialDate?: string }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  React.useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !isSubmitting) setIsAddInvoiceOpen(false);
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isSubmitting, setIsAddInvoiceOpen]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -155,50 +149,63 @@ function AddInvoiceModalDialog({ initialDate }: { initialDate?: string }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/60 backdrop-blur-xs animate-in fade-in">
-      <div
-        className="fixed inset-0"
-        onClick={() => !isSubmitting && setIsAddInvoiceOpen(false)}
-      />
-      <div className="relative w-full max-w-md bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-2xl p-6 z-10 animate-in zoom-in-95">
-        <div className="flex items-center justify-between pb-4 border-b border-zinc-100 dark:border-zinc-800">
-          <div className="flex items-center gap-2.5">
-            <div className={`w-8 h-8 rounded-xl flex items-center justify-center border ${
-              type === 'SUBSCRIPTION'
-                ? 'bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800/50'
-                : 'bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800/50'
-            }`}>
-              {type === 'SUBSCRIPTION' ? <Repeat className="w-4 h-4" /> : <FileText className="w-4 h-4" />}
-            </div>
-            <div>
-              <h2 className="text-base font-bold text-zinc-900 dark:text-white">
-                {isEdit
-                  ? (type === 'SUBSCRIPTION' ? t.bills.editSubscriptionTitle : t.bills.editBillTitle)
-                  : (type === 'SUBSCRIPTION' ? t.bills.addSubscription : t.bills.addBillOrInvoice)}
-              </h2>
-              <p className="text-xs text-zinc-500">
-                {type === 'SUBSCRIPTION'
-                  ? t('bills.subscriptionModalSubtitle')
-                  : t('bills.billModalSubtitle')}
-              </p>
-            </div>
-          </div>
+    <Dialog
+      onClose={() => setIsAddInvoiceOpen(false)}
+      dismissible={!isSubmitting}
+      onSubmit={handleSubmit}
+      title={
+        isEdit
+          ? type === 'SUBSCRIPTION' ? t.bills.editSubscriptionTitle : t.bills.editBillTitle
+          : type === 'SUBSCRIPTION' ? t.bills.addSubscription : t.bills.addBillOrInvoice
+      }
+      description={
+        type === 'SUBSCRIPTION' ? t('bills.subscriptionModalSubtitle') : t('bills.billModalSubtitle')
+      }
+      icon={
+        <div className={`w-10 h-10 rounded-xl flex items-center justify-center border ${
+          type === 'SUBSCRIPTION'
+            ? 'bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800/50'
+            : 'bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800/50'
+        }`}>
+          {type === 'SUBSCRIPTION' ? <Repeat className="w-4 h-4" /> : <FileText className="w-4 h-4" />}
+        </div>
+      }
+      footer={
+        <>
           <button
             type="button"
             onClick={() => setIsAddInvoiceOpen(false)}
-            className="p-1 rounded-lg text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+            className="px-4 py-2.5 rounded-xl text-sm sm:text-xs font-semibold text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer transition-colors"
           >
-            <X className="w-4 h-4" />
+            {t.common.cancel}
           </button>
-        </div>
-
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className={`px-5 py-2.5 rounded-xl text-white text-sm sm:text-xs font-semibold shadow-md cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+              type === 'SUBSCRIPTION'
+                ? 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-600/20'
+                : 'bg-amber-600 hover:bg-amber-700 shadow-amber-600/20'
+            }`}
+          >
+            {isEdit
+              ? (isSubmitting ? t.bills.savingChanges : t.bills.saveChanges)
+              : (isSubmitting
+                ? t.common.saving
+                : type === 'SUBSCRIPTION'
+                ? t.bills.addSubscription
+                : t.bills.addBillOrInvoice)}
+          </button>
+        </>
+      }
+    >
         {/* Type Selector Toggle */}
-        <div className="mt-4 grid grid-cols-2 gap-1.5 p-1 bg-zinc-100 dark:bg-zinc-800/70 rounded-xl">
+        <div className="grid grid-cols-2 gap-1.5 p-1 bg-zinc-100 dark:bg-zinc-800/70 rounded-xl">
           <button
             type="button"
             disabled={isPaid}
             onClick={() => !isPaid && setType('BILL')}
-            className={`py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+            className={`min-h-11 sm:min-h-0 py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
               isPaid ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'
             } ${
               type === 'BILL'
@@ -218,7 +225,7 @@ function AddInvoiceModalDialog({ initialDate }: { initialDate?: string }) {
               setIsRecurring(true);
               if (recurrenceInterval === 'NONE') setRecurrenceInterval('MONTHLY');
             }}
-            className={`py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+            className={`min-h-11 sm:min-h-0 py-2 px-3 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
               isPaid ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'
             } ${
               type === 'SUBSCRIPTION'
@@ -232,20 +239,20 @@ function AddInvoiceModalDialog({ initialDate }: { initialDate?: string }) {
         </div>
 
         {isPaidNonSub && (
-          <div className="mt-2.5 p-2.5 rounded-xl bg-amber-50/70 dark:bg-amber-950/40 border border-amber-200/70 dark:border-amber-800/60 flex items-start gap-2 text-[11px] text-amber-900 dark:text-amber-200">
+          <div className="mt-2.5 p-2.5 rounded-xl bg-amber-50/70 dark:bg-amber-950/40 border border-amber-200/70 dark:border-amber-800/60 flex items-start gap-2 text-xs text-amber-900 dark:text-amber-200">
             <AlertCircle className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
             <span>{t.bills.paidLockedHint}</span>
           </div>
         )}
 
         {type === 'SUBSCRIPTION' && (
-          <div className="mt-2.5 p-2.5 rounded-xl bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-200/70 dark:border-indigo-800/60 flex items-start gap-2 text-[11px] text-indigo-900 dark:text-indigo-200">
+          <div className="mt-2.5 p-2.5 rounded-xl bg-indigo-50/70 dark:bg-indigo-950/40 border border-indigo-200/70 dark:border-indigo-800/60 flex items-start gap-2 text-xs text-indigo-900 dark:text-indigo-200">
             <Sparkles className="w-3.5 h-3.5 text-indigo-500 shrink-0 mt-0.5" />
             <span>{t.bills.subscriptionsNote}</span>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="mt-4 space-y-4">
+        <div className="mt-4 space-y-4">
           <div>
             <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
               {type === 'SUBSCRIPTION' ? t('bills.subscriptionNameLabel') : t('bills.billTitleLabel')}
@@ -260,7 +267,7 @@ function AddInvoiceModalDialog({ initialDate }: { initialDate?: string }) {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
                 {interpolate(t('bills.amountWithCurrency'), { currency: walletData?.wallet.currency || 'EUR' })}
@@ -292,7 +299,7 @@ function AddInvoiceModalDialog({ initialDate }: { initialDate?: string }) {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
                 {t('bills.categoryLabel')}
@@ -326,8 +333,8 @@ function AddInvoiceModalDialog({ initialDate }: { initialDate?: string }) {
 
           {/* Reminder & Recurrence Settings */}
           <div className="p-3 rounded-xl bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200/80 dark:border-zinc-800 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0">
                 <Bell className="w-3.5 h-3.5 text-amber-500" />
                 <span className="text-xs font-medium text-zinc-800 dark:text-zinc-200">{t('bills.reminderLabel')}</span>
               </div>
@@ -343,7 +350,7 @@ function AddInvoiceModalDialog({ initialDate }: { initialDate?: string }) {
               </select>
             </div>
 
-            <div className="flex items-center justify-between pt-2 border-t border-zinc-200/60 dark:border-zinc-700/60">
+            <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-zinc-200/60 dark:border-zinc-700/60">
               <label htmlFor="recurringBill" className="flex items-center gap-2 text-xs font-medium text-zinc-800 dark:text-zinc-200 cursor-pointer">
                 <Repeat className="w-3.5 h-3.5 text-indigo-500" />
                 <span>{t('bills.recurrenceLabel')}</span>
@@ -358,7 +365,7 @@ function AddInvoiceModalDialog({ initialDate }: { initialDate?: string }) {
             </div>
 
             {isRecurring && (
-              <div className="pt-2 flex items-center justify-between">
+              <div className="pt-2 flex flex-wrap items-center justify-between gap-2">
                 <span className="text-xs text-zinc-500">{t('bills.recurrenceColon')}</span>
                 <select
                   value={recurrenceInterval}
@@ -386,42 +393,13 @@ function AddInvoiceModalDialog({ initialDate }: { initialDate?: string }) {
               className="w-full px-3 py-2 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950/50 text-sm text-zinc-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-amber-500"
             />
           </div>
-
-          <div className="flex items-center justify-between gap-2 pt-4 border-t border-zinc-100 dark:border-zinc-800">
-            {errorMessage ? (
-              <p className="text-xs text-rose-500 font-medium truncate max-w-[200px]" title={errorMessage}>
-                {errorMessage}
-              </p>
-            ) : <div />}
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setIsAddInvoiceOpen(false)}
-                className="px-4 py-2 rounded-xl text-xs font-semibold text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer transition-colors"
-              >
-                {t.common.cancel}
-              </button>
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className={`px-5 py-2 rounded-xl text-white text-xs font-semibold shadow-md cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
-                  type === 'SUBSCRIPTION'
-                    ? 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-600/20'
-                    : 'bg-amber-600 hover:bg-amber-700 shadow-amber-600/20'
-                }`}
-              >
-                {isEdit
-                  ? (isSubmitting ? t.bills.savingChanges : t.bills.saveChanges)
-                  : (isSubmitting
-                    ? t.common.saving
-                    : type === 'SUBSCRIPTION'
-                    ? t.bills.addSubscription
-                    : t.bills.addBillOrInvoice)}
-              </button>
-            </div>
-          </div>
-        </form>
-      </div>
-    </div>
+          {/* Field errors live in the body so the footer stays two buttons wide */}
+          {errorMessage && (
+            <p role="alert" className="text-xs text-rose-600 dark:text-rose-400 font-medium break-words">
+              {errorMessage}
+            </p>
+          )}
+        </div>
+    </Dialog>
   );
 }

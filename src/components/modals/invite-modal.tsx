@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, UserPlus, Copy, Check, Shield, Users, RefreshCw, Mail, Lock } from 'lucide-react';
+import { UserPlus, Copy, Check, Shield, Users, RefreshCw, Mail, Lock } from 'lucide-react';
+import { Dialog } from '@/components/ui/dialog';
 import { useApp } from '@/context/AppContext';
 import { useTranslation } from '@/context/LanguageContext';
 import { interpolate } from '@/lib/i18n/translator';
@@ -24,14 +25,6 @@ export function InviteModal() {
   const [targetEmail, setTargetEmail] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
 
-  React.useEffect(() => {
-    if (!isInviteOpen) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !isGenerating) setIsInviteOpen(false);
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isInviteOpen, isGenerating, setIsInviteOpen]);
 
   if (!isInviteOpen || !walletData) return null;
 
@@ -81,31 +74,27 @@ export function InviteModal() {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/60 backdrop-blur-xs animate-in fade-in">
-      <div className="fixed inset-0" onClick={() => setIsInviteOpen(false)} />
-      <div className="relative w-full max-w-md bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-2xl p-6 z-10 animate-in zoom-in-95">
-        <div className="flex items-center justify-between pb-4 border-b border-zinc-100 dark:border-zinc-800">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-200 dark:border-indigo-800/50">
-              <UserPlus className="w-4 h-4" />
-            </div>
-            <div>
-              <h2 className="text-base font-bold text-zinc-900 dark:text-white">
-                {t('invites.modalTitle')}
-              </h2>
-              <p className="text-xs text-zinc-500">{t('invites.modalSubtitle')}</p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={() => setIsInviteOpen(false)}
-            className="p-1 rounded-lg text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
-          >
-            <X className="w-4 h-4" />
-          </button>
+    <Dialog
+      onClose={() => setIsInviteOpen(false)}
+      dismissible={!isGenerating}
+      title={t('invites.modalTitle')}
+      description={t('invites.modalSubtitle')}
+      icon={
+        <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-200 dark:border-indigo-800/50">
+          <UserPlus className="w-4 h-4" />
         </div>
-
-        <div className="mt-4 space-y-4">
+      }
+      footer={
+        <button
+          type="button"
+          onClick={() => setIsInviteOpen(false)}
+          className="px-4 py-2.5 rounded-xl text-sm sm:text-xs font-semibold bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 cursor-pointer transition-colors"
+        >
+          {t('common.done')}
+        </button>
+      }
+    >
+        <div className="space-y-4">
           {/* Wallet summary pill */}
           <div className="flex items-center gap-3 p-3 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200/70 dark:border-zinc-800">
             <span
@@ -116,7 +105,7 @@ export function InviteModal() {
               <p className="text-xs font-bold text-zinc-900 dark:text-white truncate">
                 {walletData.wallet.name}
               </p>
-              <p className="text-[11px] text-zinc-500">
+              <p className="text-meta text-zinc-500">
                 {(walletData.wallet.members?.length || 1) === 1
                   ? t('invites.activeMembersCountOne')
                   : interpolate(t('invites.activeMembersCountMany'), {
@@ -124,7 +113,7 @@ export function InviteModal() {
                     })}
               </p>
             </div>
-            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/60">
+            <span className="text-meta font-semibold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/60">
               {t('invites.inviteActiveBadge')}
             </span>
           </div>
@@ -133,7 +122,7 @@ export function InviteModal() {
           <div>
             <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5 flex items-center justify-between">
               <span>{t('invites.targetEmailLabel')}</span>
-              <span className="text-[10px] text-zinc-400">{t('common.optional')}</span>
+              <span className="text-meta text-zinc-400">{t('common.optional')}</span>
             </label>
             <div className="relative">
               <Mail className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
@@ -146,12 +135,12 @@ export function InviteModal() {
               />
             </div>
             {targetEmail.trim() ? (
-              <p className="text-[11px] text-indigo-600 dark:text-indigo-400 mt-1.5 font-medium flex items-center gap-1.5">
+              <p className="text-meta text-indigo-600 dark:text-indigo-400 mt-1.5 font-medium flex items-center gap-1.5">
                 <Lock className="w-3 h-3 shrink-0" />
                 <span>{t('invites.targetEmailLockedNote')}</span>
               </p>
             ) : (
-              <p className="text-[10px] text-zinc-400 mt-1">{t('invites.targetEmailHelp')}</p>
+              <p className="text-meta text-zinc-400 mt-1">{t('invites.targetEmailHelp')}</p>
             )}
           </div>
 
@@ -160,17 +149,17 @@ export function InviteModal() {
             <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
               {t('invites.shareableLinkLabel')}
             </label>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
               <input
                 type="text"
                 readOnly
                 value={inviteUrl}
-                className="flex-1 px-3 py-2 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950/50 text-xs font-mono text-zinc-800 dark:text-zinc-300 select-all"
+                className="w-full min-w-0 sm:flex-1 px-3 py-2 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950/50 text-xs font-mono text-zinc-800 dark:text-zinc-300 select-all"
               />
               <button
                 type="button"
                 onClick={handleCopy}
-                className={`px-3 py-2 rounded-xl flex items-center gap-1.5 text-xs font-semibold cursor-pointer transition-all shrink-0 ${
+                className={`min-h-11 sm:min-h-0 px-3 py-2 rounded-xl flex items-center justify-center gap-1.5 text-xs font-semibold cursor-pointer transition-all shrink-0 ${
                   copied
                     ? 'bg-emerald-600 text-white'
                     : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs'
@@ -187,11 +176,11 @@ export function InviteModal() {
             <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
               {t('invites.roleLabel')}
             </label>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <button
                 type="button"
                 onClick={() => setSelectedRole('MEMBER')}
-                className={`p-3 rounded-xl border text-left cursor-pointer transition-all ${
+                className={`min-h-11 p-3 rounded-xl border text-left cursor-pointer transition-all ${
                   selectedRole === 'MEMBER'
                     ? 'border-indigo-500 bg-indigo-50/50 dark:bg-indigo-950/30 ring-1 ring-indigo-500'
                     : 'border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700'
@@ -203,7 +192,7 @@ export function InviteModal() {
                   </span>
                   <Users className="w-3.5 h-3.5 text-indigo-500" />
                 </div>
-                <p className="text-[11px] text-zinc-500 leading-tight">
+                <p className="text-meta text-zinc-500 leading-tight">
                   {t('invites.roles.memberDesc')}
                 </p>
               </button>
@@ -211,7 +200,7 @@ export function InviteModal() {
               <button
                 type="button"
                 onClick={() => setSelectedRole('VIEWER')}
-                className={`p-3 rounded-xl border text-left cursor-pointer transition-all ${
+                className={`min-h-11 p-3 rounded-xl border text-left cursor-pointer transition-all ${
                   selectedRole === 'VIEWER'
                     ? 'border-indigo-500 bg-indigo-50/50 dark:bg-indigo-950/30 ring-1 ring-indigo-500'
                     : 'border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700'
@@ -223,19 +212,19 @@ export function InviteModal() {
                   </span>
                   <Shield className="w-3.5 h-3.5 text-zinc-400" />
                 </div>
-                <p className="text-[11px] text-zinc-500 leading-tight">
+                <p className="text-meta text-zinc-500 leading-tight">
                   {t('invites.roles.viewerDesc')}
                 </p>
               </button>
             </div>
           </div>
 
-          <div className="pt-2 flex items-center justify-between">
+          <div className="pt-2 flex flex-wrap items-center justify-between gap-2">
             <button
               type="button"
               disabled={isGenerating}
               onClick={handleGenerateNew}
-              className="flex items-center gap-1.5 text-xs text-indigo-600 dark:text-indigo-400 hover:underline font-semibold cursor-pointer disabled:cursor-not-allowed"
+              className="flex items-center gap-1.5 min-h-11 sm:min-h-0 text-xs text-indigo-600 dark:text-indigo-400 hover:underline font-semibold cursor-pointer disabled:cursor-not-allowed"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isGenerating ? 'animate-spin' : ''}`} />
               <span>
@@ -246,22 +235,12 @@ export function InviteModal() {
                   : t('invites.generateNewCode')}
               </span>
             </button>
-            <span className="text-[11px] text-zinc-400 font-mono">
+            <span className="text-meta text-zinc-400 font-mono">
               {interpolate(t('invites.codeDisplay'), { code: inviteCode })}
             </span>
           </div>
 
-          <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800 flex justify-end">
-            <button
-              type="button"
-              onClick={() => setIsInviteOpen(false)}
-              className="px-4 py-2 rounded-xl text-xs font-semibold bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 cursor-pointer transition-colors"
-            >
-              {t('common.done')}
-            </button>
-          </div>
         </div>
-      </div>
-    </div>
+    </Dialog>
   );
 }

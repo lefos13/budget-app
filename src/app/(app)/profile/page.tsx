@@ -181,10 +181,10 @@ export default function ProfilePage() {
       {/* Page Header */}
       <div>
         <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-zinc-900 dark:text-white flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-indigo-600 to-sky-400 flex items-center justify-center text-white shadow-md shadow-indigo-500/20">
+          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-indigo-600 to-sky-400 flex items-center justify-center text-white shadow-md shadow-indigo-500/20 shrink-0">
             <UserIcon className="w-5 h-5" />
           </div>
-          <span>{t.profile.title}</span>
+          <span className="min-w-0 break-words">{t.profile.title}</span>
         </h1>
         <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
           {t.profile.subtitle}
@@ -220,10 +220,10 @@ export default function ProfilePage() {
             </div>
 
             <div className="text-center sm:text-left min-w-0 flex-1">
-              <h2 className="text-lg font-bold text-zinc-900 dark:text-white truncate">
+              <h2 className="text-lg font-bold text-zinc-900 dark:text-white break-words">
                 {name.trim() || currentUser.name}
               </h2>
-              <p className="text-xs text-zinc-400 dark:text-zinc-500 font-mono mt-0.5 truncate">
+              <p className="text-xs text-zinc-400 dark:text-zinc-500 font-mono mt-0.5 break-words">
                 {currentUser.email}
               </p>
               <div className="mt-3 flex flex-wrap items-center justify-center sm:justify-start gap-2">
@@ -264,14 +264,14 @@ export default function ProfilePage() {
 
             {/* Email (Read-only) */}
             <div>
-              <div className="flex items-center justify-between mb-1.5">
+              <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-0.5 mb-1.5">
                 <label
                   htmlFor="profile-email"
                   className="block text-xs font-bold uppercase tracking-wider text-zinc-600 dark:text-zinc-400"
                 >
                   {t.profile.emailLabel}
                 </label>
-                <span className="text-[10px] text-zinc-400 italic">
+                <span className="text-meta text-zinc-400 italic">
                   {t.profile.emailHint}
                 </span>
               </div>
@@ -291,7 +291,7 @@ export default function ProfilePage() {
 
             {/* Avatar URL */}
             <div>
-              <div className="flex items-center justify-between mb-1.5">
+              <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-0.5 mb-1.5">
                 <label
                   htmlFor="profile-avatar"
                   className="block text-xs font-bold uppercase tracking-wider text-zinc-600 dark:text-zinc-400"
@@ -312,7 +312,7 @@ export default function ProfilePage() {
                   className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-950/50 text-zinc-900 dark:text-white text-sm focus:outline-hidden focus:ring-2 focus:ring-indigo-500 transition-all placeholder:text-zinc-400"
                 />
               </div>
-              <p className="text-[11px] text-zinc-400 dark:text-zinc-500 mt-1">
+              <p className="text-meta text-zinc-400 dark:text-zinc-500 mt-1">
                 {t.profile.avatarUrlHint}
               </p>
             </div>
@@ -421,7 +421,7 @@ export default function ProfilePage() {
           <button
             type="submit"
             disabled={isSaving}
-            className="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm shadow-md shadow-indigo-600/20 transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2"
+            className="w-full sm:w-auto min-h-11 sm:min-h-0 px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm shadow-md shadow-indigo-600/20 transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             {isSaving ? (
               <>

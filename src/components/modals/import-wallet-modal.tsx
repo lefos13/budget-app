@@ -2,7 +2,6 @@
 
 import React, { useState, useRef } from 'react';
 import {
-  X,
   Upload,
   FileJson,
   AlertCircle,
@@ -15,6 +14,7 @@ import {
   CheckCircle2,
   PiggyBank,
 } from 'lucide-react';
+import { Dialog } from '@/components/ui/dialog';
 import { useApp } from '@/context/AppContext';
 import { useTranslation } from '@/context/LanguageContext';
 import { interpolate } from '@/lib/i18n/translator';
@@ -62,13 +62,6 @@ function ImportWalletModalDialog({ onClose }: { onClose: () => void }) {
   const [isDragOver, setIsDragOver] = useState(false);
   const [importResult, setImportResult] = useState<ImportResultCounts | null>(null);
 
-  React.useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !isImporting) onClose();
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isImporting, onClose]);
 
   if (!walletData) return null;
 
@@ -177,35 +170,52 @@ function ImportWalletModalDialog({ onClose }: { onClose: () => void }) {
   const savingsBucketCount = (parsedData?.savingsBuckets ?? []).filter((b) => b?.kind !== 'GENERAL').length;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/60 backdrop-blur-xs animate-in fade-in">
-      <div className="fixed inset-0" onClick={() => !isImporting && onClose()} />
-      <div className="relative w-full max-w-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl shadow-2xl p-6 z-10 animate-in zoom-in-95 max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between pb-4 border-b border-zinc-100 dark:border-zinc-800">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-2xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-200 dark:border-indigo-800/50 shadow-xs">
-              <Upload className="w-5 h-5" />
-            </div>
-            <div>
-              <h2 className="text-base font-bold text-zinc-900 dark:text-white">
-                {t('importModal.title')}
-              </h2>
-              <p className="text-xs text-zinc-500">{t('importModal.subtitle')}</p>
-            </div>
-          </div>
+    <Dialog
+      onClose={onClose}
+      size="lg"
+      dismissible={!isImporting}
+      title={t('importModal.title')}
+      description={t('importModal.subtitle')}
+      icon={
+        <div className="w-10 h-10 rounded-2xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-200 dark:border-indigo-800/50 shadow-xs">
+          <Upload className="w-5 h-5" />
+        </div>
+      }
+      footer={
+        importResult ? (
           <button
             type="button"
             onClick={onClose}
-            disabled={isImporting}
-            className="p-1 rounded-lg text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
+            className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm sm:text-xs font-bold shadow-md shadow-indigo-600/20 cursor-pointer transition-all"
           >
-            <X className="w-4 h-4" />
+            {t('common.done')}
           </button>
-        </div>
-
+        ) : (
+          <>
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={isImporting}
+              className="px-4 py-2.5 rounded-xl text-sm sm:text-xs font-semibold text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer transition-colors"
+            >
+              {t('common.cancel')}
+            </button>
+            <button
+              type="button"
+              disabled={isImporting || !parsedData}
+              onClick={handleImportSubmit}
+              className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm sm:text-xs font-bold shadow-md shadow-indigo-600/20 cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-1.5"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>{isImporting ? t('importModal.importing') : t('importModal.importButton')}</span>
+            </button>
+          </>
+        )
+      }
+    >
         {/* Import Result Panel */}
         {importResult ? (
-          <div className="mt-5 space-y-4">
+          <div className="space-y-4">
             <div className="p-4 rounded-2xl bg-emerald-50/60 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/60 space-y-3">
               <div className="flex items-center gap-2.5">
                 <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
@@ -213,7 +223,7 @@ function ImportWalletModalDialog({ onClose }: { onClose: () => void }) {
                   <p className="text-xs font-bold text-zinc-900 dark:text-white uppercase tracking-wider">
                     {t('importModal.resultTitle')}
                   </p>
-                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
+                  <p className="text-meta text-zinc-500 dark:text-zinc-400">
                     {t('importModal.resultSubtitle')}
                   </p>
                 </div>
@@ -225,7 +235,7 @@ function ImportWalletModalDialog({ onClose }: { onClose: () => void }) {
                   <p className="text-base font-black text-zinc-900 dark:text-white tabular-nums">
                     {importResult.categories}
                   </p>
-                  <p className="text-[10px] text-zinc-400 leading-tight">{t('importModal.categories')}</p>
+                  <p className="text-meta text-zinc-400 leading-tight">{t('importModal.categories')}</p>
                 </div>
 
                 <div className="p-2.5 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200/70 dark:border-zinc-800">
@@ -233,7 +243,7 @@ function ImportWalletModalDialog({ onClose }: { onClose: () => void }) {
                   <p className="text-base font-black text-zinc-900 dark:text-white tabular-nums">
                     {importResult.expenses}
                   </p>
-                  <p className="text-[10px] text-zinc-400 leading-tight">{t('importModal.expenses')}</p>
+                  <p className="text-meta text-zinc-400 leading-tight">{t('importModal.expenses')}</p>
                 </div>
 
                 <div className="p-2.5 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200/70 dark:border-zinc-800">
@@ -241,7 +251,7 @@ function ImportWalletModalDialog({ onClose }: { onClose: () => void }) {
                   <p className="text-base font-black text-zinc-900 dark:text-white tabular-nums">
                     {importResult.invoices}
                   </p>
-                  <p className="text-[10px] text-zinc-400 leading-tight">{t('importModal.billsAndSubs')}</p>
+                  <p className="text-meta text-zinc-400 leading-tight">{t('importModal.billsAndSubs')}</p>
                 </div>
 
                 <div className="p-2.5 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200/70 dark:border-zinc-800">
@@ -249,7 +259,7 @@ function ImportWalletModalDialog({ onClose }: { onClose: () => void }) {
                   <p className="text-base font-black text-zinc-900 dark:text-white tabular-nums">
                     {importResult.plannedExpenses}
                   </p>
-                  <p className="text-[10px] text-zinc-400 leading-tight">{t('importModal.plannedExpenses')}</p>
+                  <p className="text-meta text-zinc-400 leading-tight">{t('importModal.plannedExpenses')}</p>
                 </div>
 
                 <div className="p-2.5 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200/70 dark:border-zinc-800">
@@ -257,7 +267,7 @@ function ImportWalletModalDialog({ onClose }: { onClose: () => void }) {
                   <p className="text-base font-black text-zinc-900 dark:text-white tabular-nums">
                     {importResult.history}
                   </p>
-                  <p className="text-[10px] text-zinc-400 leading-tight">{t('importModal.history')}</p>
+                  <p className="text-meta text-zinc-400 leading-tight">{t('importModal.history')}</p>
                 </div>
 
                 <div className="p-2.5 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200/70 dark:border-zinc-800">
@@ -265,24 +275,14 @@ function ImportWalletModalDialog({ onClose }: { onClose: () => void }) {
                   <p className="text-base font-black text-zinc-900 dark:text-white tabular-nums">
                     {importResult.savingsBuckets}
                   </p>
-                  <p className="text-[10px] text-zinc-400 leading-tight">{t('importModal.savingsBuckets')}</p>
+                  <p className="text-meta text-zinc-400 leading-tight">{t('importModal.savingsBuckets')}</p>
                 </div>
               </div>
-            </div>
-
-            <div className="flex items-center justify-end pt-3 border-t border-zinc-100 dark:border-zinc-800">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-md shadow-indigo-600/20 cursor-pointer transition-all"
-              >
-                {t('common.done')}
-              </button>
             </div>
           </div>
         ) : (
           /* File Upload & Preview Panel */
-          <div className="mt-5 space-y-4">
+          <div className="space-y-4">
             <div
               onDragOver={(e) => {
                 e.preventDefault();
@@ -311,23 +311,23 @@ function ImportWalletModalDialog({ onClose }: { onClose: () => void }) {
                   {t('importModal.browseFiles')}
                 </span>
               </p>
-              <p className="text-[11px] text-zinc-400 mt-1">{t('importModal.supportsFormat')}</p>
+              <p className="text-meta text-zinc-400 mt-1">{t('importModal.supportsFormat')}</p>
             </div>
 
             {selectedFile && (
               <div className="p-3 rounded-xl bg-zinc-100 dark:bg-zinc-800/60 flex items-center justify-between text-xs">
-                <div className="flex items-center gap-2 truncate">
+                <div className="flex items-center gap-2 min-w-0 flex-1">
                   <FileJson className="w-4 h-4 text-indigo-500 shrink-0" />
                   <span className="font-semibold text-zinc-800 dark:text-zinc-200 truncate">
                     {selectedFile.name}
                   </span>
-                  <span className="text-[10px] text-zinc-400">
+                  <span className="text-meta text-zinc-400">
                     {interpolate(t('importModal.fileSizeKb'), {
                       size: (selectedFile.size / 1024).toFixed(1),
                     })}
                   </span>
                 </div>
-                <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-md border border-emerald-200 dark:border-emerald-800/60">
+                <span className="text-meta font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-md border border-emerald-200 dark:border-emerald-800/60">
                   {t('importModal.ready')}
                 </span>
               </div>
@@ -336,19 +336,19 @@ function ImportWalletModalDialog({ onClose }: { onClose: () => void }) {
             {error && (
               <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 text-xs text-rose-700 dark:text-rose-300 flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 shrink-0 text-rose-500" />
-                <span>{error}</span>
+                <span className="min-w-0 break-words">{error}</span>
               </div>
             )}
 
             {/* Data Preview */}
             {parsedData && (
               <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200/80 dark:border-zinc-800 space-y-3">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-2">
                   <p className="text-xs font-bold text-zinc-900 dark:text-white uppercase tracking-wider">
                     {t('importModal.previewTitle')}
                   </p>
-                  <span className="text-[11px] text-zinc-500">
-                    {t('importModal.targetLabel')} <strong>{walletData.wallet.name}</strong>
+                  <span className="text-meta text-zinc-500 min-w-0 break-words">
+                    {t('importModal.targetLabel')} <strong className="break-all">{walletData.wallet.name}</strong>
                   </span>
                 </div>
 
@@ -358,7 +358,7 @@ function ImportWalletModalDialog({ onClose }: { onClose: () => void }) {
                     <p className="text-base font-black text-zinc-900 dark:text-white tabular-nums">
                       {categoriesCount}
                     </p>
-                    <p className="text-[10px] text-zinc-400 leading-tight">{t('importModal.categories')}</p>
+                    <p className="text-meta text-zinc-400 leading-tight">{t('importModal.categories')}</p>
                   </div>
 
                   <div className="p-2.5 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200/70 dark:border-zinc-800">
@@ -366,7 +366,7 @@ function ImportWalletModalDialog({ onClose }: { onClose: () => void }) {
                     <p className="text-base font-black text-zinc-900 dark:text-white tabular-nums">
                       {expensesCount}
                     </p>
-                    <p className="text-[10px] text-zinc-400 leading-tight">{t('importModal.expenses')}</p>
+                    <p className="text-meta text-zinc-400 leading-tight">{t('importModal.expenses')}</p>
                   </div>
 
                   <div className="p-2.5 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200/70 dark:border-zinc-800">
@@ -374,7 +374,7 @@ function ImportWalletModalDialog({ onClose }: { onClose: () => void }) {
                     <p className="text-base font-black text-zinc-900 dark:text-white tabular-nums">
                       {billsCount}
                     </p>
-                    <p className="text-[10px] text-zinc-400 leading-tight">{t('importModal.billsAndSubs')}</p>
+                    <p className="text-meta text-zinc-400 leading-tight">{t('importModal.billsAndSubs')}</p>
                   </div>
 
                   <div className="p-2.5 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200/70 dark:border-zinc-800">
@@ -382,7 +382,7 @@ function ImportWalletModalDialog({ onClose }: { onClose: () => void }) {
                     <p className="text-base font-black text-zinc-900 dark:text-white tabular-nums">
                       {plannedCount}
                     </p>
-                    <p className="text-[10px] text-zinc-400 leading-tight">{t('importModal.plannedExpenses')}</p>
+                    <p className="text-meta text-zinc-400 leading-tight">{t('importModal.plannedExpenses')}</p>
                   </div>
 
                   <div className="p-2.5 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200/70 dark:border-zinc-800">
@@ -390,7 +390,7 @@ function ImportWalletModalDialog({ onClose }: { onClose: () => void }) {
                     <p className="text-base font-black text-zinc-900 dark:text-white tabular-nums">
                       {historyCount}
                     </p>
-                    <p className="text-[10px] text-zinc-400 leading-tight">{t('importModal.history')}</p>
+                    <p className="text-meta text-zinc-400 leading-tight">{t('importModal.history')}</p>
                   </div>
 
                   <div className="p-2.5 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200/70 dark:border-zinc-800">
@@ -398,39 +398,17 @@ function ImportWalletModalDialog({ onClose }: { onClose: () => void }) {
                     <p className="text-base font-black text-zinc-900 dark:text-white tabular-nums">
                       {savingsBucketCount}
                     </p>
-                    <p className="text-[10px] text-zinc-400 leading-tight">{t('importModal.savingsBuckets')}</p>
+                    <p className="text-meta text-zinc-400 leading-tight">{t('importModal.savingsBuckets')}</p>
                   </div>
                 </div>
 
-                <p className="text-[11px] text-zinc-500 dark:text-zinc-400 leading-relaxed pt-1">
+                <p className="text-meta text-zinc-500 dark:text-zinc-400 leading-relaxed pt-1">
                   {t('importModal.overwriteNotice')}
                 </p>
               </div>
             )}
-
-            {/* Action buttons */}
-            <div className="flex items-center justify-end gap-2 pt-3 border-t border-zinc-100 dark:border-zinc-800">
-              <button
-                type="button"
-                onClick={onClose}
-                disabled={isImporting}
-                className="px-4 py-2 rounded-xl text-xs font-semibold text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer transition-colors"
-              >
-                {t('common.cancel')}
-              </button>
-              <button
-                type="button"
-                disabled={isImporting || !parsedData}
-                onClick={handleImportSubmit}
-                className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-md shadow-indigo-600/20 cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
-              >
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>{isImporting ? t('importModal.importing') : t('importModal.importButton')}</span>
-              </button>
-            </div>
           </div>
         )}
-      </div>
-    </div>
+    </Dialog>
   );
 }
