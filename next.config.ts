@@ -6,6 +6,10 @@ const nextConfig: NextConfig = {
   // and never runs pnpm install on the droplet.
   output: "standalone",
 
+  // Dev only: extra hosts (e.g. a phone on the LAN) allowed to use dev resources such as
+  // the HMR socket, comma-separated: ALLOWED_DEV_ORIGINS=192.168.1.20 pnpm dev -H 0.0.0.0
+  allowedDevOrigins: process.env.ALLOWED_DEV_ORIGINS?.split(",").map((h) => h.trim()).filter(Boolean) ?? [],
+
   /*
    * The Greek landing is prerendered at `/el` but its public URL is `/` (`/en` stays as is).
    * Visitors without a session cookie (crawlers, link previews, logged-out users) get it at `/`;
