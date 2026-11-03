@@ -19,6 +19,8 @@ const MIGRATED_LISTS = [
   'src/components/unpaid-bills-banner.tsx',
   'src/components/upcoming-bills-card.tsx',
   'src/components/calendar/bills-list-view.tsx',
+  'src/app/(app)/expenses/page.tsx',
+  'src/components/recent-expenses-card.tsx',
 ];
 
 const MIGRATED_DIALOGS = [
