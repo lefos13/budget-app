@@ -1035,13 +1035,14 @@ export function Sidebar() {
                 const Icon = item.icon;
                 const isActive = pathname === item.href;
                 const badge = badgeFor(item);
-                const label = t.nav[item.labelKey];
+                const shortLabel =
+                  t.navShort[item.labelKey as keyof typeof t.navShort] ?? t.nav[item.labelKey];
 
                 return (
                   <Link
                     key={item.href}
                     href={item.href}
-                    className={`flex-1 min-w-0 flex flex-col items-center justify-center gap-1 text-[11px] font-semibold min-h-[48px] py-1 px-0.5 rounded-2xl transition-all relative ${
+                    className={`flex-1 min-w-0 flex flex-col items-center justify-center gap-1 text-chip font-semibold min-h-[48px] py-1 px-0.5 rounded-2xl transition-all relative ${
                       isActive
                         ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50/80 dark:bg-indigo-950/50 shadow-2xs'
                         : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
@@ -1052,15 +1053,15 @@ export function Sidebar() {
                       {badge && badge.badge > 0 ? (
                         <span
                           aria-label={badge.badgeAriaLabel}
-                          className={`absolute -top-1 -right-1.5 min-w-[16px] h-4 px-1 rounded-full ${
+                          className={`absolute -top-1.5 -right-2 min-w-[18px] h-[18px] px-1 rounded-full ${
                             badge.hasOverdue ? 'bg-rose-500 text-white' : 'bg-amber-500 text-white'
-                          } text-[9px] font-extrabold flex items-center justify-center ring-2 ring-white dark:ring-zinc-950`}
+                          } text-chip leading-none font-extrabold flex items-center justify-center ring-2 ring-white dark:ring-zinc-950`}
                         >
                           {badge.badgeLabel ?? badge.badge}
                         </span>
                       ) : null}
                     </div>
-                    <span className="text-[10px] tracking-tight max-w-full truncate">{label.split(' ')[0]}</span>
+                    <span className="text-chip leading-tight tracking-tight text-center">{shortLabel}</span>
                   </Link>
                 );
               })}

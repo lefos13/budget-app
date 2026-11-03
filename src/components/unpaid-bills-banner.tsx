@@ -12,6 +12,8 @@ import {
   formatMonthKey,
 } from '@/lib/month';
 import { getUnpaidForMonth, isInvoiceOverdue } from '@/lib/bill-alerts';
+import { interpolate } from '@/lib/i18n/translator';
+import { ItemRow, RowPrimaryAction } from '@/components/ui/item-row';
 
 export function UnpaidBillsBanner({ alwaysRender = false }: { alwaysRender?: boolean }) {
   const { walletData, selectedMonth, setSelectedMonth, refreshWallet, showToast, currentUser } =
@@ -112,7 +114,7 @@ export function UnpaidBillsBanner({ alwaysRender = false }: { alwaysRender?: boo
             <h3 className="text-sm sm:text-base font-extrabold text-zinc-900 dark:text-white">
               {t('unpaidBanner.title')}
             </h3>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-200/60 dark:border-amber-900/60">
+            <span className="text-chip font-bold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-200/60 dark:border-amber-900/60">
               {t('unpaidBanner.countLabel').replace('{count}', String(monthItems.length))}
             </span>
           </div>
@@ -128,8 +130,8 @@ export function UnpaidBillsBanner({ alwaysRender = false }: { alwaysRender?: boo
         </div>
       </div>
 
-      {/* Month Items List or Empty Message */}
-      <div className="mt-3.5 space-y-2.5 max-h-[32rem] overflow-y-auto pr-1">
+      {/* Month items. No nested scroll area on mobile (the page scrolls); from sm the list scrolls inside the banner. */}
+      <div className="mt-3.5 space-y-2.5 sm:max-h-[32rem] sm:overflow-y-auto sm:pr-1">
         {monthItems.length === 0 ? (
           <p className="text-xs font-medium text-amber-800/90 dark:text-amber-300/80 italic py-1">
             {t('unpaidBanner.nothingLeft')}
@@ -142,69 +144,56 @@ export function UnpaidBillsBanner({ alwaysRender = false }: { alwaysRender?: boo
               dueTime < startOfToday || isInvoiceOverdue(bill.dueDate) || bill.status === 'OVERDUE';
 
             return (
-              <div
+              <ItemRow
                 key={bill.id}
-                className="flex items-center justify-between p-3 rounded-2xl bg-white/90 dark:bg-zinc-900/90 border border-amber-200/70 dark:border-amber-900/50 hover:border-amber-300 dark:hover:border-amber-800 transition-all gap-3"
-              >
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-xs font-bold text-zinc-900 dark:text-white truncate">
-                      {bill.title}
-                    </span>
-                    {/* Small type badge */}
+                className="p-3 rounded-2xl bg-white/90 dark:bg-zinc-900/90 border border-amber-200/70 dark:border-amber-900/50 hover:border-amber-300 dark:hover:border-amber-800 transition-colors"
+                title={bill.title}
+                titleText={bill.title}
+                amount={formatCurrency(bill.amount, currency)}
+                badges={
+                  <>
                     <span
-                      className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${
+                      className={`text-chip font-semibold px-1.5 py-0.5 rounded-md border ${
                         bill.type === 'SUBSCRIPTION'
-                          ? 'bg-indigo-50 dark:bg-indigo-950/70 text-indigo-600 dark:text-indigo-400 border border-indigo-200/60 dark:border-indigo-800/60'
-                          : 'bg-amber-50 dark:bg-amber-950/70 text-amber-700 dark:text-amber-300 border border-amber-200/60 dark:border-amber-800/60'
+                          ? 'bg-indigo-50 dark:bg-indigo-950/70 text-indigo-600 dark:text-indigo-400 border-indigo-200/60 dark:border-indigo-800/60'
+                          : 'bg-amber-50 dark:bg-amber-950/70 text-amber-700 dark:text-amber-300 border-amber-200/60 dark:border-amber-800/60'
                       }`}
                     >
                       {bill.type === 'SUBSCRIPTION'
                         ? t('unpaidBanner.typeSubscription')
                         : t('unpaidBanner.typeBill')}
                     </span>
-                    {/* Category chip if any */}
                     {bill.category && (
                       <span
-                        className="text-[10px] font-medium px-1.5 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700 truncate max-w-[120px]"
+                        className="text-chip font-medium px-1.5 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700 truncate max-w-[10rem]"
                         title={bill.category.name}
                       >
                         {bill.category.name}
                       </span>
                     )}
-                  </div>
-                  <div className="flex items-center gap-2 mt-1 flex-wrap">
-                    <span className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400">
-                      {formatDate(bill.dueDate, 'MMM d', dateLocale)}
+                  </>
+                }
+                meta={<span className="font-medium">{formatDate(bill.dueDate, 'MMM d', dateLocale)}</span>}
+                status={
+                  isOverdue ? (
+                    <span className="text-chip font-bold px-1.5 py-0.5 rounded-md bg-rose-100 dark:bg-rose-950/80 text-rose-700 dark:text-rose-300 border border-rose-200/60 dark:border-rose-900/60">
+                      {t('unpaidBanner.overdue')}
                     </span>
-                    {isOverdue && (
-                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-rose-100 dark:bg-rose-950/80 text-rose-700 dark:text-rose-300 border border-rose-200/60 dark:border-rose-900/60">
-                        {t('unpaidBanner.overdue')}
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3 shrink-0">
-                  <span className="text-xs sm:text-sm font-black text-zinc-900 dark:text-white tabular-nums">
-                    {formatCurrency(bill.amount, currency)}
-                  </span>
-                  {!isViewer && (
-                    <button
-                      type="button"
+                  ) : undefined
+                }
+                actions={
+                  !isViewer ? (
+                    <RowPrimaryAction
+                      icon={CheckCircle2}
                       disabled={isPaying}
                       onClick={() => handlePay(bill)}
-                      aria-label={`${t('unpaidBanner.markPaid')}: ${bill.title}`}
-                      className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs flex items-center gap-1 transition-all disabled:opacity-50 cursor-pointer"
+                      aria-label={interpolate(t('common.markPaidAria'), { title: bill.title })}
                     >
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      <span>
-                        {isPaying ? t('unpaidBanner.paying') : t('unpaidBanner.markPaid')}
-                      </span>
-                    </button>
-                  )}
-                </div>
-              </div>
+                      {isPaying ? t('common.processing') : t('common.markPaid')}
+                    </RowPrimaryAction>
+                  ) : undefined
+                }
+              />
             );
           })
         )}

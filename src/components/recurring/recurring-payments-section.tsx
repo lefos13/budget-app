@@ -155,7 +155,7 @@ export function RecurringPaymentsSection({ onAddSubscription }: { onAddSubscript
                 onClick={() => handlePay(sub)}
                 className="px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-bold transition-all shadow-xs cursor-pointer disabled:opacity-50"
               >
-                {isPaying ? t.common.processing : t.bills.markAsPaidAction}
+                {isPaying ? t.common.processing : t.common.markPaid}
               </button>
             )}
             <button

@@ -184,7 +184,7 @@ export function UrgentRemindersBanner() {
                   } disabled:opacity-50`}
                 >
                   <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span>{isPaying ? t.common.saving : t.common.pay}</span>
+                  <span>{isPaying ? t.common.processing : t.common.markPaid}</span>
                 </button>
               )}
             </div>

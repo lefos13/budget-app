@@ -11,6 +11,11 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  /* Mobile text floor: 12px for anything read (meta), 11px only for chips/badges. */
+  --text-meta: 0.75rem;
+  --text-meta--line-height: 1rem;
+  --text-chip: 0.6875rem;
+  --text-chip--line-height: 1rem;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -31,6 +36,85 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+  /* Long emails, codes and names wrap instead of pushing the page sideways. */
+  overflow-wrap: break-word;
+}
+
+/*
+ * iOS Safari zooms the page when a focused field is under 16px. Unlayered, so it
+ * wins over text-sm/text-xs utilities below the sm breakpoint only.
+ */
+@media (max-width: 39.999rem) {
+  input:not([type='checkbox']):not([type='radio']):not([type='range']),
+  select,
+  textarea {
+    font-size: 1rem;
+  }
+}
+
+/*
+ * ItemRow (src/components/ui/item-row.tsx). Narrow: title + amount share the
+ * first line, details wrap underneath, status + actions sit on a full-width
+ * footer line. Wide: one line, status under the amount, actions on the right.
+ * "Wide" is the row's own width (container query), not the viewport, so rows
+ * inside narrow columns (sidebar layouts, drawers) stay stacked.
+ */
+.item-row-box {
+  container-type: inline-size;
+}
+.item-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    'lead title amount'
+    'lead details details'
+    'footer footer footer';
+  column-gap: 0.75rem;
+  align-items: start;
+}
+.item-row--no-lead {
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    'title amount'
+    'details details'
+    'footer footer';
+}
+.item-row__lead { grid-area: lead; }
+.item-row__title { grid-area: title; }
+.item-row__amount { grid-area: amount; justify-self: end; text-align: right; }
+.item-row__details { grid-area: details; }
+.item-row__footer { grid-area: footer; margin-top: 0.5rem; }
+.item-row__status { grid-area: status; }
+.item-row__actions { grid-area: actions; margin-left: auto; }
+
+@container (min-width: 36rem) {
+  .item-row {
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    grid-template-areas:
+      'lead title amount actions'
+      'lead details status actions';
+  }
+  .item-row--no-lead {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-areas:
+      'title amount actions'
+      'details status actions';
+  }
+  .item-row__footer { display: contents; }
+  .item-row__status { justify-self: end; margin-top: 0.25rem; }
+  .item-row__actions { align-self: center; margin-left: 0.5rem; }
+}
+
+/* Dialog: bottom sheet below sm slides up; reduced motion turns it off. */
+@keyframes dialog-sheet-in {
+  from { transform: translateY(1.5rem); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.dialog-panel {
+  animation: dialog-sheet-in 180ms ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .dialog-panel { animation: none; }
 }
 
 /* Tabular figures for aligned financial amounts */

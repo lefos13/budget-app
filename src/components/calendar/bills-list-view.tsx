@@ -8,12 +8,14 @@ import {
   Trash2,
   Calendar,
   Pencil,
+  CheckCircle2,
 } from 'lucide-react';
 import { useApp, InvoiceItem } from '@/context/AppContext';
 import { useTranslation } from '@/context/LanguageContext';
 import { interpolate } from '@/lib/i18n/translator';
 import { formatCurrency, formatDate } from '@/lib/formatters';
 import { getMonthBounds } from '@/lib/month';
+import { ItemRow, RowPrimaryAction, IconButton } from '@/components/ui/item-row';
 
 export function BillsListView({
   typeFilter = 'ALL',
@@ -152,13 +154,12 @@ export function BillsListView({
             const isDeleting = deletingId === inv.id;
 
             return (
-              <div
+              <ItemRow
                 key={inv.id}
-                className="px-5 py-3.5 flex items-center justify-between gap-4 hover:bg-zinc-50/70 dark:hover:bg-zinc-800/40 transition-colors"
-              >
-                <div className="flex items-center gap-3.5 min-w-0 pr-2">
+                className="px-4 sm:px-5 py-3.5 hover:bg-zinc-50/70 dark:hover:bg-zinc-800/40 transition-colors"
+                leading={
                   <div
-                    className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border ${
+                    className={`w-9 h-9 rounded-xl flex items-center justify-center border ${
                       isSub
                         ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border-indigo-200/80 dark:border-indigo-800/60'
                         : 'bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 border-amber-200/80 dark:border-amber-800/60'
@@ -166,108 +167,87 @@ export function BillsListView({
                   >
                     {isSub ? <Repeat className="w-4 h-4" /> : <FileText className="w-4 h-4" />}
                   </div>
-
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <p className="text-sm font-bold text-zinc-900 dark:text-white truncate">
-                        {inv.title}
-                      </p>
-                      <span
-                        className={`text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded-md ${
-                          isSub
-                            ? 'bg-indigo-100/70 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300'
-                            : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300'
-                        }`}
-                      >
-                        {isSub ? t('unpaidBanner.typeSubscription') : t('unpaidBanner.typeBill')}
-                      </span>
-                      {inv.isRecurring && (
-                        <span className="text-[10px] font-semibold text-zinc-400">
-                          ({(t.recurrence[inv.recurrenceInterval as keyof typeof t.recurrence] || inv.recurrenceInterval).toLowerCase()})
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="flex items-center gap-2 mt-1 text-xs text-zinc-400 flex-wrap">
-                      <span>{t('bills.dueColon')} {formatDate(inv.dueDate, 'MMM d, yyyy', dateLocale)}</span>
-                      {inv.category && (
-                        <>
-                          <span>·</span>
-                          <span
-                            className="font-bold px-1.5 py-0.5 rounded-md text-[10px]"
-                            style={{
-                              backgroundColor: `${inv.category.color}15`,
-                              color: inv.category.color,
-                            }}
-                          >
-                            {inv.category.name}
-                          </span>
-                        </>
-                      )}
-                      {inv.invoiceNumber && (
-                        <>
-                          <span>·</span>
-                          <span className="font-mono text-zinc-500">#{inv.invoiceNumber}</span>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3 shrink-0">
-                  <div className="text-right">
-                    <p className="text-sm font-black text-zinc-900 dark:text-white tabular-nums">
-                      {formatCurrency(inv.amount, currency)}
-                    </p>
+                }
+                title={inv.title}
+                titleText={inv.title}
+                amount={formatCurrency(inv.amount, currency)}
+                badges={
+                  <>
                     <span
-                      className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-full border mt-0.5 ${
-                        isPaid
-                          ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/60'
-                          : isOverdue
-                          ? 'bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-800/60'
-                          : 'bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800/60'
+                      className={`text-chip font-extrabold uppercase px-1.5 py-0.5 rounded-md ${
+                        isSub
+                          ? 'bg-indigo-100/70 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300'
+                          : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300'
                       }`}
                     >
-                      {isPaid ? t('bills.paid') : isOverdue ? t('bills.overdue') : t('bills.pending')}
+                      {isSub ? t('unpaidBanner.typeSubscription') : t('unpaidBanner.typeBill')}
                     </span>
-                  </div>
-
-                  <div className="flex items-center gap-1.5">
+                    {inv.isRecurring && (
+                      <span className="text-chip font-semibold">
+                        {t.recurrence[inv.recurrenceInterval as keyof typeof t.recurrence] || inv.recurrenceInterval}
+                      </span>
+                    )}
+                    {inv.category && (
+                      <span
+                        className="text-chip font-bold px-1.5 py-0.5 rounded-md"
+                        style={{ backgroundColor: `${inv.category.color}15`, color: inv.category.color }}
+                      >
+                        {inv.category.name}
+                      </span>
+                    )}
+                  </>
+                }
+                meta={
+                  <>
+                    <span>
+                      {t('bills.dueColon')} {formatDate(inv.dueDate, 'MMM d, yyyy', dateLocale)}
+                    </span>
+                    {inv.invoiceNumber && <span className="font-mono">#{inv.invoiceNumber}</span>}
+                  </>
+                }
+                status={
+                  <span
+                    className={`inline-block text-chip font-bold px-2 py-0.5 rounded-full border ${
+                      isPaid
+                        ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/60'
+                        : isOverdue
+                        ? 'bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-800/60'
+                        : 'bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800/60'
+                    }`}
+                  >
+                    {isPaid ? t('bills.paid') : isOverdue ? t('bills.overdue') : t('bills.pending')}
+                  </span>
+                }
+                actions={
+                  <>
                     {!isPaid && (
-                      <button
-                        type="button"
+                      <RowPrimaryAction
+                        tone={isSub ? 'indigo' : 'emerald'}
+                        icon={CheckCircle2}
                         disabled={isPaying}
                         onClick={() => handlePay(inv)}
-                        className={`px-2.5 py-1.5 rounded-xl text-white text-xs font-bold transition-all shadow-xs cursor-pointer disabled:opacity-50 ${
-                          isSub
-                            ? 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-600/20'
-                            : 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20'
-                        }`}
+                        aria-label={interpolate(t('common.markPaidAria'), { title: inv.title })}
+                        className="mr-1"
                       >
-                        {isPaying ? t('common.processing') : t('bills.markAsPaidAction')}
-                      </button>
+                        {isPaying ? t('common.processing') : t('common.markPaid')}
+                      </RowPrimaryAction>
                     )}
-                    <button
-                      type="button"
+                    <IconButton
+                      icon={Pencil}
+                      tone="amber"
                       onClick={() => openEditInvoice(inv)}
-                      className="p-1.5 rounded-xl text-zinc-400 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/50 transition-colors cursor-pointer"
-                      title={t('bills.edit')}
                       aria-label={t('bills.edit')}
-                    >
-                      <Pencil className="w-4 h-4" />
-                    </button>
-                    <button
-                      type="button"
+                    />
+                    <IconButton
+                      icon={Trash2}
+                      tone="rose"
                       disabled={isDeleting}
                       onClick={() => handleDelete(inv.id, inv.title)}
-                      className="p-1.5 rounded-xl text-zinc-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50 transition-colors cursor-pointer"
-                      title={t('common.delete')}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              </div>
+                      aria-label={t('common.delete')}
+                    />
+                  </>
+                }
+              />
             );
           })}
         </div>
