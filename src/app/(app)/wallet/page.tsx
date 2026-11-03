@@ -27,6 +27,8 @@ import { ImportWalletModal } from '@/components/modals/import-wallet-modal';
 import { PendingInvitesBanner } from '@/components/pending-invites-banner';
 import { CategoryModal } from '@/components/modals/category-modal';
 import { getCategoryIcon } from '@/lib/category-icons';
+import { IconButton } from '@/components/ui/item-row';
+import { CardHeader } from '@/components/ui/card-header';
 
 export default function WalletPage() {
   const {
@@ -209,19 +211,19 @@ export default function WalletPage() {
 
       {/* Header Bar */}
       <div className="p-5 sm:p-6 rounded-3xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/90 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center gap-3.5">
+        <div className="flex items-center gap-3.5 min-w-0">
           <div
             className="w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-xs shrink-0"
             style={{ backgroundColor: walletData.wallet.color }}
           >
             <WalletIcon className="w-6 h-6" />
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl sm:text-2xl font-black text-zinc-900 dark:text-white tracking-tight">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-xl sm:text-2xl font-black text-zinc-900 dark:text-white tracking-tight break-words">
                 {walletData.wallet.name}
               </h1>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700">
+              <span className="text-chip font-bold px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700 shrink-0">
                 {walletData.userRole}
               </span>
             </div>
@@ -231,11 +233,11 @@ export default function WalletPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
           <button
             type="button"
             onClick={() => setIsInviteOpen(true)}
-            className="px-3.5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] text-white text-xs font-bold shadow-md shadow-indigo-600/20 flex items-center gap-1.5 transition-all cursor-pointer"
+            className="min-h-11 sm:min-h-0 px-3.5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] text-white text-xs font-bold shadow-md shadow-indigo-600/20 flex items-center gap-1.5 transition-all cursor-pointer"
           >
             <UserPlus className="w-4 h-4" />
             <span>{t('common.invite')}</span>
@@ -243,7 +245,7 @@ export default function WalletPage() {
           <button
             type="button"
             onClick={() => setIsNewWalletOpen(true)}
-            className="px-3.5 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800 active:scale-[0.98] text-xs font-bold text-zinc-800 dark:text-zinc-200 transition-all flex items-center gap-1.5 cursor-pointer"
+            className="min-h-11 sm:min-h-0 px-3.5 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800 active:scale-[0.98] text-xs font-bold text-zinc-800 dark:text-zinc-200 transition-all flex items-center gap-1.5 cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             <span>{t('nav.createNewWallet')}</span>
@@ -256,35 +258,31 @@ export default function WalletPage() {
         <div className="lg:col-span-2 space-y-6">
           {/* Active Members Card */}
           <div className="rounded-3xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/90 p-6 shadow-sm">
-            <div className="flex items-center justify-between pb-4 border-b border-zinc-100 dark:border-zinc-800">
-              <div className="flex items-center gap-2.5">
+            <CardHeader
+              className="pb-4 border-b border-zinc-100 dark:border-zinc-800"
+              icon={
                 <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-200 dark:border-indigo-800/50">
                   <Users className="w-4 h-4" />
                 </div>
-                <div>
-                  <h2 className="text-base font-bold text-zinc-900 dark:text-white">
-                    {t('wallet.membersTitle')}
-                  </h2>
-                  <p className="text-[11px] text-zinc-500">
-                    {membersCount} {membersCount === 1 ? t('wallet.member') : t('wallet.members')}{' '}
-                    {t('wallet.membersSubtitle')}
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsInviteOpen(true)}
-                className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 flex items-center gap-1 transition-colors cursor-pointer"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>{t('wallet.inviteSomeone')}</span>
-              </button>
-            </div>
+              }
+              title={t('wallet.membersTitle')}
+              description={`${membersCount} ${membersCount === 1 ? t('wallet.member') : t('wallet.members')} ${t('wallet.membersSubtitle')}`}
+              actions={
+                <button
+                  type="button"
+                  onClick={() => setIsInviteOpen(true)}
+                  className="min-h-11 sm:min-h-0 px-2 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 flex items-center gap-1 transition-colors cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>{t('wallet.inviteSomeone')}</span>
+                </button>
+              }
+            />
 
             <div className="mt-4 divide-y divide-zinc-100 dark:divide-zinc-800/80">
               {walletData.wallet.members?.map((m) => (
-                <div key={m.id} className="py-3.5 flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3 min-w-0">
+                <div key={m.id} className="py-3.5 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+                  <div className="flex items-center gap-3 min-w-0 flex-1 basis-48">
                     {m.user?.avatarUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
@@ -298,17 +296,17 @@ export default function WalletPage() {
                       </div>
                     )}
                     <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm font-bold text-zinc-900 dark:text-white truncate">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-sm font-bold text-zinc-900 dark:text-white break-words">
                           {m.user?.name}
                         </p>
                         {m.user?.id === currentUser?.id && (
-                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 border border-indigo-200/60 dark:border-indigo-800/60">
+                          <span className="text-chip font-bold px-1.5 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 border border-indigo-200/60 dark:border-indigo-800/60">
                             {t('common.you')}
                           </span>
                         )}
                       </div>
-                      <p className="text-xs text-zinc-400 truncate">{m.user?.email}</p>
+                      <p className="text-xs text-zinc-400 break-words">{m.user?.email}</p>
                     </div>
                   </div>
 
@@ -333,40 +331,37 @@ export default function WalletPage() {
 
           {/* Shareable Invite Card */}
           <div className="rounded-3xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/90 p-6 shadow-sm">
-            <div className="flex items-center justify-between pb-4 border-b border-zinc-100 dark:border-zinc-800">
-              <div className="flex items-center gap-2.5">
+            <CardHeader
+              className="pb-4 border-b border-zinc-100 dark:border-zinc-800"
+              icon={
                 <div className="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-200 dark:border-emerald-800/50">
                   <UserPlus className="w-4 h-4" />
                 </div>
-                <div>
-                  <h2 className="text-base font-bold text-zinc-900 dark:text-white">
-                    {t('wallet.activeInviteLink')}
-                  </h2>
-                  <p className="text-[11px] text-zinc-500">
-                    {t('wallet.activeInviteSubtitle')}
-                  </p>
-                </div>
-              </div>
-              <span className="text-xs text-zinc-400 font-mono bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded-lg">
-                {inviteCode}
-              </span>
-            </div>
+              }
+              title={t('wallet.activeInviteLink')}
+              description={t('wallet.activeInviteSubtitle')}
+              actions={
+                <span className="min-w-0 text-xs text-zinc-400 font-mono bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded-lg break-all">
+                  {inviteCode}
+                </span>
+              }
+            />
 
             <p className="text-xs text-zinc-500 mt-3 mb-4 leading-relaxed">
               {t('wallet.activeInviteDescription')}
             </p>
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
               <input
                 type="text"
                 readOnly
                 value={inviteUrl}
-                className="flex-1 px-3.5 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950/50 text-xs font-mono text-zinc-800 dark:text-zinc-200 select-all focus:outline-hidden"
+                className="w-full min-w-0 sm:flex-1 px-3.5 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950/50 text-xs font-mono text-zinc-800 dark:text-zinc-200 select-all focus:outline-hidden"
               />
               <button
                 type="button"
                 onClick={() => handleCopy(inviteCode, inviteUrl)}
-                className={`px-4 py-2.5 rounded-xl flex items-center gap-1.5 text-xs font-bold transition-all shrink-0 cursor-pointer ${
+                className={`min-h-11 sm:min-h-0 px-4 py-2.5 rounded-xl flex items-center justify-center gap-1.5 text-xs font-bold transition-all shrink-0 cursor-pointer ${
                   copiedCode === inviteCode
                     ? 'bg-emerald-600 text-white'
                     : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs'
@@ -388,7 +383,7 @@ export default function WalletPage() {
                 <h2 className="text-base font-bold text-zinc-900 dark:text-white">
                   {t('wallet.activityTitle')}
                 </h2>
-                <p className="text-[11px] text-zinc-500">
+                <p className="text-meta text-zinc-500">
                   {t('wallet.activitySubtitle')}
                 </p>
               </div>
@@ -427,10 +422,10 @@ export default function WalletPage() {
                         <p className="text-xs font-semibold text-zinc-900 dark:text-zinc-100">
                           {actionTitle}
                         </p>
-                        <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed mt-0.5">
+                        <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed mt-0.5 break-words">
                           {log.details}
                         </p>
-                        <div className="flex items-center gap-1.5 text-[10px] text-zinc-400 mt-1">
+                        <div className="flex flex-wrap items-center gap-1.5 text-meta text-zinc-400 mt-1">
                           <Clock className="w-3 h-3" />
                           <span>{formatDate(log.timestamp, 'MMM d, yyyy · h:mm a', dateLocale)}</span>
                         </div>
@@ -455,7 +450,7 @@ export default function WalletPage() {
                 <h2 className="text-base font-bold text-zinc-900 dark:text-white">
                   {t('wallet.backupCardTitle')}
                 </h2>
-                <p className="text-[11px] text-zinc-500">{t('wallet.backupCardSubtitle')}</p>
+                <p className="text-meta text-zinc-500">{t('wallet.backupCardSubtitle')}</p>
               </div>
             </div>
 
@@ -465,14 +460,14 @@ export default function WalletPage() {
                 <p className="text-xs font-bold text-zinc-900 dark:text-white">
                   {t('wallet.exportButton')}
                 </p>
-                <p className="text-[11px] text-zinc-500 mt-0.5 mb-3 leading-relaxed">
+                <p className="text-meta text-zinc-500 mt-0.5 mb-3 leading-relaxed">
                   {t('wallet.exportDescription')}
                 </p>
                 <button
                   type="button"
                   disabled={isExporting}
                   onClick={handleExportWallet}
-                  className="w-full py-2 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                  className="w-full min-h-11 sm:min-h-0 py-2 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
                 >
                   <Download className={`w-3.5 h-3.5 ${isExporting ? 'animate-bounce' : ''}`} />
                   <span>{isExporting ? t('common.processing') : t('wallet.exportButton')}</span>
@@ -484,13 +479,13 @@ export default function WalletPage() {
                 <p className="text-xs font-bold text-zinc-900 dark:text-white">
                   {t('wallet.importButton')}
                 </p>
-                <p className="text-[11px] text-zinc-500 mt-0.5 mb-3 leading-relaxed">
+                <p className="text-meta text-zinc-500 mt-0.5 mb-3 leading-relaxed">
                   {t('wallet.importDescription')}
                 </p>
                 <button
                   type="button"
                   onClick={() => setIsImportModalOpen(true)}
-                  className="w-full py-2 px-3 rounded-xl border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-800 dark:text-zinc-200 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                  className="w-full min-h-11 sm:min-h-0 py-2 px-3 rounded-xl border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-800 dark:text-zinc-200 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   <Upload className="w-3.5 h-3.5" />
                   <span>{t('wallet.importButton')}</span>
@@ -509,7 +504,7 @@ export default function WalletPage() {
                 <h2 className="text-base font-bold text-zinc-900 dark:text-white">
                   {t('wallet.settingsTitle')}
                 </h2>
-                <p className="text-[11px] text-zinc-500">{t('wallet.settingsSubtitle')}</p>
+                <p className="text-meta text-zinc-500">{t('wallet.settingsSubtitle')}</p>
               </div>
             </div>
 
@@ -547,10 +542,10 @@ export default function WalletPage() {
                   onChange={(e) => setBudget(e.target.value)}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950/50 text-sm font-bold text-zinc-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500 transition-all tabular-nums disabled:opacity-60 disabled:cursor-not-allowed"
                 />
-                <p className="text-[11px] text-zinc-400 mt-1">
+                <p className="text-meta text-zinc-400 mt-1">
                   {t('wallet.targetPreview')}: {budget ? formatCurrency(parseFloat(budget) || 0, currency) : '—'}
                 </p>
-                <p className="text-[11px] text-zinc-400 mt-0.5">{t('wallet.monthlyBudgetHint')}</p>
+                <p className="text-meta text-zinc-400 mt-0.5">{t('wallet.monthlyBudgetHint')}</p>
               </div>
 
               <div>
@@ -575,7 +570,7 @@ export default function WalletPage() {
                   <button
                     type="submit"
                     disabled={isUpdating}
-                    className="w-full py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 dark:bg-white dark:hover:bg-zinc-100 text-white dark:text-zinc-900 text-xs font-bold shadow-xs transition-all disabled:opacity-50 cursor-pointer"
+                    className="w-full min-h-11 sm:min-h-0 py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 dark:bg-white dark:hover:bg-zinc-100 text-white dark:text-zinc-900 text-xs font-bold shadow-xs transition-all disabled:opacity-50 cursor-pointer"
                   >
                     {isUpdating ? t('common.saving') : t('common.saveChanges')}
                   </button>
@@ -586,34 +581,31 @@ export default function WalletPage() {
 
           {/* Categories & Limits Card */}
           <div id="categories" className="rounded-3xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/90 p-6 shadow-sm">
-            <div className="flex items-center justify-between pb-4 border-b border-zinc-100 dark:border-zinc-800">
-              <div className="flex items-center gap-2.5">
+            <CardHeader
+              className="pb-4 border-b border-zinc-100 dark:border-zinc-800"
+              icon={
                 <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-200 dark:border-indigo-800/50">
                   <Tag className="w-4 h-4" />
                 </div>
-                <div>
-                  <h2 className="text-base font-bold text-zinc-900 dark:text-white">
-                    {t('categories.title')}
-                  </h2>
-                  <p className="text-[11px] text-zinc-500">
-                    {t('categories.subtitle')}
-                  </p>
-                </div>
-              </div>
-              {isOwner && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedCategory(null);
-                    setIsCategoryModalOpen(true);
-                  }}
-                  className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 flex items-center gap-1 transition-colors cursor-pointer"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>{t('categories.add')}</span>
-                </button>
-              )}
-            </div>
+              }
+              title={t('categories.title')}
+              description={t('categories.subtitle')}
+              actions={
+                isOwner ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedCategory(null);
+                      setIsCategoryModalOpen(true);
+                    }}
+                    className="min-h-11 sm:min-h-0 px-2 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 flex items-center gap-1 transition-colors cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>{t('categories.add')}</span>
+                  </button>
+                ) : undefined
+              }
+            />
 
             {!isOwner && (
               <div className="mt-4 p-3 rounded-2xl bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-800/60 text-xs text-amber-800 dark:text-amber-300">
@@ -640,8 +632,8 @@ export default function WalletPage() {
 
                     return (
                       <div key={cat.id} className="py-3.5 first:pt-0 last:pb-0">
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+                          <div className="flex items-center gap-2.5 min-w-0 flex-1 basis-48">
                             <span
                               className="w-2 h-2 rounded-full shrink-0"
                               style={{ backgroundColor: cat.color }}
@@ -653,7 +645,7 @@ export default function WalletPage() {
                               <Icon className="w-4 h-4" />
                             </div>
                             <div className="min-w-0">
-                              <p className="text-sm font-bold text-zinc-900 dark:text-white truncate">
+                              <p className="text-sm font-bold text-zinc-900 dark:text-white break-words">
                                 {cat.name}
                               </p>
                               <p className="text-xs text-zinc-400 tabular-nums">
@@ -665,28 +657,23 @@ export default function WalletPage() {
                           </div>
 
                           {isOwner && (
-                            <div className="flex items-center gap-1 shrink-0">
-                              <button
-                                type="button"
+                            <div className="flex items-center gap-1 shrink-0 ml-auto">
+                              <IconButton
+                                icon={Pencil}
                                 onClick={() => {
                                   setSelectedCategory(cat);
                                   setIsCategoryModalOpen(true);
                                 }}
-                                className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
-                                title={t('categories.edit')}
-                              >
-                                <Pencil className="w-3.5 h-3.5" />
-                              </button>
-                              <button
-                                type="button"
+                                aria-label={t('categories.edit')}
+                              />
+                              <IconButton
+                                icon={Trash2}
+                                tone="rose"
                                 onClick={() =>
                                   setDeletingCategoryId(deletingCategoryId === cat.id ? null : cat.id)
                                 }
-                                className="p-1.5 rounded-lg text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
-                                title={t('categories.delete')}
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
+                                aria-label={t('categories.delete')}
+                              />
                             </div>
                           )}
                         </div>
@@ -722,7 +709,7 @@ export default function WalletPage() {
                                 type="button"
                                 disabled={isDeletingCategory}
                                 onClick={() => setDeletingCategoryId(null)}
-                                className="px-2.5 py-1 rounded-lg text-xs font-semibold text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200/60 dark:hover:bg-zinc-800 cursor-pointer"
+                                className="min-h-11 sm:min-h-0 px-2.5 py-1 rounded-lg text-xs font-semibold text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200/60 dark:hover:bg-zinc-800 cursor-pointer"
                               >
                                 {t('common.cancel')}
                               </button>
@@ -730,7 +717,7 @@ export default function WalletPage() {
                                 type="button"
                                 disabled={isDeletingCategory}
                                 onClick={() => handleDeleteCategory(cat.id)}
-                                className="px-3 py-1 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-xs transition-all cursor-pointer disabled:opacity-50"
+                                className="min-h-11 sm:min-h-0 px-3 py-1 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-xs transition-all cursor-pointer disabled:opacity-50"
                               >
                                 {isDeletingCategory ? t('common.processing') : t('categories.deleteConfirm')}
                               </button>

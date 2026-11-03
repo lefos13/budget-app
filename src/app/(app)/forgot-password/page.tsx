@@ -156,7 +156,7 @@ function ForgotPasswordForm() {
           )}
 
           {!isSubmitted && (
-            <div className="mt-6 pt-5 border-t border-zinc-100 dark:border-zinc-800/80 flex items-center justify-between text-xs">
+            <div className="mt-6 pt-5 border-t border-zinc-100 dark:border-zinc-800/80 flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-xs">
               <span className="text-zinc-500">{t('auth.rememberPassword')}</span>
               <Link
                 href={authHref('login', next)}

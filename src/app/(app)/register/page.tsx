@@ -236,7 +236,7 @@ function RegisterForm() {
             </button>
           </form>
 
-          <div className="mt-6 pt-5 border-t border-zinc-100 dark:border-zinc-800/80 flex items-center justify-between text-xs">
+          <div className="mt-6 pt-5 border-t border-zinc-100 dark:border-zinc-800/80 flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-xs">
             <span className="text-zinc-500">{t.auth.alreadyHaveAccount}</span>
             <Link
               href={authHref('login', next)}
@@ -251,7 +251,7 @@ function RegisterForm() {
         {process.env.NODE_ENV !== 'production' && (
         <div className="mt-6 text-center">
           <div className="inline-flex items-center gap-2 p-1.5 pr-3 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400 text-xs">
-            <div className="px-2 py-0.5 rounded-full bg-amber-500 text-zinc-950 font-black text-[10px] uppercase tracking-wider flex items-center gap-1">
+            <div className="px-2 py-0.5 rounded-full bg-amber-500 text-zinc-950 font-black text-chip uppercase tracking-wider flex items-center gap-1">
               <Sparkles className="w-3 h-3" />
               {t('devMode.badge')}
             </div>

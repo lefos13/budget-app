@@ -215,7 +215,7 @@ function InviteJoinContent() {
           <span>{t('invites.invitedTitle')}</span>
         </div>
 
-        <h1 className="text-2xl font-black tracking-tight text-zinc-900 dark:text-white">
+        <h1 className="text-2xl font-black tracking-tight text-zinc-900 dark:text-white break-words">
           {interpolate(t('invites.joinWalletName'), { name: wallet.name })}
         </h1>
 
@@ -229,12 +229,12 @@ function InviteJoinContent() {
         isLoggedOut ? (
           <div className="my-5 p-3.5 rounded-2xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-300 flex items-center gap-2.5 text-xs">
             <Mail className="w-4 h-4 text-zinc-400 shrink-0" />
-            <span>{interpolate(t('invites.targetedInviteNotice'), { email: invite.targetEmail || '' })}</span>
+            <span className="min-w-0 break-words">{interpolate(t('invites.targetedInviteNotice'), { email: invite.targetEmail || '' })}</span>
           </div>
         ) : isWrongAccount ? (
           <div className="my-5 p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/80 text-amber-900 dark:text-amber-200 flex items-start gap-3 text-xs leading-relaxed animate-in fade-in">
             <Lock className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-            <div className="space-y-1">
+            <div className="space-y-1 min-w-0 break-words">
               <strong className="font-bold block text-amber-950 dark:text-amber-100">
                 {t('invites.lockedWarningTitle')}
               </strong>
@@ -256,14 +256,14 @@ function InviteJoinContent() {
       )}
 
       <div className="my-6 p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200/80 dark:border-zinc-800 space-y-3">
-        <div className="flex items-center justify-between text-xs">
+        <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-xs">
           <span className="text-zinc-500">{t('invites.accessRole')}:</span>
           <span className="font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 px-2 py-0.5 rounded-md border border-indigo-200 dark:border-indigo-800">
             {t.roles[invite.role as keyof typeof t.roles] || invite.role}
           </span>
         </div>
 
-        <div className="flex items-center justify-between text-xs">
+        <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-xs">
           <span className="text-zinc-500">{t('invites.currentMembers')}:</span>
           <span className="font-bold text-zinc-800 dark:text-zinc-200">
             {interpolate(t(wallet.memberCount === 1 ? 'budget.membersCountOne' : 'budget.membersCountMany'), { count: wallet.memberCount })}
@@ -271,7 +271,7 @@ function InviteJoinContent() {
         </div>
 
         {/* Member Avatars */}
-        <div className="flex items-center gap-1.5 pt-1">
+        <div className="flex flex-wrap items-center gap-1.5 pt-1">
           {wallet.members.map((m, idx) => (
             <div key={idx} className="relative group">
               {m.avatarUrl ? (
@@ -283,7 +283,7 @@ function InviteJoinContent() {
                   title={`${m.name} (${t.roles[m.role as keyof typeof t.roles] || m.role})`}
                 />
               ) : (
-                <div className="w-7 h-7 rounded-full bg-zinc-200 dark:bg-zinc-700 flex items-center justify-center text-[10px] font-bold">
+                <div className="w-7 h-7 rounded-full bg-zinc-200 dark:bg-zinc-700 flex items-center justify-center text-chip font-bold">
                   {m.name.slice(0, 1)}
                 </div>
               )}
@@ -313,7 +313,7 @@ function InviteJoinContent() {
           >
             {t('invites.alreadyHaveAccountSignIn')}
           </Link>
-          <p className="text-[11px] text-center text-zinc-400 dark:text-zinc-500">
+          <p className="text-meta text-center text-zinc-400 dark:text-zinc-500">
             {interpolate(t('invites.autoJoinHint'), { name: wallet.name })}
           </p>
         </div>

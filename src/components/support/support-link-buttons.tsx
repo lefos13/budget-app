@@ -36,12 +36,12 @@ export function SupportLinkButtons({
   const containerClasses = `flex flex-wrap items-center gap-2.5 sm:gap-3 ${className || ''}`.trim();
 
   const githubClasses = isProminent
-    ? 'px-4 py-2 rounded-xl text-sm font-bold inline-flex items-center gap-2 bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100 shadow-md transition-all active:scale-[0.98]'
-    : 'px-2.5 py-1.5 rounded-lg text-xs font-medium inline-flex items-center gap-1.5 border border-zinc-200 dark:border-zinc-800 bg-transparent text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors';
+    ? 'min-h-11 sm:min-h-0 px-4 py-2 rounded-xl text-sm font-bold inline-flex items-center justify-center gap-2 bg-zinc-900 text-white hover:bg-zinc-800 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-100 shadow-md transition-all active:scale-[0.98]'
+    : 'min-h-11 sm:min-h-0 px-2.5 py-1.5 rounded-lg text-xs font-medium inline-flex items-center gap-1.5 border border-zinc-200 dark:border-zinc-800 bg-transparent text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors';
 
   const coffeeClasses = isProminent
-    ? 'px-4 py-2 rounded-xl text-sm font-bold inline-flex items-center gap-2 bg-[#FFDD00] text-zinc-950 hover:bg-[#FACC15] dark:bg-[#FFDD00] dark:text-zinc-950 dark:hover:bg-[#FACC15] shadow-md transition-all active:scale-[0.98]'
-    : 'px-2.5 py-1.5 rounded-lg text-xs font-medium inline-flex items-center gap-1.5 border border-zinc-200 dark:border-zinc-800 bg-transparent text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors';
+    ? 'min-h-11 sm:min-h-0 px-4 py-2 rounded-xl text-sm font-bold inline-flex items-center justify-center gap-2 bg-[#FFDD00] text-zinc-950 hover:bg-[#FACC15] dark:bg-[#FFDD00] dark:text-zinc-950 dark:hover:bg-[#FACC15] shadow-md transition-all active:scale-[0.98]'
+    : 'min-h-11 sm:min-h-0 px-2.5 py-1.5 rounded-lg text-xs font-medium inline-flex items-center gap-1.5 border border-zinc-200 dark:border-zinc-800 bg-transparent text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors';
 
   const iconClasses = isProminent ? 'w-4 h-4' : 'w-3.5 h-3.5';
 
