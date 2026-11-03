@@ -21,7 +21,21 @@ const MIGRATED_LISTS = [
   'src/components/calendar/bills-list-view.tsx',
 ];
 
-const MIGRATED_DIALOGS = ['src/components/savings/deposit-modal.tsx'];
+const MIGRATED_DIALOGS = [
+  'src/components/savings/deposit-modal.tsx',
+  'src/components/modals/add-bonus-modal.tsx',
+  'src/components/modals/add-expense-modal.tsx',
+  'src/components/modals/add-invoice-modal.tsx',
+  'src/components/modals/category-modal.tsx',
+  'src/components/modals/import-wallet-modal.tsx',
+  'src/components/modals/invite-modal.tsx',
+  'src/components/modals/new-wallet-modal.tsx',
+  'src/components/savings/save-for-this-modal.tsx',
+  'src/components/savings/move-money-modal.tsx',
+  'src/components/savings/adjust-general-modal.tsx',
+  'src/components/savings/disposition-modal.tsx',
+  'src/components/calendar/ics-export-modal.tsx',
+];
 
 const read = (rel: string) => fs.readFileSync(path.join(ROOT, rel), 'utf8');
 
