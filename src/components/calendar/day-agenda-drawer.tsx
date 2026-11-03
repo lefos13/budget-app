@@ -147,7 +147,7 @@ export function DayAgendaDrawer({
                     badges={
                       <>
                         {bill.invoiceNumber && (
-                          <span className="text-chip font-mono text-zinc-400">
+                          <span className="text-meta font-mono text-zinc-400">
                             #{bill.invoiceNumber}
                           </span>
                         )}
@@ -245,7 +245,7 @@ export function DayAgendaDrawer({
                     <p className="text-xs font-bold text-zinc-900 dark:text-white truncate">
                       {exp.title}
                     </p>
-                    <p className="text-chip text-zinc-400 mt-0.5 truncate">
+                    <p className="text-meta text-zinc-400 mt-0.5 break-words">
                       {exp.user?.name} · {exp.category?.name || t('bills.generalCategory')}
                     </p>
                   </div>

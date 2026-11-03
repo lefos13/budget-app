@@ -115,7 +115,7 @@ export const el: Dictionary = {
   common: {
     add: 'Προσθήκη',
     markPaid: 'Εξόφληση',
-    markPaidAria: 'Σήμανση ως πληρωμένο: {title}',
+    markPaidAria: 'Εξόφληση: {title}',
     save: 'Αποθήκευση',
     saveChanges: 'Αποθήκευση Αλλαγών',
     saving: 'Αποθήκευση...',

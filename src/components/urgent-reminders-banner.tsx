@@ -106,8 +106,9 @@ export function UrgentRemindersBanner() {
             )}
           </div>
         }
+        as="h3"
         title={
-          <div className="flex items-center gap-2 flex-wrap">
+          <span className="inline-flex items-center gap-2 flex-wrap">
             <span>{overdueCount > 0 ? t('urgent.actionRequired') : t('urgent.dueSoon')}</span>
             <span
               className={`text-chip font-bold px-2 py-0.5 rounded-full whitespace-nowrap shrink-0 ${
@@ -120,7 +121,7 @@ export function UrgentRemindersBanner() {
                 ? t('urgent.invoiceCountOne')
                 : interpolate(t('urgent.invoiceCountMany'), { count: urgentBills.length })}
             </span>
-          </div>
+          </span>
         }
         description={
           overdueCount > 0

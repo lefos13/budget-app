@@ -113,7 +113,7 @@ export const en = {
   common: {
     add: 'Add',
     markPaid: 'Mark paid',
-    markPaidAria: 'Mark as paid: {title}',
+    markPaidAria: 'Mark paid: {title}',
     save: 'Save',
     saveChanges: 'Save Changes',
     saving: 'Saving...',

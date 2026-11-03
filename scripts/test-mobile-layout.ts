@@ -4,6 +4,7 @@ import path from 'node:path';
 import { en } from '../src/lib/i18n/dictionaries/en';
 import { el } from '../src/lib/i18n/dictionaries/el';
 import { NAV_GROUPS } from '../src/lib/navigation';
+import { lockScroll, unlockScroll } from '../src/lib/scroll-lock';
 
 /*
  * Guards the mobile-layout conventions. Layout itself is verified visually; this
@@ -88,6 +89,17 @@ function run() {
     assert.doesNotMatch(src, /fixed inset-0/, `${file} has no hand-rolled overlay`);
   }
   console.log('✓ Test 4: migrated modals use Dialog');
+
+  /* A stacked dialog and its parent can unmount in the same commit, parent first. */
+  const body = { overflow: 'auto' };
+  lockScroll(body); // parent dialog
+  lockScroll(body); // stacked dialog
+  assert.equal(body.overflow, 'hidden');
+  unlockScroll(body); // parent cleanup runs first
+  assert.equal(body.overflow, 'hidden', 'page stays locked while a dialog is still open');
+  unlockScroll(body); // stacked cleanup
+  assert.equal(body.overflow, 'auto', 'closing the last dialog restores page scroll');
+  console.log('✓ Test 5: scroll lock survives stacked dialogs closing together');
 
   console.log('\n✅ Mobile layout guards passed');
 }

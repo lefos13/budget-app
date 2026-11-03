@@ -413,6 +413,7 @@ export default function ExpensesPage() {
                       : handleRealizePlanned(p)
                   }
                   aria-label={t('planned.markSpent')}
+                  title={t('planned.markSpentTitle')}
                 />
               )}
               {!isViewer &&
@@ -843,7 +844,7 @@ export default function ExpensesPage() {
                           icon={Pencil}
                           onClick={() => openEditExpense(exp)}
                           aria-label={t('expenseEdit.edit')}
-                          className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
+                          className="[@media(hover:hover)]:sm:opacity-0 sm:group-hover:opacity-100 focus-visible:opacity-100"
                         />
                       )}
                       <IconButton
@@ -852,7 +853,7 @@ export default function ExpensesPage() {
                         disabled={isDeleting}
                         onClick={() => handleDelete(exp.id, exp.title)}
                         aria-label={t('recentExpenses.deleteExpense')}
-                        className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
+                        className="[@media(hover:hover)]:sm:opacity-0 sm:group-hover:opacity-100 focus-visible:opacity-100"
                       />
                     </>
                   }

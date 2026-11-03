@@ -4,6 +4,7 @@ import React, { useEffect, useId, useRef, useState } from 'react';
 import { clsx } from 'clsx';
 import { X } from 'lucide-react';
 import { useTranslation } from '@/context/LanguageContext';
+import { lockScroll, unlockScroll } from '@/lib/scroll-lock';
 
 const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -110,13 +111,12 @@ export function Dialog({
     };
     window.addEventListener('keydown', onKeyDown);
 
-    const { overflow } = document.body.style;
-    document.body.style.overflow = 'hidden';
+    lockScroll(document.body.style);
 
     return () => {
       window.removeEventListener('keydown', onKeyDown);
       openDialogs.splice(openDialogs.indexOf(token), 1);
-      document.body.style.overflow = overflow;
+      unlockScroll(document.body.style);
       if (opener?.isConnected) opener.focus({ preventScroll: true });
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- mount/unmount only; latest props are read via refs
