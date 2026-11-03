@@ -60,7 +60,7 @@ function Dashboard() {
           <button
             type="button"
             onClick={() => setIsNewWalletOpen(true)}
-            className="px-6 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm shadow-lg shadow-indigo-600/25 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+            className="min-h-11 px-6 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm shadow-lg shadow-indigo-600/25 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer inline-flex items-center justify-center"
           >
             {t.dashboard.createFirstWallet}
           </button>
@@ -81,26 +81,26 @@ function Dashboard() {
 
       {/* Top Welcome & Wallet Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-5 sm:p-6 rounded-3xl border border-zinc-200/90 dark:border-zinc-800 bg-white/95 dark:bg-zinc-900/90 shadow-sm">
-        <div className="space-y-1.5">
+        <div className="space-y-1.5 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-xs font-semibold text-zinc-500">
               {t.dashboard.activeAs} <strong className="text-zinc-800 dark:text-zinc-200">{currentUser?.name}</strong> ({t.roles[walletData.userRole as keyof typeof t.roles] ?? walletData.userRole})
             </span>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 min-w-0">
             <span
               className="w-3.5 h-3.5 rounded-full shadow-xs shrink-0"
               style={{ backgroundColor: walletData.wallet.color }}
             />
-            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-zinc-900 dark:text-white">
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-black tracking-tight text-zinc-900 dark:text-white truncate">
               {walletData.wallet.name}
             </h1>
           </div>
         </div>
 
         {/* Action Controls & Collaborators stack */}
-        <div className="flex flex-wrap items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
           {/* Member avatars preview */}
           <div className="flex items-center -space-x-2 mr-1">
             {walletData.wallet.members?.slice(0, 3).map((m) => (
@@ -124,7 +124,7 @@ function Dashboard() {
           <button
             type="button"
             onClick={() => setIsInviteOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-indigo-200 dark:border-indigo-800/80 bg-indigo-50/70 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 text-xs font-bold transition-all shadow-xs"
+            className="min-h-11 sm:min-h-0 flex items-center gap-1.5 px-3 py-2 rounded-xl border border-indigo-200 dark:border-indigo-800/80 bg-indigo-50/70 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 text-xs font-bold transition-all shadow-xs cursor-pointer"
           >
             <UserPlus className="w-3.5 h-3.5" />
             <span>{t.actions.invite}</span>
@@ -133,7 +133,7 @@ function Dashboard() {
           <button
             type="button"
             onClick={() => setIsAddExpenseOpen(true)}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs shadow-emerald-600/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
+            className="min-h-11 sm:min-h-0 flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs shadow-emerald-600/20 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
           >
             <Receipt className="w-3.5 h-3.5" />
             <span>{t.dashboard.addExpenseBtn}</span>
@@ -142,7 +142,7 @@ function Dashboard() {
           <button
             type="button"
             onClick={() => openAddInvoice(undefined, 'BILL')}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold shadow-xs shadow-amber-600/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
+            className="min-h-11 sm:min-h-0 flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold shadow-xs shadow-amber-600/20 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
           >
             <FileText className="w-3.5 h-3.5" />
             <span>{t.dashboard.addBillBtn}</span>

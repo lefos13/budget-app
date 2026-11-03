@@ -122,22 +122,22 @@ export function MonthGrid({
   return (
     <div className="space-y-6">
       {/* Calendar Metrics Summary Ribbon */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 min-[340px]:grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="p-3.5 rounded-2xl bg-white dark:bg-zinc-900/90 border border-zinc-200/80 dark:border-zinc-800 shadow-xs">
-          <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
+          <p className="text-chip font-bold text-zinc-400 uppercase tracking-wider">
             {t('monthGrid.totalMonthBills')}
           </p>
           <p className="text-base sm:text-lg font-black text-zinc-900 dark:text-white mt-0.5 tabular-nums">
             {formatBillsCount(allInvoicesThisMonth.length)}
           </p>
-          <p className="text-[11px] text-zinc-500 font-medium tabular-nums">
+          <p className="text-meta text-zinc-500 font-medium tabular-nums">
             {interpolate(t('monthGrid.amountTotal'), { amount: formatCurrency(pendingSum + overdueSum + paidSum, currency) })}
           </p>
         </div>
 
         <div className="p-3.5 rounded-2xl bg-white dark:bg-zinc-900/90 border border-zinc-200/80 dark:border-zinc-800 shadow-xs">
           <div className="flex items-center justify-between">
-            <p className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
+            <p className="text-chip font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">
               {t('monthGrid.pendingBills')}
             </p>
             <Clock className="w-3.5 h-3.5 text-amber-500" />
@@ -145,14 +145,14 @@ export function MonthGrid({
           <p className="text-base sm:text-lg font-black text-amber-600 dark:text-amber-400 mt-0.5 tabular-nums">
             {formatBillsCount(pendingCount)}
           </p>
-          <p className="text-[11px] text-zinc-500 font-medium tabular-nums">
+          <p className="text-meta text-zinc-500 font-medium tabular-nums">
             {interpolate(t('monthGrid.amountDue'), { amount: formatCurrency(pendingSum, currency) })}
           </p>
         </div>
 
         <div className="p-3.5 rounded-2xl bg-white dark:bg-zinc-900/90 border border-zinc-200/80 dark:border-zinc-800 shadow-xs">
           <div className="flex items-center justify-between">
-            <p className="text-[10px] font-bold text-rose-600 dark:text-rose-400 uppercase tracking-wider">
+            <p className="text-chip font-bold text-rose-600 dark:text-rose-400 uppercase tracking-wider">
               {t('monthGrid.overdue')}
             </p>
             <AlertCircle className="w-3.5 h-3.5 text-rose-500" />
@@ -160,14 +160,14 @@ export function MonthGrid({
           <p className="text-base sm:text-lg font-black text-rose-600 dark:text-rose-400 mt-0.5 tabular-nums">
             {formatBillsCount(overdueCount)}
           </p>
-          <p className="text-[11px] text-zinc-500 font-medium tabular-nums">
+          <p className="text-meta text-zinc-500 font-medium tabular-nums">
             {interpolate(t('monthGrid.amountPastDue'), { amount: formatCurrency(overdueSum, currency) })}
           </p>
         </div>
 
         <div className="p-3.5 rounded-2xl bg-white dark:bg-zinc-900/90 border border-zinc-200/80 dark:border-zinc-800 shadow-xs">
           <div className="flex items-center justify-between">
-            <p className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
+            <p className="text-chip font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
               {t('monthGrid.paidSettled')}
             </p>
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
@@ -175,7 +175,7 @@ export function MonthGrid({
           <p className="text-base sm:text-lg font-black text-emerald-600 dark:text-emerald-400 mt-0.5 tabular-nums">
             {formatBillsCount(paidCount)}
           </p>
-          <p className="text-[11px] text-zinc-500 font-medium tabular-nums">
+          <p className="text-meta text-zinc-500 font-medium tabular-nums">
             {interpolate(t('monthGrid.amountSettled'), { amount: formatCurrency(paidSum, currency) })}
           </p>
         </div>
@@ -230,7 +230,7 @@ export function MonthGrid({
                   </span>
 
                   {dayExpenseSum > 0 && (
-                    <span className="hidden sm:inline text-[10px] font-bold text-zinc-400 tabular-nums">
+                    <span className="hidden sm:inline text-chip font-bold text-zinc-400 tabular-nums">
                       -{formatCurrency(dayExpenseSum, currency)}
                     </span>
                   )}
@@ -257,7 +257,7 @@ export function MonthGrid({
                         />
                         {/* Desktop full badge */}
                         <div
-                          className={`hidden sm:flex px-1.5 py-0.5 rounded-md text-[10px] font-semibold truncate items-center justify-between border ${
+                          className={`hidden sm:flex px-1.5 py-0.5 rounded-md text-chip font-semibold truncate items-center justify-between border ${
                             isPaid
                               ? 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-200/60 dark:border-emerald-900/40'
                               : isOverdue
@@ -276,7 +276,7 @@ export function MonthGrid({
                   })}
 
                   {bills.length > 2 && (
-                    <div className="text-[9px] font-bold text-zinc-400 pl-1">
+                    <div className="text-chip font-bold text-zinc-400 pl-1">
                       <span className="hidden sm:inline">
                         {bills.length - 2 === 1
                           ? interpolate(t('monthGrid.moreBillsOne'), { count: 1 })

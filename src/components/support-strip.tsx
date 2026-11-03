@@ -12,7 +12,8 @@ export function SupportStrip() {
       <p className="text-xs text-zinc-500 dark:text-zinc-400">
         {t('support.stripText')}
       </p>
-      <SupportLinkButtons variant="subtle" />
+      {/* 44px touch targets on mobile */}
+      <SupportLinkButtons variant="subtle" className="[&>a]:min-h-11 sm:[&>a]:min-h-0" />
     </div>
   );
 }

@@ -21,12 +21,12 @@ function Row({
 }) {
   return (
     <div
-      className={`flex items-center justify-between text-xs sm:text-sm py-1.5 transition-opacity ${
+      className={`flex items-center justify-between gap-2 text-xs sm:text-sm py-1.5 transition-opacity ${
         dimmed ? 'opacity-40 text-zinc-400 dark:text-zinc-500' : className
       }`}
     >
-      <span className="font-medium">{label}</span>
-      <span className="font-semibold tabular-nums">
+      <span className="font-medium min-w-0 pr-1">{label}</span>
+      <span className="font-semibold tabular-nums shrink-0 whitespace-nowrap">
         {sign}
         {amount}
       </span>
@@ -97,7 +97,7 @@ export function MonthProjectionBreakdown({ projection, currency }: { projection:
               −{fmt(projection.carryOver)}
             </span>
           </div>
-          <div className="flex items-start gap-1.5 mt-0.5 text-[11px] text-zinc-400 dark:text-zinc-500 leading-normal">
+          <div className="flex items-start gap-1.5 mt-0.5 text-meta text-zinc-400 dark:text-zinc-500 leading-normal">
             <Info className="w-3.5 h-3.5 mt-0.5 shrink-0 text-zinc-400 dark:text-zinc-500" />
             <span>
               {projection.carryOverSubscriptions > 0 ? t.projection.carriedOverHintSubs : t.projection.carriedOverHint}
@@ -118,7 +118,7 @@ export function MonthProjectionBreakdown({ projection, currency }: { projection:
         </span>
       </div>
 
-      <p className="pt-3 text-[11px] sm:text-xs text-zinc-400 dark:text-zinc-500 leading-relaxed">
+      <p className="pt-3 text-meta sm:text-xs text-zinc-400 dark:text-zinc-500 leading-relaxed">
         {t.projection.footnote}
       </p>
     </div>

@@ -122,7 +122,7 @@ export function PasskeySetupPrompt() {
                 type="button"
                 onClick={handleSetup}
                 disabled={isAdding}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs sm:text-sm shadow-sm transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                className="min-h-11 sm:min-h-0 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs sm:text-sm shadow-sm transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {isAdding ? (
                   <>
@@ -140,7 +140,7 @@ export function PasskeySetupPrompt() {
                 type="button"
                 onClick={markDismissed}
                 disabled={isAdding}
-                className="px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+                className="min-h-11 sm:min-h-0 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
               >
                 {t.passkeys.promptDismiss}
               </button>
@@ -151,7 +151,7 @@ export function PasskeySetupPrompt() {
           type="button"
           onClick={markDismissed}
           aria-label={t.passkeys.promptDismissAriaLabel}
-          className="p-1.5 rounded-xl text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer shrink-0"
+          className="size-11 sm:size-8 inline-flex items-center justify-center rounded-xl text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer shrink-0"
         >
           <X className="w-4 h-4" aria-hidden="true" />
         </button>

@@ -18,7 +18,7 @@ function SignInLink() {
   return (
     <Link
       href={authHref('login', currentPathWithSearch)}
-      className="inline-flex items-center justify-center min-h-[44px] px-3.5 sm:px-4 py-2 rounded-xl text-sm font-bold text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-zinc-950 transition-colors"
+      className="inline-flex items-center justify-center min-h-[44px] px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-zinc-950 transition-colors whitespace-nowrap"
     >
       {t('publicHeader.signIn')}
     </Link>
@@ -32,7 +32,7 @@ function SignInFallback() {
   return (
     <Link
       href={authHref('login', pathname || '/')}
-      className="inline-flex items-center justify-center min-h-[44px] px-3.5 sm:px-4 py-2 rounded-xl text-sm font-bold text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-zinc-950 transition-colors"
+      className="inline-flex items-center justify-center min-h-[44px] px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-zinc-950 transition-colors whitespace-nowrap"
     >
       {t('publicHeader.signIn')}
     </Link>
@@ -44,23 +44,23 @@ export function PublicHeader() {
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-zinc-200/80 dark:border-zinc-800/80 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-xl">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-3">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2 sm:gap-3">
         <Link
           href="/"
           aria-label={t('publicHeader.homeLabel')}
-          className="inline-flex items-center gap-2.5 min-h-[44px] rounded-xl focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-zinc-950 group"
+          className="inline-flex items-center gap-2 sm:gap-2.5 min-h-[44px] min-w-0 rounded-xl focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-zinc-950 group"
         >
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-sky-400 flex items-center justify-center text-white shadow-md shadow-indigo-500/25 group-hover:scale-105 transition-transform">
-            <Wallet className="w-5 h-5" />
+          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-sky-400 flex items-center justify-center text-white shadow-md shadow-indigo-500/25 group-hover:scale-105 transition-transform shrink-0">
+            <Wallet className="w-4 h-4 sm:w-5 sm:h-5" />
           </div>
-          <span className="text-xl font-black tracking-tight text-zinc-900 dark:text-white">
+          <span className="text-lg sm:text-xl font-black tracking-tight text-zinc-900 dark:text-white truncate">
             {t('brand.name')}
           </span>
         </Link>
 
         <nav
           aria-label={t('publicHeader.navLabel')}
-          className="flex items-center gap-2 sm:gap-3"
+          className="flex items-center gap-1.5 sm:gap-3 shrink-0"
         >
           <div
             role="group"
@@ -73,7 +73,7 @@ export function PublicHeader() {
                 type="button"
                 onClick={() => setLanguage(lang)}
                 aria-pressed={language === lang}
-                className={`min-h-[44px] min-w-[44px] sm:min-h-[36px] sm:min-w-0 px-2.5 py-1 rounded-lg text-xs font-bold cursor-pointer transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-500 ${
+                className={`min-h-[44px] min-w-[38px] sm:min-w-0 px-2 sm:px-2.5 py-1 rounded-lg text-xs font-bold cursor-pointer transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-500 ${
                   language === lang
                     ? 'bg-indigo-600 text-white shadow-xs'
                     : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'

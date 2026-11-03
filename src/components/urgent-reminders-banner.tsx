@@ -8,14 +8,16 @@ import confetti from 'canvas-confetti';
 import { useApp, InvoiceItem } from '@/context/AppContext';
 import { useTranslation } from '@/context/LanguageContext';
 import { interpolate } from '@/lib/i18n/translator';
-import { formatCurrency, formatRelativeDueDate } from '@/lib/formatters';
+import { formatCurrency, formatRelativeDueDate, formatDate } from '@/lib/formatters';
 import { getUrgentBills, isInvoiceOverdue } from '@/lib/bill-alerts';
 import { compareMonthKeys, getCurrentMonthKey, formatMonthKey } from '@/lib/month';
+import { ItemRow, RowPrimaryAction } from '@/components/ui/item-row';
+import { CardHeader } from '@/components/ui/card-header';
 
 export function UrgentRemindersBanner() {
   const pathname = usePathname();
   const { walletData, currentUser, refreshWallet, showToast } = useApp();
-  const { t } = useTranslation();
+  const { t, dateLocale } = useTranslation();
   const [payingId, setPayingId] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
 
@@ -87,8 +89,9 @@ export function UrgentRemindersBanner() {
           : 'bg-gradient-to-r from-amber-50/90 to-yellow-50/40 dark:from-amber-950/30 dark:to-zinc-900/60 border-amber-200 dark:border-amber-900/60'
       }`}
     >
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-rose-200/60 dark:border-rose-900/40 gap-3">
-        <div className="flex items-center gap-3">
+      <CardHeader
+        className="pb-4 border-b border-rose-200/60 dark:border-rose-900/40"
+        icon={
           <div
             className={`w-9 h-9 rounded-2xl flex items-center justify-center shrink-0 shadow-xs ${
               overdueCount > 0
@@ -102,92 +105,85 @@ export function UrgentRemindersBanner() {
               <Clock className="w-5 h-5" />
             )}
           </div>
-          <div>
-            <h3 className="text-sm sm:text-base font-extrabold text-zinc-900 dark:text-white flex items-center gap-2">
-              <span>{overdueCount > 0 ? t('urgent.actionRequired') : t('urgent.dueSoon')}</span>
-              <span
-                className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                  overdueCount > 0
-                    ? 'bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300'
-                    : 'bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300'
-                }`}
-              >
-                {urgentBills.length === 1
-                  ? t('urgent.invoiceCountOne')
-                  : interpolate(t('urgent.invoiceCountMany'), { count: urgentBills.length })}
-              </span>
-            </h3>
-            <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-0.5">
-              {overdueCount > 0
-                ? (overdueCount === 1
-                    ? t('urgent.overdueSubtitleOne')
-                    : interpolate(t('urgent.overdueSubtitleMany'), { count: overdueCount }))
-                : t('urgent.dueSoonSubtitle')}
-            </p>
+        }
+        title={
+          <div className="flex items-center gap-2 flex-wrap">
+            <span>{overdueCount > 0 ? t('urgent.actionRequired') : t('urgent.dueSoon')}</span>
+            <span
+              className={`text-chip font-bold px-2 py-0.5 rounded-full whitespace-nowrap shrink-0 ${
+                overdueCount > 0
+                  ? 'bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300'
+                  : 'bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300'
+              }`}
+            >
+              {urgentBills.length === 1
+                ? t('urgent.invoiceCountOne')
+                : interpolate(t('urgent.invoiceCountMany'), { count: urgentBills.length })}
+            </span>
           </div>
-        </div>
+        }
+        description={
+          overdueCount > 0
+            ? (overdueCount === 1
+                ? t('urgent.overdueSubtitleOne')
+                : interpolate(t('urgent.overdueSubtitleMany'), { count: overdueCount }))
+            : t('urgent.dueSoonSubtitle')
+        }
+        actions={
+          pathname !== '/calendar' ? (
+            <Link
+              href="/calendar"
+              className="min-h-11 sm:min-h-0 inline-flex items-center gap-1 text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline"
+            >
+              <span>{t('urgent.viewSchedule')}</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          ) : (
+            <span className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">
+              {t('urgent.highlightedBelow')}
+            </span>
+          )
+        }
+      />
 
-        {pathname !== '/calendar' ? (
-          <Link
-            href="/calendar"
-            className="self-start sm:self-auto inline-flex items-center gap-1 text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline"
-          >
-            <span>{t('urgent.viewSchedule')}</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
-        ) : (
-          <span className="self-start sm:self-auto text-xs font-semibold text-zinc-500 dark:text-zinc-400">
-            {t('urgent.highlightedBelow')}
-          </span>
-        )}
-      </div>
-
-      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 max-h-[32rem] overflow-y-auto pr-1">
+      {/* Urgent bills list. No nested scroll area on phones; scrolls from sm. */}
+      <div className="mt-4 grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3 sm:max-h-[32rem] sm:overflow-y-auto sm:pr-1">
         {displayedItems.map((bill) => {
           const { text: relativeText, isOverdue } = formatRelativeDueDate(bill.dueDate, t);
           const isPaying = payingId === bill.id;
 
           return (
-            <div
+            <ItemRow
               key={bill.id}
-              className="flex items-center justify-between p-3.5 rounded-2xl bg-white/95 dark:bg-zinc-900/90 border border-zinc-200/80 dark:border-zinc-800 shadow-xs hover:border-zinc-300 dark:hover:border-zinc-700 transition-all"
-            >
-              <div className="min-w-0 pr-3">
-                <p className="text-xs font-bold text-zinc-900 dark:text-white truncate">
-                  {bill.title}
-                </p>
-                <div className="flex items-center gap-2 mt-1">
-                  <span
-                    className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${
-                      isOverdue
-                        ? 'bg-rose-100 dark:bg-rose-950/80 text-rose-700 dark:text-rose-300'
-                        : 'bg-amber-100 dark:bg-amber-950/80 text-amber-700 dark:text-amber-300'
-                    }`}
-                  >
-                    {relativeText}
-                  </span>
-                  <span className="text-xs font-black text-zinc-900 dark:text-white tabular-nums">
-                    {formatCurrency(bill.amount, walletData.wallet.currency)}
-                  </span>
-                </div>
-              </div>
-
-              {!isViewer && (
-                <button
-                  type="button"
-                  disabled={isPaying}
-                  onClick={() => handlePay(bill)}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shrink-0 cursor-pointer ${
+              className="p-3 rounded-2xl bg-white/95 dark:bg-zinc-900/90 border border-zinc-200/80 dark:border-zinc-800 shadow-xs hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors"
+              title={bill.title}
+              titleText={bill.title}
+              amount={formatCurrency(bill.amount, walletData.wallet.currency)}
+              meta={<span>{formatDate(bill.dueDate, 'MMM d', dateLocale)}</span>}
+              status={
+                <span
+                  className={`text-chip font-bold px-1.5 py-0.5 rounded-md ${
                     isOverdue
-                      ? 'bg-rose-600 hover:bg-rose-700 text-white shadow-xs shadow-rose-600/20'
-                      : 'bg-amber-600 hover:bg-amber-700 text-white shadow-xs shadow-amber-600/20'
-                  } disabled:opacity-50`}
+                      ? 'bg-rose-100 dark:bg-rose-950/80 text-rose-700 dark:text-rose-300'
+                      : 'bg-amber-100 dark:bg-amber-950/80 text-amber-700 dark:text-amber-300'
+                  }`}
                 >
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span>{isPaying ? t.common.processing : t.common.markPaid}</span>
-                </button>
-              )}
-            </div>
+                  {relativeText}
+                </span>
+              }
+              actions={
+                !isViewer ? (
+                  <RowPrimaryAction
+                    icon={CheckCircle2}
+                    disabled={isPaying}
+                    onClick={() => handlePay(bill)}
+                    aria-label={interpolate(t('common.markPaidAria'), { title: bill.title })}
+                  >
+                    {isPaying ? t.common.processing : t.common.markPaid}
+                  </RowPrimaryAction>
+                ) : undefined
+              }
+            />
           );
         })}
       </div>
@@ -198,7 +194,7 @@ export function UrgentRemindersBanner() {
             type="button"
             onClick={() => setShowAll((prev) => !prev)}
             aria-expanded={showAll}
-            className="text-xs font-bold text-rose-700 dark:text-rose-400 hover:underline cursor-pointer"
+            className="min-h-11 sm:min-h-0 inline-flex items-center justify-center text-xs font-bold text-rose-700 dark:text-rose-400 hover:underline cursor-pointer"
           >
             {showAll
               ? t('urgent.showLess')

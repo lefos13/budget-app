@@ -42,7 +42,7 @@ export default function AlertsPage() {
         </p>
         <Link
           href="/"
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm shadow-md transition-all"
+          className="min-h-11 sm:min-h-0 inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm shadow-md transition-all cursor-pointer"
         >
           <Layers className="w-4 h-4" />
           <span>{t.alerts.goToOverview}</span>
@@ -58,7 +58,7 @@ export default function AlertsPage() {
     <div className="space-y-6">
       {/* Top Header Card */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-5 sm:p-6 rounded-3xl border border-zinc-200/90 dark:border-zinc-800 bg-white/95 dark:bg-zinc-900/90 shadow-sm">
-        <div className="flex items-center gap-3.5">
+        <div className="flex items-center gap-3.5 min-w-0">
           <div
             className={`w-11 h-11 rounded-2xl flex items-center justify-center border shadow-xs shrink-0 ${
               hasOverdue
@@ -76,14 +76,14 @@ export default function AlertsPage() {
               <CheckCircle2 className="w-6 h-6" />
             )}
           </div>
-          <div>
+          <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-xl sm:text-2xl font-black text-zinc-900 dark:text-white tracking-tight">
+              <h1 className="text-xl sm:text-2xl font-black text-zinc-900 dark:text-white tracking-tight truncate">
                 {t.alerts.pageTitle}
               </h1>
               {distinctCount > 0 && (
                 <span
-                  className={`text-xs font-black px-2.5 py-0.5 rounded-full ${
+                  className={`text-chip font-black px-2.5 py-0.5 rounded-full ${
                     hasOverdue
                       ? 'bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-900/60'
                       : 'bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-900/60'
@@ -100,17 +100,17 @@ export default function AlertsPage() {
         </div>
 
         {/* Header Right: Navigation Links */}
-        <div className="flex items-center gap-2 flex-wrap self-start md:self-auto">
+        <div className="flex items-center gap-2 flex-wrap self-start md:self-auto [&>*]:min-h-11 sm:[&>*]:min-h-0">
           <Link
             href="/calendar"
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 text-xs font-bold transition-all shadow-xs"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 text-xs font-bold transition-all shadow-xs cursor-pointer"
           >
             <Calendar className="w-3.5 h-3.5" />
             <span>{t.alerts.goToCalendar}</span>
           </Link>
           <Link
             href="/"
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 text-xs font-bold transition-all shadow-xs"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 text-xs font-bold transition-all shadow-xs cursor-pointer"
           >
             <Layers className="w-3.5 h-3.5" />
             <span>{t.alerts.goToOverview}</span>
@@ -133,7 +133,7 @@ export default function AlertsPage() {
           <div className="mt-6 flex justify-center">
             <Link
               href="/calendar"
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-xs transition-all"
+              className="min-h-11 sm:min-h-0 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-xs transition-all cursor-pointer"
             >
               <Calendar className="w-3.5 h-3.5" />
               <span>{t.alerts.goToCalendar}</span>

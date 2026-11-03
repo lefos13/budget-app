@@ -10,12 +10,14 @@ import {
   Calendar,
   Pencil,
   FileText,
+  CheckCircle2,
 } from 'lucide-react';
 import { useApp, type InvoiceItem } from '@/context/AppContext';
 import { useTranslation } from '@/context/LanguageContext';
 import { interpolate } from '@/lib/i18n/translator';
 import { formatCurrency, formatDate } from '@/lib/formatters';
 import { isRecurringInvoice, monthlyEquivalent, pickNextOccurrences } from '@/lib/recurrence';
+import { ItemRow, RowPrimaryAction, IconButton } from '@/components/ui/item-row';
 
 export function RecurringPaymentsSection({ onAddSubscription }: { onAddSubscription?: () => void } = {}) {
   const { walletData, currentUser, refreshWallet, showToast, openAddInvoice, openEditInvoice } = useApp();
@@ -87,56 +89,61 @@ export function RecurringPaymentsSection({ onAddSubscription }: { onAddSubscript
     }
   };
 
-  const renderCard = (sub: InvoiceItem) => {
+  const renderRow = (sub: InvoiceItem) => {
     const isPaying = payingId === sub.id;
     const isDeleting = deletingId === sub.id;
     const isPaid = sub.status === 'PAID';
     const isOverdue = sub.status === 'OVERDUE';
+    const isSub = sub.type === 'SUBSCRIPTION';
 
     return (
-      <div
+      <ItemRow
         key={sub.id}
-        className="p-4 rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-zinc-50/70 dark:bg-zinc-800/40 hover:border-indigo-300 dark:hover:border-indigo-800 transition-all flex flex-col justify-between space-y-3 group"
-      >
-        <div>
-          <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0 flex-1">
-              <h3 className="text-sm font-bold text-zinc-900 dark:text-white truncate">{sub.title}</h3>
-              <div className="flex items-center gap-1.5 mt-1 text-[11px] text-zinc-500 flex-wrap">
-                {sub.category && (
-                  <span
-                    className="font-bold px-1.5 py-0.5 rounded-md text-[10px]"
-                    style={{
-                      backgroundColor: `${sub.category.color}15`,
-                      color: sub.category.color,
-                    }}
-                  >
-                    {sub.category.name}
-                  </span>
-                )}
-                <span className="font-semibold text-zinc-600 dark:text-zinc-400 capitalize">
-                  {t.recurrence[sub.recurrenceInterval as keyof typeof t.recurrence] || sub.recurrenceInterval}
-                </span>
-              </div>
-            </div>
-
-            <span className="text-sm font-black text-zinc-900 dark:text-white tabular-nums shrink-0">
-              {formatCurrency(sub.amount, currency)}
-            </span>
+        className="p-3.5 hover:bg-zinc-50/70 dark:hover:bg-zinc-800/40 transition-colors"
+        leading={
+          <div
+            className={`w-9 h-9 rounded-xl flex items-center justify-center border ${
+              isSub
+                ? 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border-indigo-200/80 dark:border-indigo-800/60'
+                : 'bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 border-amber-200/80 dark:border-amber-800/60'
+            }`}
+          >
+            {isSub ? <Repeat className="w-4 h-4" /> : <FileText className="w-4 h-4" />}
           </div>
-
-          <div className="mt-3 flex items-center gap-1.5 text-xs text-zinc-500">
+        }
+        title={sub.title}
+        titleText={sub.title}
+        amount={formatCurrency(sub.amount, currency)}
+        badges={
+          <>
+            {sub.category && (
+              <span
+                className="text-chip font-bold px-1.5 py-0.5 rounded-md"
+                style={{
+                  backgroundColor: `${sub.category.color}15`,
+                  color: sub.category.color,
+                }}
+              >
+                {sub.category.name}
+              </span>
+            )}
+            <span className="text-chip font-semibold text-zinc-600 dark:text-zinc-400 capitalize">
+              {t.recurrence[sub.recurrenceInterval as keyof typeof t.recurrence] || sub.recurrenceInterval}
+            </span>
+          </>
+        }
+        meta={
+          <span className="flex items-center gap-1.5">
             <Calendar className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
             <span>{t('bills.nextColon')} </span>
-            <strong className="text-zinc-800 dark:text-zinc-200">
+            <strong className="text-zinc-800 dark:text-zinc-200 font-semibold">
               {formatDate(sub.dueDate, 'MMM d, yyyy', dateLocale)}
             </strong>
-          </div>
-        </div>
-
-        <div className="pt-2 border-t border-zinc-200/60 dark:border-zinc-700/60 flex items-center justify-between gap-2">
+          </span>
+        }
+        status={
           <span
-            className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+            className={`inline-block text-chip font-bold px-2 py-0.5 rounded-full border ${
               isPaid
                 ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/60'
                 : isOverdue
@@ -146,39 +153,37 @@ export function RecurringPaymentsSection({ onAddSubscription }: { onAddSubscript
           >
             {isPaid ? t.bills.paid : isOverdue ? t.bills.overdue : t.bills.pending}
           </span>
-
-          <div className="flex items-center gap-1.5">
+        }
+        actions={
+          <>
             {!isPaid && (
-              <button
-                type="button"
+              <RowPrimaryAction
+                tone={isSub ? 'indigo' : 'emerald'}
+                icon={CheckCircle2}
                 disabled={isPaying}
                 onClick={() => handlePay(sub)}
-                className="px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-bold transition-all shadow-xs cursor-pointer disabled:opacity-50"
+                aria-label={interpolate(t('common.markPaidAria'), { title: sub.title })}
+                className="mr-1"
               >
                 {isPaying ? t.common.processing : t.common.markPaid}
-              </button>
+              </RowPrimaryAction>
             )}
-            <button
-              type="button"
+            <IconButton
+              icon={Pencil}
+              tone="amber"
               onClick={() => openEditInvoice(sub)}
-              className="p-1 rounded-lg text-zinc-400 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/50 transition-colors cursor-pointer"
-              title={t('bills.edit')}
               aria-label={t('bills.edit')}
-            >
-              <Pencil className="w-3.5 h-3.5" />
-            </button>
-            <button
-              type="button"
+            />
+            <IconButton
+              icon={Trash2}
+              tone="rose"
               disabled={isDeleting}
               onClick={() => handleDelete(sub)}
-              className="p-1 rounded-lg text-zinc-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
-              title={t.common.delete}
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        </div>
-      </div>
+              aria-label={t.common.delete}
+            />
+          </>
+        }
+      />
     );
   };
 
@@ -200,7 +205,7 @@ export function RecurringPaymentsSection({ onAddSubscription }: { onAddSubscript
     emptyText: string;
   }) => (
     <section className="space-y-3 min-w-0">
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex flex-col min-[380px]:flex-row min-[380px]:items-start justify-between gap-1.5 min-[380px]:gap-3">
         <div className="flex items-start gap-2.5 min-w-0">
           <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-200/80 dark:border-indigo-800/60 shrink-0">
             {icon}
@@ -208,20 +213,20 @@ export function RecurringPaymentsSection({ onAddSubscription }: { onAddSubscript
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <h3 className="text-sm font-black text-zinc-900 dark:text-white">{title}</h3>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 border border-indigo-200/60 dark:border-indigo-800/60">
+              <span className="text-chip font-bold px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 border border-indigo-200/60 dark:border-indigo-800/60">
                 {items.length}
               </span>
             </div>
-            <p className="text-[11px] text-zinc-500 mt-0.5">{subtitle}</p>
+            <p className="text-meta text-zinc-500 mt-0.5">{subtitle}</p>
           </div>
         </div>
-        <p className="text-sm font-black text-zinc-900 dark:text-white tabular-nums shrink-0">
+        <p className="text-sm font-black text-zinc-900 dark:text-white tabular-nums shrink-0 self-start min-[380px]:self-auto">
           {formatCurrency(cost, currency)}
-          <span className="text-[10px] font-normal text-zinc-500 ml-1">{t.bills.perMonth}</span>
+          <span className="text-chip font-normal text-zinc-500 ml-1">{t.bills.perMonth}</span>
         </p>
       </div>
 
-      <div className="p-2.5 rounded-xl bg-indigo-50/60 dark:bg-indigo-950/30 border border-indigo-200/60 dark:border-indigo-800/40 flex items-start gap-2 text-[11px] text-indigo-950 dark:text-indigo-200">
+      <div className="p-2.5 rounded-xl bg-indigo-50/60 dark:bg-indigo-950/30 border border-indigo-200/60 dark:border-indigo-800/40 flex items-start gap-2 text-meta text-indigo-950 dark:text-indigo-200">
         <Sparkles className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5" />
         <div className="flex-1">{note}</div>
       </div>
@@ -231,26 +236,28 @@ export function RecurringPaymentsSection({ onAddSubscription }: { onAddSubscript
           {emptyText}
         </p>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-3">{items.map(renderCard)}</div>
+        <div className="rounded-2xl border border-zinc-200/80 dark:border-zinc-800 bg-zinc-50/40 dark:bg-zinc-800/20 divide-y divide-zinc-100 dark:divide-zinc-800/80 overflow-hidden">
+          {items.map(renderRow)}
+        </div>
       )}
     </section>
   );
 
   return (
-    <div className="rounded-3xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/90 p-5 sm:p-6 shadow-sm space-y-6">
+    <div className="rounded-3xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/90 p-4 sm:p-6 shadow-sm space-y-6">
       {/* Monthly Recurring Cost Indicator */}
       <div className="flex pb-5 border-b border-zinc-100 dark:border-zinc-800">
-        <div className="flex items-center gap-4 bg-gradient-to-br from-indigo-50/80 to-purple-50/60 dark:from-indigo-950/40 dark:to-purple-950/30 p-3 sm:px-4 sm:py-2.5 rounded-2xl border border-indigo-200/80 dark:border-indigo-800/60 shrink-0 self-start sm:self-auto">
+        <div className="flex items-center gap-3 sm:gap-4 bg-gradient-to-br from-indigo-50/80 to-purple-50/60 dark:from-indigo-950/40 dark:to-purple-950/30 p-3 sm:px-4 sm:py-2.5 rounded-2xl border border-indigo-200/80 dark:border-indigo-800/60 w-full sm:w-auto">
           <div className="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-sm shadow-indigo-600/30">
             <Flame className="w-4 h-4 text-amber-300" />
           </div>
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-300">
+          <div className="min-w-0">
+            <p className="text-chip font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-300">
               {t.bills.monthlyRecurringCost}
             </p>
             <p className="text-base sm:text-lg font-black text-zinc-900 dark:text-white tabular-nums leading-tight">
               {formatCurrency(subscriptionsCost + billsCost, currency)}
-              <span className="text-[11px] font-normal text-zinc-500 ml-1">{t.bills.perMonth}</span>
+              <span className="text-meta font-normal text-zinc-500 ml-1">{t.bills.perMonth}</span>
             </p>
           </div>
         </div>
@@ -264,7 +271,7 @@ export function RecurringPaymentsSection({ onAddSubscription }: { onAddSubscript
           <button
             type="button"
             onClick={onAddSubscription || (() => openAddInvoice(undefined, 'SUBSCRIPTION'))}
-            className="mt-4 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-xs cursor-pointer inline-flex items-center gap-1.5 transition-all"
+            className="mt-4 min-h-11 sm:min-h-0 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-xs cursor-pointer inline-flex items-center justify-center gap-1.5 transition-all"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>{t.bills.addSubscription}</span>

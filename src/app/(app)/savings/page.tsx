@@ -45,7 +45,7 @@ export default function SavingsPage() {
         <p className="text-sm text-zinc-500 mt-2 mb-6">{t.wallet.noWalletDesc}</p>
         <Link
           href="/"
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm shadow-md transition-all"
+          className="min-h-11 sm:min-h-0 inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm shadow-md transition-all cursor-pointer"
         >
           <Layers className="w-4 h-4" />
           <span>{t.alerts.goToOverview}</span>
@@ -130,7 +130,7 @@ export default function SavingsPage() {
           <div className="w-11 h-11 rounded-2xl flex items-center justify-center border shadow-xs shrink-0 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border-emerald-200/80 dark:border-emerald-800/60">
             <PiggyBank className="w-6 h-6" />
           </div>
-          <div>
+          <div className="min-w-0">
             <h1 className="text-xl sm:text-2xl font-black text-zinc-900 dark:text-white tracking-tight">{t('savings.pageTitle')}</h1>
             <p className="text-xs text-zinc-500 mt-0.5">{t('savings.pageSubtitle')}</p>
           </div>
@@ -150,7 +150,7 @@ export default function SavingsPage() {
           <button
             type="button"
             onClick={goToCurrentMonth}
-            className="self-start sm:self-auto shrink-0 px-3 py-1.5 rounded-xl bg-white dark:bg-zinc-900 border border-amber-300 dark:border-amber-800 text-xs font-bold text-amber-800 dark:text-amber-200 hover:bg-amber-100 dark:hover:bg-amber-900/40 cursor-pointer"
+            className="self-start sm:self-auto shrink-0 min-h-11 sm:min-h-0 px-3 py-1.5 rounded-xl bg-white dark:bg-zinc-900 border border-amber-300 dark:border-amber-800 text-xs font-bold text-amber-800 dark:text-amber-200 hover:bg-amber-100 dark:hover:bg-amber-900/40 cursor-pointer inline-flex items-center justify-center"
           >
             {t('savings.goToCurrentMonth')}
           </button>
@@ -169,13 +169,13 @@ export default function SavingsPage() {
         <>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/90 shadow-sm">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">{t('savings.totalSaved')}</p>
+              <p className="text-chip font-bold uppercase tracking-wider text-zinc-500">{t('savings.totalSaved')}</p>
               <p className="text-xl font-black text-zinc-900 dark:text-white mt-1 tabular-nums">
                 {formatCurrency(view.totals.saved, currency)}
               </p>
             </div>
             <div className="p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/90 shadow-sm">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">{t('savings.dueThisMonth')}</p>
+              <p className="text-chip font-bold uppercase tracking-wider text-zinc-500">{t('savings.dueThisMonth')}</p>
               <p
                 className={`text-xl font-black mt-1 tabular-nums ${
                   view.totals.savingsDue > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'
@@ -188,21 +188,21 @@ export default function SavingsPage() {
               <div className="p-4 rounded-2xl border border-indigo-200/80 dark:border-indigo-900/60 bg-indigo-50/60 dark:bg-indigo-950/20 shadow-sm">
                 <div className="flex items-center gap-2">
                   <Landmark className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-300">
+                  <p className="text-chip font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-300">
                     {t('savings.generalTitle')}
                   </p>
                 </div>
                 <p className="text-xl font-black text-zinc-900 dark:text-white mt-1 tabular-nums">
                   {formatCurrency(view.general.balance, currency)}
                 </p>
-                <p className="text-[11px] text-zinc-500 mt-1 leading-snug">{t('savings.generalSubtitle')}</p>
+                <p className="text-meta text-zinc-500 mt-1 leading-snug">{t('savings.generalSubtitle')}</p>
                 {view.general.depositedThisMonth > 0 && (
-                  <p className="text-[11px] font-semibold text-indigo-700 dark:text-indigo-300 mt-1 tabular-nums">
+                  <p className="text-meta font-semibold text-indigo-700 dark:text-indigo-300 mt-1 tabular-nums">
                     {`${t('savings.depositedThisMonth')}: ${formatCurrency(view.general.depositedThisMonth, currency)}`}
                   </p>
                 )}
                 {view.general.boostThisMonth > 0 && (
-                  <p className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 mt-1 tabular-nums">
+                  <p className="text-meta font-semibold text-emerald-700 dark:text-emerald-400 mt-1 tabular-nums">
                     {`${t('savings.boostedThisMonth')}: ${formatCurrency(view.general.boostThisMonth, currency)}`}
                   </p>
                 )}
@@ -215,7 +215,7 @@ export default function SavingsPage() {
                           view.general &&
                           setDepositTarget({ id: view.general.id, name: t('savings.generalTitle'), suggested: 0 })
                         }
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-xs transition-all cursor-pointer"
+                        className="min-h-11 sm:min-h-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-xs transition-all cursor-pointer"
                       >
                         <PiggyBank className="w-3.5 h-3.5" />
                         <span>{t('savings.saveFromBudget')}</span>
@@ -224,7 +224,7 @@ export default function SavingsPage() {
                     <button
                       type="button"
                       onClick={() => setAdjustDirection('IN')}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100/60 dark:hover:bg-indigo-900/40 text-xs font-bold transition-all cursor-pointer"
+                      className="min-h-11 sm:min-h-0 inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100/60 dark:hover:bg-indigo-900/40 text-xs font-bold transition-all cursor-pointer"
                     >
                       <Plus className="w-3.5 h-3.5" />
                       <span>{t('savings.addMoney')}</span>
@@ -233,7 +233,7 @@ export default function SavingsPage() {
                       type="button"
                       disabled={view.general.balance <= 0}
                       onClick={() => setAdjustDirection('OUT')}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100/60 dark:hover:bg-indigo-900/40 text-xs font-bold transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                      className="min-h-11 sm:min-h-0 inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100/60 dark:hover:bg-indigo-900/40 text-xs font-bold transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                       <Minus className="w-3.5 h-3.5" />
                       <span>{t('savings.removeMoney')}</span>
@@ -246,7 +246,7 @@ export default function SavingsPage() {
                           view.general &&
                           setMoveSource({ id: view.general.id, name: t('savings.generalTitle'), balance: view.general.balance, mode: 'MOVE' })
                         }
-                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100/60 dark:hover:bg-indigo-900/40 text-xs font-bold transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                        className="min-h-11 sm:min-h-0 inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100/60 dark:hover:bg-indigo-900/40 text-xs font-bold transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                       >
                         <ArrowRightLeft className="w-3.5 h-3.5" />
                         <span>{t('savings.move')}</span>
@@ -260,7 +260,7 @@ export default function SavingsPage() {
                           view.general &&
                           setMoveSource({ id: view.general.id, name: t('savings.generalTitle'), balance: view.general.balance, mode: 'BOOST' })
                         }
-                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 text-xs font-bold transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                        className="min-h-11 sm:min-h-0 inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 text-xs font-bold transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                       >
                         <Wallet className="w-3.5 h-3.5" />
                         <span>{t('savings.useAsBudget')}</span>
@@ -281,7 +281,7 @@ export default function SavingsPage() {
               <p className="text-sm text-zinc-500 mt-2 max-w-md mx-auto">{t('savings.emptyText')}</p>
               <Link
                 href="/expenses"
-                className="inline-flex items-center gap-2 mt-5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm transition-all"
+                className="min-h-11 sm:min-h-0 inline-flex items-center justify-center gap-2 mt-5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm transition-all"
               >
                 <CreditCard className="w-3.5 h-3.5" />
                 <span>{t('savings.goToExpenses')}</span>

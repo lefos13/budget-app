@@ -102,16 +102,16 @@ export function PendingInvitesBanner() {
             key={invite.id}
             className="p-4 rounded-2xl bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-indigo-500/10 border-2 border-indigo-400/40 dark:border-indigo-600/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-md animate-in slide-in-from-top-3"
           >
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 min-w-0">
               <div
                 className="w-10 h-10 rounded-xl flex items-center justify-center text-white shrink-0 shadow-xs"
                 style={{ backgroundColor: invite.wallet.color || '#6366f1' }}
               >
                 <Wallet className="w-5 h-5" />
               </div>
-              <div>
+              <div className="min-w-0">
                 <div className="flex items-center gap-1.5 flex-wrap">
-                  <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300">
+                  <span className="inline-flex items-center gap-1 text-chip font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300">
                     <Sparkles className="w-3 h-3 text-indigo-500" />
                     {t('invites.targetedInvite')}
                   </span>
@@ -119,18 +119,18 @@ export function PendingInvitesBanner() {
                     ({t.roles[invite.role as keyof typeof t.roles] ?? invite.role})
                   </span>
                 </div>
-                <p className="text-sm font-black text-zinc-900 dark:text-white mt-0.5">
+                <p className="text-sm font-black text-zinc-900 dark:text-white mt-0.5 min-w-0 break-words">
                   {interpolate(t('invites.invitedToJoin'), { name: invite.wallet.name })}
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+            <div className="flex items-center gap-2 w-full sm:w-auto shrink-0 [&>*]:flex-1 sm:[&>*]:flex-none">
               <button
                 type="button"
                 disabled={isProcessing}
                 onClick={() => handleAction(invite, 'DECLINE')}
-                className="px-3.5 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-xs font-bold text-zinc-700 dark:text-zinc-300 transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+                className="min-h-11 sm:min-h-0 px-3.5 py-1.5 rounded-xl border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-xs font-bold text-zinc-700 dark:text-zinc-300 transition-all cursor-pointer disabled:opacity-50 inline-flex items-center justify-center gap-1.5"
               >
                 <X className="w-3.5 h-3.5" />
                 <span>{t('invites.decline')}</span>
@@ -140,7 +140,7 @@ export function PendingInvitesBanner() {
                 type="button"
                 disabled={isProcessing}
                 onClick={() => handleAction(invite, 'ACCEPT')}
-                className="px-4 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-md shadow-indigo-600/20 transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5 hover:scale-[1.02] active:scale-[0.98]"
+                className="min-h-11 sm:min-h-0 px-4 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-md shadow-indigo-600/20 transition-all cursor-pointer disabled:opacity-50 inline-flex items-center justify-center gap-1.5 hover:scale-[1.02] active:scale-[0.98]"
               >
                 <Check className="w-3.5 h-3.5" />
                 <span>{isProcessing ? t('invites.accepting') : t('invites.accept')}</span>

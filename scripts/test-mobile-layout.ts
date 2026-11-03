@@ -21,6 +21,9 @@ const MIGRATED_LISTS = [
   'src/components/calendar/bills-list-view.tsx',
   'src/app/(app)/expenses/page.tsx',
   'src/components/recent-expenses-card.tsx',
+  'src/components/urgent-reminders-banner.tsx',
+  'src/components/calendar/day-agenda-drawer.tsx',
+  'src/components/recurring/recurring-payments-section.tsx',
 ];
 
 const MIGRATED_DIALOGS = [
@@ -37,6 +40,7 @@ const MIGRATED_DIALOGS = [
   'src/components/savings/adjust-general-modal.tsx',
   'src/components/savings/disposition-modal.tsx',
   'src/components/calendar/ics-export-modal.tsx',
+  'src/components/calendar/day-agenda-drawer.tsx',
 ];
 
 const read = (rel: string) => fs.readFileSync(path.join(ROOT, rel), 'utf8');

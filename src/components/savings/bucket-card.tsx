@@ -74,7 +74,7 @@ export function BucketCard({
                       onClick={() => setDraftName(bucket.name)}
                       aria-label={t('savings.rename')}
                       title={t('savings.rename')}
-                      className="p-1 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer shrink-0"
+                      className="size-11 sm:size-7 inline-flex items-center justify-center text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer shrink-0"
                     >
                       <Pencil className="w-3.5 h-3.5" />
                     </button>
@@ -105,7 +105,7 @@ export function BucketCard({
                     type="submit"
                     disabled={isSavingName || !draftName.trim()}
                     aria-label={t('common.save')}
-                    className="p-1 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 rounded-md cursor-pointer disabled:opacity-40"
+                    className="size-11 sm:size-7 inline-flex items-center justify-center text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 rounded-md cursor-pointer disabled:opacity-40"
                   >
                     <Check className="w-4 h-4" />
                   </button>
@@ -114,7 +114,7 @@ export function BucketCard({
                     disabled={isSavingName}
                     onClick={() => setDraftName(null)}
                     aria-label={t('common.cancel')}
-                    className="p-1 text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md cursor-pointer"
+                    className="size-11 sm:size-7 inline-flex items-center justify-center text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-md cursor-pointer"
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -134,7 +134,7 @@ export function BucketCard({
             <p className="text-lg font-black text-zinc-900 dark:text-white tabular-nums">
               {formatCurrency(bucket.balance, currency)}
             </p>
-            <p className="text-[11px] text-zinc-500 tabular-nums">
+            <p className="text-meta text-zinc-500 tabular-nums">
               {interpolate(t('savings.savedOfTarget'), {
                 saved: `${percent}%`,
                 target: formatCurrency(bucket.target, currency),
@@ -154,9 +154,9 @@ export function BucketCard({
           <div className="h-full rounded-full transition-all" style={{ width: `${percent}%`, backgroundColor: bucket.color }} />
         </div>
 
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 min-[340px]:grid-cols-2 gap-2">
           <div className="p-3 rounded-2xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-800">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">{t('savings.dueThisMonth')}</p>
+            <p className="text-chip font-bold uppercase tracking-wider text-zinc-500">{t('savings.dueThisMonth')}</p>
             <p
               className={`text-sm font-black tabular-nums mt-0.5 ${
                 bucket.savingsDue > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'
@@ -166,7 +166,7 @@ export function BucketCard({
             </p>
           </div>
           <div className="p-3 rounded-2xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-800">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">{t('savings.monthlyContribution')}</p>
+            <p className="text-chip font-bold uppercase tracking-wider text-zinc-500">{t('savings.monthlyContribution')}</p>
             <p className="text-sm font-black text-zinc-900 dark:text-white tabular-nums mt-0.5">
               {formatCurrency(bucket.contributionDue, currency)}
             </p>
@@ -179,7 +179,7 @@ export function BucketCard({
               <button
                 type="button"
                 onClick={onDeposit}
-                className="flex-1 inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs transition-all cursor-pointer"
+                className="flex-1 min-h-11 sm:min-h-0 inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs transition-all cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>
@@ -193,7 +193,7 @@ export function BucketCard({
               <button
                 type="button"
                 onClick={onMove}
-                className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-xs font-bold transition-all cursor-pointer"
+                className="min-h-11 sm:min-h-0 inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 text-xs font-bold transition-all cursor-pointer"
               >
                 <ArrowRightLeft className="w-3.5 h-3.5" />
                 <span>{t('savings.move')}</span>
@@ -204,10 +204,10 @@ export function BucketCard({
       </div>
 
       <div className="border-t border-zinc-100 dark:border-zinc-800">
-        <p className="px-5 pt-3 text-[10px] font-bold uppercase tracking-wider text-zinc-400">{t('savings.expensesInBucket')}</p>
+        <p className="px-5 pt-3 text-chip font-bold uppercase tracking-wider text-zinc-400">{t('savings.expensesInBucket')}</p>
         <ul className="divide-y divide-zinc-100 dark:divide-zinc-800/80">
           {bucket.expenses.map((e) => (
-            <li key={e.id} className="px-5 py-3 flex items-center justify-between gap-3">
+            <li key={e.id} className="px-4 sm:px-5 py-3 flex flex-col min-[380px]:flex-row min-[380px]:items-center justify-between gap-1.5 min-[380px]:gap-3">
               <div className="min-w-0">
                 <p className="text-sm font-semibold text-zinc-900 dark:text-white truncate">{e.title}</p>
                 <p className="text-xs text-zinc-500 mt-0.5">
@@ -228,8 +228,8 @@ export function BucketCard({
                       : t('savings.dueNow')}
                 </p>
               </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <span className="text-xs font-bold text-zinc-700 dark:text-zinc-300 tabular-nums">
+              <div className="flex items-center justify-between min-[380px]:justify-end gap-2 shrink-0">
+                <span className="text-xs font-bold text-zinc-700 dark:text-zinc-300 tabular-nums whitespace-nowrap">
                   {formatCurrency(e.allocated, currency)} / {formatCurrency(e.amount, currency)}
                 </span>
                 {canEdit && (
@@ -240,7 +240,7 @@ export function BucketCard({
                         onClick={() => onEditExpense(e)}
                         aria-label={t('savings.editExpense')}
                         title={t('savings.editExpense')}
-                        className="p-1.5 text-zinc-400 hover:text-amber-600 dark:hover:text-amber-400 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-950/40 transition-colors cursor-pointer"
+                        className="size-11 sm:size-8 inline-flex items-center justify-center text-zinc-400 hover:text-amber-600 dark:hover:text-amber-400 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-950/40 transition-colors cursor-pointer"
                       >
                         <Pencil className="w-3.5 h-3.5" />
                       </button>
@@ -251,7 +251,7 @@ export function BucketCard({
                       onClick={() => onUnlink({ id: e.id, title: e.title })}
                       aria-label={t('savings.unlinkTitle')}
                       title={t('savings.unlinkTitle')}
-                      className="p-1.5 text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer disabled:opacity-50"
+                      className="size-11 sm:size-8 inline-flex items-center justify-center text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer disabled:opacity-50"
                     >
                       <Unlink className="w-3.5 h-3.5" />
                     </button>
